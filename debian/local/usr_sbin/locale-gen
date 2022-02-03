@@ -79,7 +79,7 @@ if [ -z "$1" ] && [ "$KEEP" -eq 0 ]; then
 	rm -rf /usr/lib/locale/locale-archive || true
 	for dir in /usr/lib/locale/*; do
 		[ -e "$dir" ] || continue
-		if [ "${dir#/usr/lib/locale/}" = C.UTF-8 ]; then
+		if [ "${dir#/usr/lib/locale/}" = C.utf8 ]; then
 			# owned by libc-bin
 			continue
 		fi
