@@ -51,6 +51,9 @@ hurd-i386/tg-EIEIO-fr.diff
 hurd-i386/tg-EGREGIOUS-fr.diff
 hurd-i386/git-spawni-reauth.diff
 
+# 2.37
+hurd-i386/git-htl-pthread-self-early.diff
+
 hurd-i386/local-enable-ldconfig.diff
 hurd-i386/tg-sysvshm.diff
 hurd-i386/tg-thread-cancel.diff
@@ -95,8 +98,6 @@ m68k/submitted-gcc34-seccomment.diff
 mips/submitted-rld_map.diff
 
 powerpc/local-powerpc8xx-dcbz.diff
-
-riscv64/local-asin-acos-raise-invalid.diff
 
 sh4/local-fpscr_values.diff
 
