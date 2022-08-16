@@ -1,3 +1,24 @@
+glibc (2.34-4) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-ipv6.diff: Add ipv6 RFC options.
+  * debian/patches/hurd-i386/git-ip_mreqn.diff: Move ip_mreqn structure from
+    Linux to generic.
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fixes mbstowcs attributes.  Closes: #1017367.
+  * debian/debhelper.in/libc.{pre,post}: only set LC_ALL=C after loading
+    debconf.  Closes: #1017406.
+
+  [ наб ]
+  * debian/local/manpages/locale-gen.8: rewrite.
+  * debian/local/manpages/locale-gen.8.sgml: drop, replaced by above.
+  * debian/local/usr_sbin/locale-gen: clean up and optimize.
+  * debian/local/manpages/locale.alias.5: drop, unused.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Tue, 16 Aug 2022 23:35:10 +0200
+
 glibc (2.34-3) unstable; urgency=medium
 
   [ Aurelien Jarno ]
