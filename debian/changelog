@@ -1,3 +1,62 @@
+glibc (2.34-5) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * control: Bump hurd break: glibc now using getrandom() at process
+    initialization makes random bootstrap more complex and the system startup
+    hang if not done properly.
+  * debian/patches/hurd-i386/local-no-bootstrap-fs-access.2.diff: Fix
+    another access call which poses problem during bootstrap.
+  * debian/patches/hurd-i386/git-bootstrap-enable_secure.diff: Fix spurious
+    checks during initialization of processes running at bootstrap.
+  * debian/testsuite-xfail-debian.mk: Filter out tests that stay stuck.
+  * debian/patches/hurd-i386/git-global.diff: Fix elf/global missing
+    dependency.
+  * debian/patches/hurd-i386/git-loadfail.diff: Fix elf/loadfail missing
+    dependency.
+  * debian/patches/hurd-i386/git-cond-destroy.diff: Fix tst-cond20.
+  * debian/debhelper.in/libc-udeb.install.hurd-i386: ship the dynamic linker in
+    libc0.3-udeb.
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fixes generic brk system call emulation in __brk_call.  Closes:
+      #1017113.
+  * debian/debhelper.in/libc-dev.NEWS: fix a typo.
+  * debian/control.in/libc: drop duplicate breaks entry.
+  * debian/patches/*: fix typos in patch description.
+  * debian/rules: drop trailing whitespaces.
+  * debian/debhelper.in/glibc-source.lintian-overrides: drop unused overrides.
+  * debian/debhelper.in/libc-bin.lintian-overrides: drop unused overrides.
+  * debian/source/lintian-overrides: drop unused overrides.
+  * debian/debhelper.in/libc-devtools.lintian-overrides: rename overrides
+    following lintian changes.
+  * debian/debhelper.in/libc{,-otherbuild].lintian-overrides: rename overrides
+    following lintian changes.
+  * debian/*: use /usr/share/dpkg/pkg-info.mk instead of parsing changelog
+    with dpkg-parsechangelog.
+  * debian/rules.d/build.mk, debian/rules.d/debhelper.mk: update NPTL pretty
+    printer path following the merge of libpthread into libc.
+  * debian/compat, debian/control.in/main, debian/rules.d/debhelper.mk:
+    increase debhelper compat to 13, the declarative way, and replace calls to
+    dh_systemd_enable and dh_systemd_start by dh_installsystemd.
+  * debian/rules.d/build.mk, debian/rules.d/control.mk,
+    debian/rules.d/debhelper.mk: remove support for armel/armhf biarch. It has
+    never been used in Debian, and has stopped being used in Ubuntu.
+  * debian/rules.d/debhelper.mk: stop removing comments from .install files.
+  * debian/rules.d/debhelper.mk: stop cleaning nonexistent files.
+  * debian/debhelper.in/*.install, debian/rules, debian/rules.d/debhelper.mk:
+    use substitution variables from debhelper 13.
+  * debian/rules, debian/rules.d/build.mk, debian/rules.d/debhelper.mk,
+    debian/sysdeps/*.mk: install the main flavor into debian/tmp instead of
+    debian/tmp-libc.
+  * debian/debhelper.in/*.install*, debian/rules.d/debhelper.mk: simplify
+    dh_install files by using the auto source/dest features of debhelper.
+  * debian/debhelper.in/libc.lintian-overrides, debian/rules.d/debhelper.mk:
+    drop package name for lintian overrides files.
+  * debian/control.in/main: bump Standards-Version to 4.6.1 (no changes).
+
+ -- Aurelien Jarno <aurel32@debian.org>  Wed, 24 Aug 2022 23:19:48 +0200
+
 glibc (2.34-4) unstable; urgency=medium
 
   [ Samuel Thibault ]
@@ -17945,4 +18004,3 @@ glibc (2.1-1) unstable; urgency=low
   * Removed hurd-utimes patch, it is integrated upstream.
 
  -- Joel Klecker <espy@debian.org>  Sat,  6 Feb 1999 12:26:10 -0800
-
