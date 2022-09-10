@@ -1,3 +1,16 @@
+glibc (2.34-8) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-strerror_X.diff: Fix strerror format.
+  * debian/patches/hurd-i386/git-xpg_strerror.diff: Fix xpg_error behavior.
+  * debian/patches/hurd-i386/git-thrd_current.diff: Fix calling thrd_current
+    without libpthread.
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 11 Sep 2022 00:05:13 +0200
+
 glibc (2.34-7) unstable; urgency=medium
 
   [ Samuel Thibault ]
