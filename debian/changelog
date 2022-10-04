@@ -1,3 +1,25 @@
+glibc (2.35-2) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-SOMAXCONN.diff: Bump SOMAXCONN to 4096.
+  * debian/debhelper.in/libc-udeb.install.hurd-i386: Allow installing
+    /lib/ld.so, it's required on hurd-i386.
+
+  [ Aurelien Jarno ]
+  * debian/control.in/libc: add a Breaks against firefox (<< 91~) and
+    firefox-esr (<< 91~) to ensure a seccomp filter compatible with glibc
+    2.34.  Closes: #1020894.
+  * debian/sysdeps/sparc64.mk: pass --disable-default-pie to configure.
+    Closes: #1020974.
+  * debian/rules.d/control.mk: add the arc architecture to the control file.
+    Closes: #1021167.
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix initialization of dp register.  Closes: #1020857.
+    - Fix SIGILL on Haswell CPUs without BMI1/BMI2 instructions. Closes:
+      #1019855.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Tue, 04 Oct 2022 07:07:58 +0200
+
 glibc (2.35-1) unstable; urgency=medium
 
   [ Samuel Thibault ]
