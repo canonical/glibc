@@ -1,3 +1,23 @@
+glibc (2.36-8) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-sem_wait_race.diff: Fix sem_wait race.
+
+  [ Aurelien Jarno ]
+  * debian/po/de.po: update German debconf templates translation, by Helge
+    Kreutzmann. Closes: #1027782.
+  * debian/local/manpages/po/*: update with debconf-updatepo.
+  * debian/po/ko.po: update Korean debconf templates translation, by Changwoo
+    Ryu.  Closes: #1027986.
+  * debian/po/es.po: update Spanish debconf templates translation, by
+    Camaleón.
+  * debian/po/sk.po: update Slovak debconf templates translation, by Marek
+    Sýkora.
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+  * debian/control.in/main: bump Standards-Version to 4.6.2 (no changes).
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 07 Jan 2023 12:29:49 +0100
+
 glibc (2.36-7) unstable; urgency=medium
 
   [ Samuel Thibault ]
