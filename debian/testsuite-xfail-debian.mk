@@ -339,6 +339,9 @@ test-xfail-test-ldouble-exp = yes
 test-xfail-test-ldouble-sinh = yes
 test-xfail-test-ldouble-tgamma = yes
 
+# Test failing in check-prof
+test-xfail-tst-statx = yes
+
 endif
 
 

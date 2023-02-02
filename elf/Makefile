@@ -1,4 +1,4 @@
-# Copyright (C) 1995-2022 Free Software Foundation, Inc.
+# Copyright (C) 1995-2023 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -34,7 +34,6 @@ routines = \
   dl-addr \
   dl-addr-obj \
   dl-early_allocate \
-  dl-error \
   dl-iteratephdr \
   dl-libc \
   dl-origin \
@@ -53,6 +52,8 @@ routines = \
 # profiled libraries.
 dl-routines = \
   dl-call-libc-early-init \
+  dl-call_fini \
+  dl-catch \
   dl-close \
   dl-debug \
   dl-debug-symbols \
@@ -133,7 +134,6 @@ rtld-routines = \
   dl-diagnostics-cpu \
   dl-diagnostics-kernel \
   dl-environ \
-  dl-error-minimal \
   dl-hwcaps \
   dl-hwcaps-subdirs \
   dl-hwcaps_split \
@@ -160,11 +160,6 @@ CFLAGS-dl-minimal-malloc.op = $(no-stack-protector)
 # in _dl_start.  Make sure this isn't turned into a call to regular memset.
 ifeq (yes,$(have-loop-to-function))
 CFLAGS-rtld.c += -fno-tree-loop-distribute-patterns
-endif
-
-ifeq (yes,$(have-loop-to-function))
-# Likewise, during static library startup, memset is not yet available.
-CFLAGS-dl-support.c = -fno-tree-loop-distribute-patterns
 endif
 
 # Compile rtld itself without stack protection.
@@ -374,6 +369,8 @@ tests += \
   tst-align \
   tst-align2 \
   tst-align3 \
+  tst-audit-tlsdesc \
+  tst-audit-tlsdesc-dlopen \
   tst-audit1 \
   tst-audit2 \
   tst-audit8 \
@@ -408,6 +405,7 @@ tests += \
   tst-dlmopen4 \
   tst-dlmopen-dlerror \
   tst-dlmopen-gethostbyname \
+  tst-dlmopen-twice \
   tst-dlopenfail \
   tst-dlopenfail-2 \
   tst-dlopenrpath \
@@ -601,19 +599,16 @@ $(objpfx)tst-relro-libc.out: tst-relro-symbols.py $(..)/scripts/glibcelf.py \
 	    --required=_IO_file_jumps \
 	    --required=_IO_file_jumps_maybe_mmap \
 	    --required=_IO_file_jumps_mmap \
-	    --required=_IO_helper_jumps \
 	    --required=_IO_mem_jumps \
-	    --required=_IO_obstack_jumps \
+	    --required=_IO_printf_buffer_as_file_jumps \
 	    --required=_IO_proc_jumps \
-	    --required=_IO_str_chk_jumps \
 	    --required=_IO_str_jumps \
-	    --required=_IO_strn_jumps \
 	    --required=_IO_wfile_jumps \
 	    --required=_IO_wfile_jumps_maybe_mmap \
 	    --required=_IO_wfile_jumps_mmap \
 	    --required=_IO_wmem_jumps \
+	    --required=_IO_wprintf_buffer_as_file_jumps \
 	    --required=_IO_wstr_jumps \
-	    --required=_IO_wstrn_jumps \
 	    --optional=_IO_old_cookie_jumps \
 	    --optional=_IO_old_file_jumps \
 	    --optional=_IO_old_proc_jumps \
@@ -765,6 +760,8 @@ modules-names += \
   tst-alignmod3 \
   tst-array2dep \
   tst-array5dep \
+  tst-audit-tlsdesc-mod1 \
+  tst-audit-tlsdesc-mod2 \
   tst-audit11mod1 \
   tst-audit11mod2 \
   tst-audit12mod1 \
@@ -798,6 +795,7 @@ modules-names += \
   tst-auditmanymod7 \
   tst-auditmanymod8 \
   tst-auditmanymod9 \
+  tst-auditmod-tlsdesc  \
   tst-auditmod1 \
   tst-auditmod9a \
   tst-auditmod9b \
@@ -834,6 +832,8 @@ modules-names += \
   tst-dlmopen1mod \
   tst-dlmopen-dlerror-mod \
   tst-dlmopen-gethostbyname-mod \
+  tst-dlmopen-twice-mod1 \
+  tst-dlmopen-twice-mod2 \
   tst-dlopenfaillinkmod \
   tst-dlopenfailmod1 \
   tst-dlopenfailmod2 \
@@ -990,23 +990,8 @@ modules-names += tst-gnu2-tls1mod
 $(objpfx)tst-gnu2-tls1: $(objpfx)tst-gnu2-tls1mod.so
 tst-gnu2-tls1mod.so-no-z-defs = yes
 CFLAGS-tst-gnu2-tls1mod.c += -mtls-dialect=gnu2
+endif # $(have-mtls-dialect-gnu2)
 
-tests += tst-audit-tlsdesc tst-audit-tlsdesc-dlopen
-modules-names += tst-audit-tlsdesc-mod1 tst-audit-tlsdesc-mod2 tst-auditmod-tlsdesc
-$(objpfx)tst-audit-tlsdesc: $(objpfx)tst-audit-tlsdesc-mod1.so \
-			    $(objpfx)tst-audit-tlsdesc-mod2.so \
-			    $(shared-thread-library)
-CFLAGS-tst-audit-tlsdesc-mod1.c += -mtls-dialect=gnu2
-CFLAGS-tst-audit-tlsdesc-mod2.c += -mtls-dialect=gnu2
-$(objpfx)tst-audit-tlsdesc-dlopen: $(shared-thread-library)
-$(objpfx)tst-audit-tlsdesc-dlopen.out: $(objpfx)tst-audit-tlsdesc-mod1.so \
-				       $(objpfx)tst-audit-tlsdesc-mod2.so
-$(objpfx)tst-audit-tlsdesc-mod1.so: $(objpfx)tst-audit-tlsdesc-mod2.so
-$(objpfx)tst-audit-tlsdesc.out: $(objpfx)tst-auditmod-tlsdesc.so
-tst-audit-tlsdesc-ENV = LD_AUDIT=$(objpfx)tst-auditmod-tlsdesc.so
-$(objpfx)tst-audit-tlsdesc-dlopen.out: $(objpfx)tst-auditmod-tlsdesc.so
-tst-audit-tlsdesc-dlopen-ENV = LD_AUDIT=$(objpfx)tst-auditmod-tlsdesc.so
-endif
 ifeq (yes,$(have-protected-data))
 modules-names += tst-protected1moda tst-protected1modb
 tests += tst-protected1a tst-protected1b
@@ -1283,6 +1268,7 @@ $(objpfx)dl-allobjs.os: $(all-rtld-routines:%=$(objpfx)%.os)
 rtld-stubbed-symbols = \
   __GI___pthread_disable_asynccancel \
   __GI___pthread_enable_asynccancel \
+  __libc_assert_fail \
   __pthread_disable_asynccancel \
   __pthread_enable_asynccancel \
   calloc \
@@ -2695,12 +2681,6 @@ $(objpfx)tst-rtld-help.out: $(objpfx)ld.so
 	$(test-wrapper) $(rtld-prefix) --help > $@; \
 	status=$$?; \
 	echo "info: ld.so exit status: $$status" >> $@; \
-	if ! grep -q 'Legacy HWCAP subdirectories under library search path directories' $@; then \
-	  echo "error: missing subdirectory pattern" >> $@; \
-	  if test $$status -eq 0; then \
-	    status=1; \
-	  fi; \
-	fi; \
 	(exit $$status); \
 	$(evaluate-test)
 
@@ -2888,7 +2868,7 @@ $(objpfx)tst-relr-mod3b.so: $(objpfx)tst-relr-mod3b.os
 $(objpfx)tst-relr-mod3a.so: $(objpfx)tst-relr-mod3a.os \
   $(objpfx)tst-relr-mod3b.so
 	$(LINK.o) -nostdlib -nostartfiles -Wl,-z,pack-relative-relocs \
-	$(LDFLAGS-soname-fname) \
+	$(LDFLAGS-soname-fname) $(LDFLAGS-rpath-ORIGIN) \
 	-shared -o $@.new $(filter-out $(map-file),$^)
 	$(call after-link,$@.new)
 	mv -f $@.new $@
@@ -2907,7 +2887,7 @@ $(objpfx)tst-relr-mod4b.so: $(objpfx)tst-relr-mod4b.os
 $(objpfx)tst-relr-mod4a.so: $(objpfx)tst-relr-mod4a.os \
   $(objpfx)tst-relr-mod4b.so
 	$(LINK.o) -nostdlib -nostartfiles -Wl,-z,pack-relative-relocs \
-	$(LDFLAGS-soname-fname) \
+	$(LDFLAGS-soname-fname) $(LDFLAGS-rpath-ORIGIN) \
 	-shared -o $@.new $(filter-out $(map-file),$^)
 	$(call after-link,$@.new)
 	mv -f $@.new $@
@@ -2967,3 +2947,25 @@ $(objpfx)tst-tls-allocation-failure-static-patched.out: \
 	grep -q '^Fatal glibc error: Cannot allocate TLS block$$' $@ \
 	  && grep -q '^status: 127$$' $@; \
 	  $(evaluate-test)
+
+$(objpfx)tst-audit-tlsdesc: $(objpfx)tst-audit-tlsdesc-mod1.so \
+			    $(objpfx)tst-audit-tlsdesc-mod2.so \
+			    $(shared-thread-library)
+ifeq (yes,$(have-mtls-dialect-gnu2))
+# The test is valid for all TLS types, but we want to exercise GNU2
+# TLS if possible.
+CFLAGS-tst-audit-tlsdesc-mod1.c += -mtls-dialect=gnu2
+CFLAGS-tst-audit-tlsdesc-mod2.c += -mtls-dialect=gnu2
+endif
+$(objpfx)tst-audit-tlsdesc-dlopen: $(shared-thread-library)
+$(objpfx)tst-audit-tlsdesc-dlopen.out: $(objpfx)tst-audit-tlsdesc-mod1.so \
+				       $(objpfx)tst-audit-tlsdesc-mod2.so
+$(objpfx)tst-audit-tlsdesc-mod1.so: $(objpfx)tst-audit-tlsdesc-mod2.so
+$(objpfx)tst-audit-tlsdesc.out: $(objpfx)tst-auditmod-tlsdesc.so
+tst-audit-tlsdesc-ENV = LD_AUDIT=$(objpfx)tst-auditmod-tlsdesc.so
+$(objpfx)tst-audit-tlsdesc-dlopen.out: $(objpfx)tst-auditmod-tlsdesc.so
+tst-audit-tlsdesc-dlopen-ENV = LD_AUDIT=$(objpfx)tst-auditmod-tlsdesc.so
+
+$(objpfx)tst-dlmopen-twice.out: \
+  $(objpfx)tst-dlmopen-twice-mod1.so \
+  $(objpfx)tst-dlmopen-twice-mod2.so

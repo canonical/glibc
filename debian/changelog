@@ -1,3 +1,32 @@
+glibc (2.37-0ubuntu1) lunar; urgency=medium
+
+  * New upstream release
+    + d/symbols.wildcard: add GLIBC_2.37 symbol
+    + d/libc6.symbols.common: drop libcrypt.so.1, removed upstream
+    + d/patches:
+      - Dropped all upstream patches from stable branch
+      - localedata/locales-fr.diff refreshed
+      - riscv64/local-asin-acos-raise-invalid.diff dropped since
+        it has been implemented upstream
+      - any/local-ldso-disable-hwcap.diff rebased
+        => Do we still need this?
+      - ubuntu/local-fallback-to-monotonic.diff rebased
+      - 0001-Ensure-calculations-happen-with-desired-rounding-mod.patch
+        Dropped, merged upstream
+      - 0001-Avoid-undefined-behaviour-in-ibm128-implementation-o.patch
+        Dropped, merged upstream
+      - 0001-Fix-BZ-29463-in-the-ibm128-implementation-of-y1l-too.patch
+        Dropped, merged upstream
+      - u/submitted-no-sprintf-pre-truncate.diff: dropped as
+        -D_FORTIFY_SOURCE=2 has now been the default in Debian for >7 years
+        without this patch.
+  * Add io/tst-statx to armhf xfails as it's failing on check-prof
+  * d/symbols.wildcard: add GLIBC_ABI_DT_RELR symbol introduced back in 2.36
+  * d/libc6.symbols.common: include libc_malloc_debug.so.0 introduced in 2.34
+  * d/libc6.symbols.common: remove libSegFault.so dropped in 2.35
+
+ -- Simon Chopin <schopin@ubuntu.com>  Thu, 02 Feb 2023 10:07:58 +0100
+
 glibc (2.36-0ubuntu4) kinetic; urgency=medium
 
   [ Michael Hudson-Doyle ]

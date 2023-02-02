@@ -60,7 +60,7 @@ See: https://github.com/microsoft/WSL/issues/4898
 +			&& valid_nanosleep_ts(req)))
 +    MONOTONIC_FALLBACK;
  #else
-   if (!in_time_t_range (req->tv_sec))
+   if (!in_int32_t_range (req->tv_sec))
      {
        r = INTERNAL_SYSCALL_CANCEL (clock_nanosleep_time64, clock_id, flags,
  				   req, rem);

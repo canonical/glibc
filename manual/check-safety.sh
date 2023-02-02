@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright 2014-2022 Free Software Foundation, Inc.
+# Copyright 2014-2023 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -109,15 +109,15 @@ success=false
 # optional comment about exclusions is between []s at the end of the
 # line.
 grep -n '^@c \+[^@ ]\+\( dup\)\?'\
-'\( @\(mt\|a[sc]\)[^ ]*\)*\( \[.*\]\)\?$' "$@" |
+'\( @\(mt\|a[sc]\)[^ ]*\)*\( \[.*]\)\?$' "$@" |
 grep -v ':@c *[^@{}]*\( @mt[^ {}]*\)*'\
-'\( @as[^ {}]*\)*\( @ac[^ {}]*\)*\( \[.*\]\)\?$' &&
+'\( @as[^ {}]*\)*\( @ac[^ {}]*\)*\( \[.*]\)\?$' &&
 success=false
 
 # Check that comments containing safety remarks do not contain
 # duplicate remarks.
 grep -n '^@c \+[^@ ]\+\( dup\)\?'\
-'\( @\(mt\|a[sc]\)[^ ]*\)*\( \[.*\]\)\?$' "$@" |
+'\( @\(mt\|a[sc]\)[^ ]*\)*\( \[.*]\)\?$' "$@" |
 grep '[^:]\(@\(mt\|a[sc]\)[^ ]*\) \(.*[^:]\)\?\1\($\| \)' &&
 success=false
 

@@ -85,11 +85,11 @@ by @theglibc{}.
 
 @deftypefun int sem_wait (sem_t *@var{sem});
 @safety{@prelim{}@mtsafe{}@assafe{}@acunsafe{@acucorrupt{}}}
-@c atomic_increment (nwaiters) acucorrupt
+@c atomic_fetch_add_relaxed (nwaiters) acucorrupt
 @c
 @c Given the use atomic operations this function seems
 @c to be AS-safe.  It is AC-unsafe because there is still
-@c a window between atomic_decrement and the pthread_push
+@c a window between atomic_fetch_add_relaxed and the pthread_push
 @c of the handler that undoes that operation.  A cancellation
 @c at that point would fail to remove the process from the
 @c waiters count.
