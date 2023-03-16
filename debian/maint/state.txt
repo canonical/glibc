@@ -1,0 +1,32 @@
+YES
+FirstPatch: 0001-cdefs-Limit-definition-of-fortification-macros.patch
+020b43544a26237d752eae4a715c403f29226542 cdefs: Limit definition of fortification macros
+
+YES
+FirstPatch: 0002-LoongArch-Add-new-relocation-types.patch
+9f8513dc64119a424b312db97cef5d87d376defa LoongArch: Add new relocation types.
+
+YES
+FirstPatch: 0003-Use-64-bit-time_t-interfaces-in-strftime-and-strptim.patch
+fb7b95dc47b0d5ecd48339512d091b6b23e7d900 Use 64-bit time_t interfaces in strftime and strptime (bug 30053)
+
+YES
+FirstPatch: 0004-Account-for-grouping-in-printf-width-bug-30068.patch
+07b9521fc6369d000216b96562ff7c0ed32a16c4 Account for grouping in printf width (bug 30068)
+
+YES
+FirstPatch: 0005-NEWS-Document-CVE-2023-25139.patch
+6fe86ecd787a2624cd638131629ba9a824040308 NEWS: Document CVE-2023-25139.
+
+YES
+FirstPatch: 0006-elf-Smoke-test-ldconfig-p-against-system-etc-ld.so.c.patch
+d8e1a7590d375159fb5aac07ad8111ab4699e994 elf: Smoke-test ldconfig -p against system /etc/ld.so.cache
+
+YES
+FirstPatch: 0007-stdlib-Undo-post-review-change-to-16adc58e73f3-BZ-27.patch
+790e504a172a5ef7399b3e3f481d76394dce0a23 stdlib: Undo post review change to 16adc58e73f3 [BZ #27749]
+
+YES
+FirstPatch: 0008-elf-Restore-ldconfig-libc6-implicit-soname-logic-BZ-.patch
+590d0e089b06f158ded713f5e5600eaa66dcea44 elf: Restore ldconfig libc6 implicit soname logic [BZ #30125]
+

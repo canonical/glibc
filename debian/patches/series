@@ -1,3 +1,12 @@
+upstream-updates/0001-cdefs-Limit-definition-of-fortification-macros.patch
+upstream-updates/0002-LoongArch-Add-new-relocation-types.patch
+upstream-updates/0003-Use-64-bit-time_t-interfaces-in-strftime-and-strptim.patch
+upstream-updates/0004-Account-for-grouping-in-printf-width-bug-30068.patch
+upstream-updates/0005-NEWS-Document-CVE-2023-25139.patch
+upstream-updates/0006-elf-Smoke-test-ldconfig-p-against-system-etc-ld.so.c.patch
+upstream-updates/0007-stdlib-Undo-post-review-change-to-16adc58e73f3-BZ-27.patch
+upstream-updates/0008-elf-Restore-ldconfig-libc6-implicit-soname-logic-BZ-.patch
+
 locale/check-unknown-symbols.diff
 locale/locale-print-LANGUAGE.diff
 locale/LC_IDENTIFICATION-optional-fields.diff
@@ -170,4 +179,7 @@ ubuntu/local-pldd-root.diff
 ubuntu/local-fallback-to-monotonic.diff
 ubuntu/submitted-broadcast-to-prevent-deadlock.diff
 ubuntu/sdt-headers.patch
+ubuntu/lp2007599-S390-Influence-hwcaps-stfle-via-GLIBC_TUNABLES.patch
 restore-libc-DT_HASH.patch
+
+#

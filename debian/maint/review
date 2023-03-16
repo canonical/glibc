@@ -212,7 +212,7 @@ class State:
                 fp.write('\n')
 
 
-V = "2.36"
+V = "2.37"
 
 
 def getch():

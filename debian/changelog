@@ -1,3 +1,23 @@
+glibc (2.37-0ubuntu2) lunar; urgency=medium
+
+  * d/p/u/lp2007599*.patch: add tunables for s390x (LP: #2007599)
+  * d/p/any/local-ldso-disable-hwcap: fix compilation error (LP: #2006485)
+  * d/sysdeps/arm64.mk: enable Memory Tagging Extension (MTE) checking on arm64
+    (LP: #2006739)
+  * d/control: declare a Breaks on older cyrus-imapd (LP: #2011326)
+  * d/control: Fix missing version bumps that could cause issues on upgrades
+  * Cherry-pick patches from upstream maintenance branch:
+    - 0001-cdefs-Limit-definition-of-fortification-macros.patch
+    - 0002-LoongArch-Add-new-relocation-types.patch
+    - 0003-Use-64-bit-time_t-interfaces-in-strftime-and-strptim.patch
+    - 0004-Account-for-grouping-in-printf-width-bug-30068.patch
+    - 0005-NEWS-Document-CVE-2023-25139.patch
+    - 0006-elf-Smoke-test-ldconfig-p-against-system-etc-ld.so.c.patch
+    - 0007-stdlib-Undo-post-review-change-to-16adc58e73f3-BZ-27.patch
+    - 0008-elf-Restore-ldconfig-libc6-implicit-soname-logic-BZ-.patch
+
+ -- Simon Chopin <schopin@ubuntu.com>  Thu, 16 Mar 2023 09:44:01 +0100
+
 glibc (2.37-0ubuntu1) lunar; urgency=medium
 
   * New upstream release
@@ -5,19 +25,13 @@ glibc (2.37-0ubuntu1) lunar; urgency=medium
     + d/libc6.symbols.common: drop libcrypt.so.1, removed upstream
     + d/patches:
       - Dropped all upstream patches from stable branch
-      - localedata/locales-fr.diff refreshed
+      - localedata/locales-fr.diff: refreshed
       - riscv64/local-asin-acos-raise-invalid.diff dropped since
         it has been implemented upstream
       - any/local-ldso-disable-hwcap.diff rebased
-        => Do we still need this?
+      - 0001-* (ibm128 fixes): dropped, merged upstream
       - ubuntu/local-fallback-to-monotonic.diff rebased
-      - 0001-Ensure-calculations-happen-with-desired-rounding-mod.patch
-        Dropped, merged upstream
-      - 0001-Avoid-undefined-behaviour-in-ibm128-implementation-o.patch
-        Dropped, merged upstream
-      - 0001-Fix-BZ-29463-in-the-ibm128-implementation-of-y1l-too.patch
-        Dropped, merged upstream
-      - u/submitted-no-sprintf-pre-truncate.diff: dropped as
+      - ubuntu/submitted-no-sprintf-pre-truncate.diff: dropped as
         -D_FORTIFY_SOURCE=2 has now been the default in Debian for >7 years
         without this patch.
   * Add io/tst-statx to armhf xfails as it's failing on check-prof
