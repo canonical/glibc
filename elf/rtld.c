@@ -1,5 +1,5 @@
 /* Run time dynamic linker.
-   Copyright (C) 1995-2022 Free Software Foundation, Inc.
+   Copyright (C) 1995-2023 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -52,6 +52,7 @@
 #include <dl-execve.h>
 #include <dl-find_object.h>
 #include <dl-audit-check.h>
+#include <dl-call_tls_init_tp.h>
 
 #include <assert.h>
 
@@ -370,7 +371,7 @@ struct rtld_global_ro _rtld_global_ro attribute_relro =
     ._dl_lookup_symbol_x = _dl_lookup_symbol_x,
     ._dl_open = _dl_open,
     ._dl_close = _dl_close,
-    ._dl_catch_error = _rtld_catch_error,
+    ._dl_catch_error = _dl_catch_error,
     ._dl_error_free = _dl_error_free,
     ._dl_tls_get_addr_soft = _dl_tls_get_addr_soft,
     ._dl_libc_freeres = __rtld_libc_freeres,
@@ -730,7 +731,7 @@ match_version (const char *string, struct link_map *map)
   return 0;
 }
 
-static bool tls_init_tp_called;
+bool __rtld_tls_init_tp_called;
 
 static void *
 init_tls (size_t naudit)
@@ -796,11 +797,8 @@ cannot allocate TLS data structures for initial thread\n");
   GL(dl_initial_dtv) = GET_DTV (tcbp);
 
   /* And finally install it for the main thread.  */
-  const char *lossage = TLS_INIT_TP (tcbp);
-  if (__glibc_unlikely (lossage != NULL))
-    _dl_fatal_printf ("cannot set up thread-local storage: %s\n", lossage);
-  __tls_init_tp ();
-  tls_init_tp_called = true;
+  call_tls_init_tp (tcbp);
+  __rtld_tls_init_tp_called = true;
 
   return tcbp;
 }
@@ -2050,7 +2048,7 @@ dl_main (const ElfW(Phdr) *phdr,
      an old kernel that can't perform TLS_INIT_TP, even if no TLS is ever
      used.  Trying to do it lazily is too hairy to try when there could be
      multiple threads (from a non-TLS-using libpthread).  */
-  bool was_tls_init_tp_called = tls_init_tp_called;
+  bool was_tls_init_tp_called = __rtld_tls_init_tp_called;
   if (tcbp == NULL)
     tcbp = init_tls (0);
 
@@ -2122,8 +2120,14 @@ dl_main (const ElfW(Phdr) *phdr,
 	    if (l->l_faked)
 	      /* The library was not found.  */
 	      _dl_printf ("\t%s => not found\n",  l->l_libname->name);
+	    else if (strcmp (l->l_libname->name, l->l_name) == 0)
+	      /* Print vDSO like libraries without duplicate name.  Some
+		 consumers depend of this format.  */
+	      _dl_printf ("\t%s (0x%0*zx)\n", l->l_libname->name,
+			  (int) sizeof l->l_map_start * 2,
+			  (size_t) l->l_map_start);
 	    else
-	      _dl_printf ("\t%s => %s (0x%0*Zx)\n",
+	      _dl_printf ("\t%s => %s (0x%0*zx)\n",
 			  DSO_FILENAME (l->l_libname->name),
 			  DSO_FILENAME (l->l_name),
 			  (int) sizeof l->l_map_start * 2,
@@ -2145,7 +2149,7 @@ dl_main (const ElfW(Phdr) *phdr,
 
 	    loadbase = LOOKUP_VALUE_ADDRESS (result, false);
 
-	    _dl_printf ("%s found at 0x%0*Zd in object at 0x%0*Zd\n",
+	    _dl_printf ("%s found at 0x%0*zd in object at 0x%0*zd\n",
 			_dl_argv[i],
 			(int) sizeof ref->st_value * 2,
 			(size_t) ref->st_value,
@@ -2315,7 +2319,7 @@ dl_main (const ElfW(Phdr) *phdr,
 			       consider_profiling);
 
 	/* Add object to slot information data if necessasy.  */
-	if (l->l_tls_blocksize != 0 && tls_init_tp_called)
+	if (l->l_tls_blocksize != 0 && __rtld_tls_init_tp_called)
 	  _dl_add_to_slotinfo (l, true);
       }
   }
@@ -2341,14 +2345,8 @@ dl_main (const ElfW(Phdr) *phdr,
   _dl_allocate_tls_init (tcbp, false);
 
   /* And finally install it for the main thread.  */
-  if (! tls_init_tp_called)
-    {
-      const char *lossage = TLS_INIT_TP (tcbp);
-      if (__glibc_unlikely (lossage != NULL))
-	_dl_fatal_printf ("cannot set up thread-local storage: %s\n",
-			  lossage);
-      __tls_init_tp ();
-    }
+  if (! __rtld_tls_init_tp_called)
+    call_tls_init_tp (tcbp);
 
   /* Make sure no new search directories have been added.  */
   assert (GLRO(dl_init_all_dirs) == GL(dl_all_dirs));

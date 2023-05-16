@@ -1,5 +1,5 @@
 /* Basic tests for Linux pidfd interfaces.
-   Copyright (C) 2022 Free Software Foundation, Inc.
+   Copyright (C) 2022-2023 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -147,8 +147,11 @@ do_test (void)
        may be denied if the process doesn't have CAP_SYS_PTRACE or
        if a LSM security_ptrace_access_check denies access.  */
     if (fd == -1 && errno == EPERM)
-      FAIL_UNSUPPORTED ("don't have permission to use pidfd_getfd on pidfd, "
-			"skipping test");
+      {
+	TEST_COMPARE (pidfd_send_signal (pidfd, SIGKILL, NULL, 0), 0);
+	FAIL_UNSUPPORTED ("don't have permission to use pidfd_getfd on pidfd, "
+			  "skipping test");
+      }
     TEST_VERIFY (fd > 0);
 
     char *path = xasprintf ("/proc/%d/fd/%d", pid, remote_fd);

@@ -1,5 +1,5 @@
 /* Support for dynamic linking code in static libc.
-   Copyright (C) 1996-2022 Free Software Foundation, Inc.
+   Copyright (C) 1996-2023 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -44,6 +44,7 @@
 #include <dl-auxv.h>
 #include <dl-find_object.h>
 #include <array_length.h>
+#include <dl-symbol-redir-ifunc.h>
 
 extern char *__progname;
 char **_dl_argv = &__progname;	/* This is checked for some error messages.  */
@@ -255,6 +256,25 @@ _dl_aux_init (ElfW(auxv_t) *av)
   for (int i = 0; i < array_length (auxv_values); ++i)
     auxv_values[i] = 0;
   _dl_parse_auxv (av, auxv_values);
+
+  _dl_phdr = (void*) auxv_values[AT_PHDR];
+  _dl_phnum = auxv_values[AT_PHNUM];
+
+  if (_dl_phdr == NULL)
+    {
+      /* Starting from binutils-2.23, the linker will define the
+         magic symbol __ehdr_start to point to our own ELF header
+         if it is visible in a segment that also includes the phdrs.
+         So we can set up _dl_phdr and _dl_phnum even without any
+         information from auxv.  */
+
+      extern const ElfW(Ehdr) __ehdr_start attribute_hidden;
+      assert (__ehdr_start.e_phentsize == sizeof *GL(dl_phdr));
+      _dl_phdr = (const void *) &__ehdr_start + __ehdr_start.e_phoff;
+      _dl_phnum = __ehdr_start.e_phnum;
+    }
+
+  assert (_dl_phdr != NULL);
 }
 #endif
 
@@ -323,20 +343,19 @@ _dl_non_dynamic_init (void)
   if (_dl_platform != NULL)
     _dl_platformlen = strlen (_dl_platform);
 
-  if (_dl_phdr != NULL)
-    for (const ElfW(Phdr) *ph = _dl_phdr; ph < &_dl_phdr[_dl_phnum]; ++ph)
-      switch (ph->p_type)
-	{
-	/* Check if the stack is nonexecutable.  */
-	case PT_GNU_STACK:
-	  _dl_stack_flags = ph->p_flags;
-	  break;
+  for (const ElfW(Phdr) *ph = _dl_phdr; ph < &_dl_phdr[_dl_phnum]; ++ph)
+    switch (ph->p_type)
+      {
+      /* Check if the stack is nonexecutable.  */
+      case PT_GNU_STACK:
+	_dl_stack_flags = ph->p_flags;
+	break;
 
-	case PT_GNU_RELRO:
-	  _dl_main_map.l_relro_addr = ph->p_vaddr;
-	  _dl_main_map.l_relro_size = ph->p_memsz;
-	  break;
-	}
+      case PT_GNU_RELRO:
+	_dl_main_map.l_relro_addr = ph->p_vaddr;
+	_dl_main_map.l_relro_size = ph->p_memsz;
+	break;
+      }
 
   call_function_static_weak (_dl_find_object_init);
 

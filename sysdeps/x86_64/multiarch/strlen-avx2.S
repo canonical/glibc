@@ -1,5 +1,5 @@
 /* strlen/strnlen/wcslen/wcsnlen optimized with AVX2.
-   Copyright (C) 2017-2022 Free Software Foundation, Inc.
+   Copyright (C) 2017-2023 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -544,14 +544,11 @@ L(return_vzeroupper):
 L(cross_page_less_vec):
 	tzcntl	%eax, %eax
 #  ifdef USE_AS_WCSLEN
-	/* NB: Multiply length by 4 to get byte count.  */
-	sall	$2, %esi
+	/* NB: Divide by 4 to convert from byte-count to length.  */
+	shrl	$2, %eax
 #  endif
 	cmpq	%rax, %rsi
 	cmovb	%esi, %eax
-#  ifdef USE_AS_WCSLEN
-	shrl	$2, %eax
-#  endif
 	VZEROUPPER_RETURN
 # endif
 

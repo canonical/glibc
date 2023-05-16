@@ -1,12 +1,7 @@
 # configuration options for all flavours
 libc = libc6.1
 
-ifeq (,$(filter stage1 stage2, $(DEB_BUILD_PROFILES)))
-# build an ev67 optimized library
-GLIBC_PASSES += alphaev67
-DEB_ARCH_REGULAR_PACKAGES += libc6.1-alphaev67
-alphaev67_configure_target = alphaev67-linux-gnu
-alphaev67_CC = $(CC) -mcpu=ev67 -mtune=ev67 
-alphaev67_CXX = $(CXX) -mcpu=ev67 -mtune=ev67 
-alphaev67_slibdir = /lib/$(DEB_HOST_MULTIARCH)/ev67
-endif
+# temporarily build for EV56 until the baseline is raised at the GCC level
+# see https://lists.debian.org/debian-alpha/2023/05/msg00001.html
+CC = $(DEB_HOST_GNU_TYPE)-$(BASE_CC)$(DEB_GCC_VERSION) -mcpu=ev56 -mtune=ev56
+CXX = $(DEB_HOST_GNU_TYPE)-$(BASE_CXX)$(DEB_GCC_VERSION) -mcpu=ev56 -mtune=ev56

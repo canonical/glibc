@@ -1,5 +1,5 @@
 /* Header defining the minimum x86 ISA level
-   Copyright (C) 2022 Free Software Foundation, Inc.
+   Copyright (C) 2022-2023 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -79,7 +79,9 @@
 /* ISA level >= 3 guaranteed includes.  */
 #define AVX_X86_ISA_LEVEL 3
 #define AVX2_X86_ISA_LEVEL 3
+#define BMI1_X86_ISA_LEVEL 3
 #define BMI2_X86_ISA_LEVEL 3
+#define LZCNT_X86_ISA_LEVEL 3
 #define MOVBE_X86_ISA_LEVEL 3
 
 /* ISA level >= 2 guaranteed includes.  */

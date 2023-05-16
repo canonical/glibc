@@ -12,9 +12,9 @@ test-xfail-tst-timer = yes
 test-xfail-tst-create-detached = yes
 
 ######################################################################
-# alpha (including optimized flavours)
+# alpha
 ######################################################################
-ifneq (,$(filter $(config-machine)-$(config-os), alpha-linux-gnu alphaev67-linux-gnu))
+ifeq ($(config-machine)-$(config-os),alpha-linux-gnu)
 test-xfail-tst-backtrace5 = yes
 test-xfail-tst-backtrace6 = yes
 test-xfail-tst-cancel19 = yes
@@ -280,9 +280,6 @@ test-xfail-tst-sprofil = yes
 test-xfail-tst-timer4 = yes
 test-xfail-tst-timer5 = yes
 
-# This generates GiBs of data instead of sparse files, putting build box on its knees
-tests-unsupported += test-lfs
-
 # Needs LFS support
 #test-xfail-test-lfs = yes
 test-xfail-tst-tzset = yes
@@ -369,8 +366,6 @@ test-xfail-tst-compathooks-on = yes
 test-xfail-tst-sched_getaffinity = yes
 test-xfail-tst-malloc-tcache-leak-malloc-hugetlb1 = yes
 test-xfail-tst-malloc-tcache-leak-malloc-hugetlb2 = yes
-test-xfail-tst-p_align3 = yes
-tests-unsupported += tst-spawn6
 
 # new in 2.36
 test-xfail-tst-arc4random-fork = yes
@@ -390,6 +385,8 @@ tests-unsupported += tst-audit14a
 tests-unsupported += tst-audit15
 tests-unsupported += tst-audit16
 tests-unsupported += tst-audit17
+tests-unsupported += test-lfs
+tests-unsupported += tst-spawn6
 
 # actually never succeded
 test-xfail-tst-create_format1 = yes

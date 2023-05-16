@@ -1,5 +1,5 @@
 /* Host and service name lookups using Name Service Switch modules.
-   Copyright (C) 1996-2022 Free Software Foundation, Inc.
+   Copyright (C) 1996-2023 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -540,11 +540,11 @@ get_nscd_addresses (const char *name, const struct addrinfo *req,
 	  at[count].addr[2] = htonl (0xffff);
 	}
       else if (req->ai_family == AF_UNSPEC
-	       || air->family[count] == req->ai_family)
+	       || air->family[i] == req->ai_family)
 	{
-	  at[count].family = air->family[count];
+	  at[count].family = air->family[i];
 	  memcpy (at[count].addr, addrs, size);
-	  if (air->family[count] == AF_INET6)
+	  if (air->family[i] == AF_INET6)
 	    res->got_ipv6 = true;
 	}
       at[count].next = at + count + 1;
