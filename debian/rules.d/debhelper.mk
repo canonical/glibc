@@ -100,6 +100,7 @@ endif
 		-regex '.*/libpthread-.*so'						\
 		-o -regex '.*/libc-.*so' \)						\
 		-exec chmod a+x '{}' ';'
+	find debian/$(curpass) -type f -name libc.so.* -exec chmod a+x '{}' ';'
 	dh_makeshlibs -Xgconv/ -p$(curpass) -V "$(call xx,shlib_dep)"
 	# Add relevant udeb: lines in shlibs files
 	sh ./debian/shlibs-add-udebs $(curpass)

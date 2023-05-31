@@ -1,0 +1,33 @@
+From 84c2da7879db7073253eaf4bde112a6d787be49b Mon Sep 17 00:00:00 2001
+From: Jun Tang <juntangc@amazon.com>
+Date: Wed, 22 Feb 2023 16:45:59 +0000
+Subject: [PATCH 2/2] AArch64: Fix HP_TIMING_DIFF computation [BZ# 29329]
+
+Fix the computation to allow for cntfrq_el0 being larger than 1GHz.
+Assume cntfrq_el0 is a multiple of 1MHz to increase the maximum
+interval (1024 seconds at 1GHz).
+
+Reviewed-by: Wilco Dijkstra  <Wilco.Dijkstra@arm.com>
+
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/glibc/+bug/1999551
+Applied-Upstream: on master branch, presumable in upcoming 2.38
+---
+ sysdeps/aarch64/hp-timing.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sysdeps/aarch64/hp-timing.h b/sysdeps/aarch64/hp-timing.h
+index f7f7ac7cae..7c6be072c4 100644
+--- a/sysdeps/aarch64/hp-timing.h
++++ b/sysdeps/aarch64/hp-timing.h
+@@ -41,7 +41,7 @@ typedef uint64_t hp_timing_t;
+ #define HP_TIMING_DIFF(Diff, Start, End)			\
+ ({  hp_timing_t freq;						\
+     __asm__ __volatile__ ("mrs %0, cntfrq_el0" : "=r" (freq));	\
+-   (Diff) = ((End) - (Start)) * (UINT64_C(1000000000) / freq);	\
++   (Diff) = (((End) - (Start)) * UINT64_C(1000000000 >> 6)) / (freq >> 6); \
+ })
+ 
+ #endif	/* hp-timing.h */
+-- 
+2.37.2
+

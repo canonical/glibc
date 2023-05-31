@@ -1,3 +1,16 @@
+glibc (2.35-0ubuntu3.2) jammy; urgency=medium
+
+  * d/rules.d/debhelper.mk: fix permissions of libc.so (LP: #1989082)
+  * Cherry-picks from upstream:
+    - d/p/lp1999551/*: arm64 memcpy optimization (LP: #1999551)
+    - d/p/lp1995362*.patch: Fix ldd segfault with missing libs (LP: #1995362)
+    - d/p/lp2007796*: Fix missing cancellation point in pthread (LP: #2007796)
+    - d/p/lp2007599*: add new tunables for s390x (LP: #2007599)
+    - d/p/lp2011421/*: Fix crash on TDX-enabled platforms (LP: #2011421)
+    - d/p/lp1992159*: Fix socket.h headers for non-GNU compilers (LP: #1992159)
+
+ -- Simon Chopin <schopin@ubuntu.com>  Wed, 31 May 2023 17:17:00 +0200
+
 glibc (2.35-0ubuntu3.1) jammy; urgency=medium
 
   * debian/maint: add a script to manage backports of patches from upstream

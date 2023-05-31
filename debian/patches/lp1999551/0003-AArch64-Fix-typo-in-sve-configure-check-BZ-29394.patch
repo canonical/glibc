@@ -1,0 +1,51 @@
+From 0de7b24e0a323863bf886ea2750412f2918fa113 Mon Sep 17 00:00:00 2001
+From: Wilco Dijkstra <wdijkstr@arm.com>
+Date: Thu, 11 Aug 2022 17:52:00 +0100
+Subject: [PATCH 3/3] AArch64: Fix typo in sve configure check (BZ# 29394)
+
+Fix a typo in the SVE configure check. This fixes [BZ# 29394].
+---
+ sysdeps/aarch64/configure    | 6 +++---
+ sysdeps/aarch64/configure.ac | 2 +-
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/sysdeps/aarch64/configure b/sysdeps/aarch64/configure
+index 4c1fac49f3..276a2d1dc4 100644
+--- a/sysdeps/aarch64/configure
++++ b/sysdeps/aarch64/configure
+@@ -308,7 +308,7 @@ aarch64-variant-pcs = $libc_cv_aarch64_variant_pcs"
+ # Check if asm support armv8.2-a+sve
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SVE support in assembler" >&5
+ $as_echo_n "checking for SVE support in assembler... " >&6; }
+-if ${libc_cv_asm_sve+:} false; then :
++if ${libc_cv_aarch64_sve_asm+:} false; then :
+   $as_echo_n "(cached) " >&6
+ else
+   cat > conftest.s <<\EOF
+@@ -326,8 +326,8 @@ else
+ fi
+ rm -f conftest*
+ fi
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $libc_cv_asm_sve" >&5
+-$as_echo "$libc_cv_asm_sve" >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $libc_cv_aarch64_sve_asm" >&5
++$as_echo "$libc_cv_aarch64_sve_asm" >&6; }
+ if test $libc_cv_aarch64_sve_asm = yes; then
+   $as_echo "#define HAVE_AARCH64_SVE_ASM 1" >>confdefs.h
+ 
+diff --git a/sysdeps/aarch64/configure.ac b/sysdeps/aarch64/configure.ac
+index 3347c13fa1..6afe178823 100644
+--- a/sysdeps/aarch64/configure.ac
++++ b/sysdeps/aarch64/configure.ac
+@@ -92,7 +92,7 @@ EOF
+ LIBC_CONFIG_VAR([aarch64-variant-pcs], [$libc_cv_aarch64_variant_pcs])
+ 
+ # Check if asm support armv8.2-a+sve
+-AC_CACHE_CHECK(for SVE support in assembler, libc_cv_asm_sve, [dnl
++AC_CACHE_CHECK([for SVE support in assembler], [libc_cv_aarch64_sve_asm], [dnl
+ cat > conftest.s <<\EOF
+         ptrue p0.b
+ EOF
+-- 
+2.39.2
+
