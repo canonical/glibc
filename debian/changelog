@@ -1,3 +1,15 @@
+glibc (2.31-0ubuntu9.10) focal; urgency=medium
+
+  [ Andrei Gherzan ]
+  * d/p/lp1910312: Backport upstream fix for SEM_STAT_ANY (LP: #1910312)
+
+  [ Simon Chopin ]
+  * d/p/lp1999551/*: backport mem{cmp,cpy} optimizations for arm64 (LP: #1999551)
+  * d/p/lp2001932/*: fix segfault in AVX2 strncmp (LP: #2001932)
+  * d/p/lp2001975/*: fix overflow in AVX2 wcsncmp (LP: #2001975)
+
+ -- Simon Chopin <schopin@ubuntu.com>  Wed, 31 May 2023 17:57:25 +0200
+
 glibc (2.31-0ubuntu9.9) focal; urgency=medium
 
   * Disable testsuite on riscv64. It is failing maths tests intermittently in

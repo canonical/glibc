@@ -1,0 +1,77 @@
+From 8e906bc11e193b5f0ae2b1ce3da837c427c6c57c Mon Sep 17 00:00:00 2001
+From: Naohiro Tamura <naohirot@jp.fujitsu.com>
+Date: Thu, 27 May 2021 07:42:35 +0000
+Subject: [PATCH 5/7] aarch64: detect SVE CPU feature
+
+Co-authored-by: Simon Chopin <simon.chopin@canonical.com>
+
+Extracted from patch fa527f345cbbe852ec085932fbea979956c195b
+(aarch64: Added optimized memcpy and memmove for A64FX)
+---
+ sysdeps/aarch64/multiarch/init-arch.h          | 4 +++-
+ sysdeps/unix/sysv/linux/aarch64/cpu-features.c | 4 ++++
+ sysdeps/unix/sysv/linux/aarch64/cpu-features.h | 5 +++++
+ 3 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/sysdeps/aarch64/multiarch/init-arch.h b/sysdeps/aarch64/multiarch/init-arch.h
+index da47bc8677..8025f2fdf8 100644
+--- a/sysdeps/aarch64/multiarch/init-arch.h
++++ b/sysdeps/aarch64/multiarch/init-arch.h
+@@ -22,4 +22,6 @@
+   uint64_t __attribute__((unused)) midr =				      \
+     GLRO(dl_aarch64_cpu_features).midr_el1;				      \
+   unsigned __attribute__((unused)) zva_size =				      \
+-    GLRO(dl_aarch64_cpu_features).zva_size;
++    GLRO(dl_aarch64_cpu_features).zva_size;				      \
++  bool __attribute__((unused)) sve =					      \
++    GLRO(dl_aarch64_cpu_features).sve;
+diff --git a/sysdeps/unix/sysv/linux/aarch64/cpu-features.c b/sysdeps/unix/sysv/linux/aarch64/cpu-features.c
+index 896c588fee..8c5024f665 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/cpu-features.c
++++ b/sysdeps/unix/sysv/linux/aarch64/cpu-features.c
+@@ -39,6 +39,7 @@ static struct cpu_list cpu_list[] = {
+       {"ares",		 0x411FD0C0},
+       {"emag",		 0x503F0001},
+       {"kunpeng920", 	 0x481FD010},
++      {"a64fx",		 0x460F0010},
+       {"generic", 	 0x0}
+ };
+ 
+@@ -83,4 +84,7 @@ init_cpu_features (struct cpu_features *cpu_features)
+ 
+   if ((dczid & DCZID_DZP_MASK) == 0)
+     cpu_features->zva_size = 4 << (dczid & DCZID_BS_MASK);
++
++  /* Check if SVE is supported.  */
++  cpu_features->sve = GLRO (dl_hwcap) & HWCAP_SVE;
+ }
+diff --git a/sysdeps/unix/sysv/linux/aarch64/cpu-features.h b/sysdeps/unix/sysv/linux/aarch64/cpu-features.h
+index 346d045fb4..347b3f94bb 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/cpu-features.h
++++ b/sysdeps/unix/sysv/linux/aarch64/cpu-features.h
+@@ -20,6 +20,7 @@
+ #define _CPU_FEATURES_AARCH64_H
+ 
+ #include <stdint.h>
++#include <stdbool.h>
+ 
+ #define MIDR_PARTNUM_SHIFT	4
+ #define MIDR_PARTNUM_MASK	(0xfff << MIDR_PARTNUM_SHIFT)
+@@ -64,10 +65,14 @@
+ #define IS_KUNPENG920(midr) (MIDR_IMPLEMENTOR(midr) == 'H'			   \
+                         && MIDR_PARTNUM(midr) == 0xd01)
+ 
++#define IS_A64FX(midr) (MIDR_IMPLEMENTOR(midr) == 'F'			      \
++			&& MIDR_PARTNUM(midr) == 0x001)
++
+ struct cpu_features
+ {
+   uint64_t midr_el1;
+   unsigned zva_size;
++  bool sve;
+ };
+ 
+ #endif /* _CPU_FEATURES_AARCH64_H  */
+-- 
+2.39.2
+
