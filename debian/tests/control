@@ -1,3 +1,3 @@
 Tests: upstream-testsuite
-Depends: @builddeps@, binutils, linux-libc-dev [linux-any], gcc-14
+Depends: @builddeps@, binutils, linux-libc-dev [linux-any], gcc
 Restrictions: allow-stderr
