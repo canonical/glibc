@@ -112,8 +112,8 @@ endif
 		--enable-fortify-source \
 		--enable-stackguard-randomization \
 		--enable-stack-protector=strong \
-		--with-pkgversion="Debian GLIBC $(DEB_VERSION)" \
-		--with-bugurl="http://www.debian.org/Bugs/" \
+		--with-pkgversion="Ubuntu GLIBC $(DEB_VERSION)" \
+		--with-bugurl="https://bugs.launchpad.net/ubuntu/+source/glibc/+bugs" \
 		--with-timeoutfactor="$(TIMEOUTFACTOR)" \
 		$(if $(filter $(pt_chown),yes),--enable-pt_chown) \
 		$(if $(filter $(threads),no),--disable-nscd) \
