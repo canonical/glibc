@@ -80,6 +80,7 @@ any/local-cross.patch
 # Ubuntu patches live in their own little world, to maintain sanity
 ubuntu/local-altlocaledir.diff
 ubuntu/local-disable-ld_audit.diff
+ubuntu/local-disable-nscd-netgroup-caching.diff
 ubuntu/localedata/en_IE-am_pm.diff
 ubuntu/localedata/eo_US.diff
 ubuntu/localedata/es_DO-am_pm.diff
