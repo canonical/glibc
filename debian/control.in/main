@@ -109,8 +109,7 @@ Architecture: all
 Section: doc
 Priority: optional
 Multi-Arch: foreign
-Depends: ${misc:Depends}
-Suggests: glibc-doc-reference
+Depends: ${misc:Depends}, glibc-doc-reference (>= 2.18)
 Build-Profiles: <!stage1>
 Description: GNU C Library: Documentation
  Contains the complete GNU C Library ChangeLog.  The GNU C Library Reference
