@@ -1,3 +1,28 @@
+glibc (2.37-2) experimental; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-task_info_count.diff: Fix passing size to
+    task_info.
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix FTBFS on hppa.
+  * debian/sysdeps/alpha.mk, debian/control.in/main: build-depends on g++-12
+    (>= 12.3.0-2) on alpha instead of forcing -mcpu=ev56.
+
+  [ Andrej Shadura ]
+  * debian/po/sk.po: Fix typos in the Slovak translation.
+
+  [ Helmut Grohne ]
+  * debian/rules.d/build.mk: disable -Werror when dpkg-builflags contains
+    -Wno-error.
+
+  [ наб ]
+  * debian/local/usr_sbin/locale-gen: parallelise locales generation if
+    possible.  Closes: #1037198.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 17 Jun 2023 11:10:20 +0200
+
 glibc (2.37-1) experimental; urgency=medium
 
   [ Aurelien Jarno ]
