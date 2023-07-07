@@ -169,7 +169,6 @@ lp1999551/0002-AArch64-Fix-HP_TIMING_DIFF-computation-BZ-29329.patch
 lp1999551/0003-config-Added-HAVE_AARCH64_SVE_ASM-for-aarch64.patch
 lp1999551/0004-AArch64-Fix-typo-in-sve-configure-check-BZ-29394.patch
 lp1999551/0005-aarch64-detect-SVE-CPU-feature.patch
-lp1999551/0006-AArch64-Optimize-memcmp.patch
 lp1999551/0007-AArch64-Add-SVE-memcpy.patch
 
 lp1910312-sysvipc-Fix-SEM_STAT_ANY-kernel-argument-pass-BZ-266.patch

@@ -1,3 +1,10 @@
+glibc (2.31-0ubuntu9.11) focal; urgency=medium
+
+  * Drop memcmp arm64 SIMD optimization patch due to performance regression
+    on Raspberry Pi 3+ and 4
+
+ -- Simon Chopin <schopin@ubuntu.com>  Fri, 07 Jul 2023 10:12:59 +0200
+
 glibc (2.31-0ubuntu9.10) focal; urgency=medium
 
   [ Andrei Gherzan ]
