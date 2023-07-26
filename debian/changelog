@@ -1,3 +1,10 @@
+glibc (2.31-0ubuntu9.12) focal; urgency=medium
+
+  * Drop SVE memcpy implementation due to kernel-related performance
+    regression
+
+ -- Simon Chopin <schopin@ubuntu.com>  Wed, 26 Jul 2023 09:44:39 +0200
+
 glibc (2.31-0ubuntu9.11) focal; urgency=medium
 
   * Drop memcmp arm64 SIMD optimization patch due to performance regression
