@@ -1,3 +1,10 @@
+glibc (2.35-0ubuntu3.3) jammy; urgency=medium
+
+  * Drop SVE patches due to kernal-related performance regression
+  * Fix the armhf stripping exception for ld.so (LP: #1927192)
+
+ -- Simon Chopin <schopin@ubuntu.com>  Wed, 26 Jul 2023 10:27:54 +0200
+
 glibc (2.35-0ubuntu3.2) jammy; urgency=medium
 
   * d/rules.d/debhelper.mk: fix permissions of libc.so (LP: #1989082)

@@ -182,10 +182,6 @@ ubuntu/sdt-headers.patch
 
 lp1995362-elf-Fix-DFS-sorting-algorithm-for-LD_TRACE_LOADED_OB.patch
 
-lp1999551/0001-AArch64-Add-SVE-memcpy.patch
-lp1999551/0002-AArch64-Fix-HP_TIMING_DIFF-computation-BZ-29329.patch
-lp1999551/0003-AArch64-Fix-typo-in-sve-configure-check-BZ-29394.patch
-
 lp2007796-debug-make-__read_chk-a-cancellation-point-bug-29274.patch
 
 lp2007599-S390-Influence-hwcaps-stfle-via-GLIBC_TUNABLES.patch
