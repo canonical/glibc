@@ -1,3 +1,61 @@
+glibc (2.38-1) experimental; urgency=medium
+
+  [ Aurelien Jarno ]
+  * New upstream release.
+    - debian/symbols.wildcard: add 2.38.
+    - debian/patches/hurd-i386/git-intr-msg-cfa.diff: upstreamed.
+    - debian/patches/hurd-i386/git-intr-msg-stack.diff: upstreamed.
+    - debian/patches/hurd-i386/git-exception-long.diff: upstreamed.
+    - debian/patches/hurd-i386/git-ctty.diff: upstreamed.
+    - debian/patches/hurd-i386/git-tst-system.diff: upstreamed.
+    - debian/patches/hurd-i386/git-task_info_count.diff: upstreamed.
+    - debian/patches/hurd-i386/local-enable-ldconfig.diff: dropped obsolete
+      part and rebased.
+    - debian/patches/hurd-i386/tg-hooks.diff: disabled.
+    - debian/patches/i386/unsubmitted-quiet-ldconfig.diff: rebased.
+    - debian/patches/any/local-ldconfig-multiarch.diff: rebased.
+    - debian/sysdeps/arm64.mk, debian/libc6.symbols.arm64: enable mathvec on
+      arm64.
+  * debian/rules.d/build.mk: pass --enable-fortify-source to configure.
+  * debian/testsuite-xfail-debian.mk: XFAIL tst-sprof-basic on mips* and
+    riscv64 as dl_profile is not supported on those architectures.
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/submitted-net.diff: Refresh.
+  * debian/patches/hurd-i386/unsubmitted-prof-eintr.diff: Refresh.
+  * debian/testsuite-xfail-debian.mk: Update hurd xfails.
+  * debian/patches/hurd-i386/git-realpath_NULL.diff: Fix realpath(NULL, ...)
+  * debian/patches/hurd-i386/git-tst-realpath-toolong.diff: Fix
+    tst-realpath-toolong.
+  * debian/patches/hurd-i386/git-hidden_chk.diff: Fix spurious PLTs.
+  * debian/patches/hurd-i386/git-glob_dirent.diff: Fix strcpys in tests.
+  * debian/libc0.3.symbols.hurd-i386: Update symbols.
+
+  * Add hurd-amd64 support:
+    - debian/control.in/libc: Add hurd-amd64 cases.
+    - debian/debian/control.in/main: Add hurd-amd64 cases.
+    - debian/debhelper.in/libc-dev.install.hurd-amd64: Add.
+    - debian/debhelper.in/libc-udeb.install.hurd-amd64: Add.
+    - debian/glibc-source.filelist: Add hurd-amd64.
+    - debian/libc0.3.symbols.hurd-amd64: Add.
+    - debian/patches/series.hurd-amd64: Symlink to series.hurd-i386.
+    - debian/rules.d/control.mk: Add hurd-amd64 case.
+    - debian/sysdeps/hurd-amd64.mk: Add.
+    - debian/testsuite-xfail-debian.mk: Use hurd-i386 xfails for hurd-amd64 too.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 04 Aug 2023 12:50:01 +0200
+
+glibc (2.37-7) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/testsuite-xfail-debian.mk: fix XFAIL for stdlib/isomac on sparc64.
+  * debian/patches/hurd-i386/unsubmitted-getaux_at_secure.diff: rebase.
+
+  [ Samuel Thibault ]
+  * debian/testsuite-xfail-debian.mk: Update for 2.38.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 04 Aug 2023 11:55:58 +0200
+
 glibc (2.37-6) unstable; urgency=medium
 
   [ Aurelien Jarno ]

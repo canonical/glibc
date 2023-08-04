@@ -218,9 +218,9 @@ endif
 
 
 ######################################################################
-# hurd-i386 (including optimized flavours)
+# hurd-i386 and hurd-amd64 (including optimized flavours)
 ######################################################################
-ifeq ($(config-machine)-$(config-os),i686-gnu-gnu)
+ifeq ($(config-os),gnu-gnu)
 # sysdeps/mach/hurd/dl-sysdep.c's open_file does not support the linker
 # creating files.
 test-xfail-tst-null-argv = yes
@@ -375,21 +375,10 @@ test-xfail-tst-nss-gai-actions = yes
 # new in 2.37
 test-xfail-tst-fcntl-lock = yes
 
-# upstreamed in 2.38
-tests-unsupported += tst-malloc-thread-fail
-tests-unsupported += tst-malloc-thread-fail-malloc-check
-tests-unsupported += tst-malloc-thread-fail-mcheck
-tests-unsupported += tst-malloc-thread-fail-malloc-hugetlb1
-tests-unsupported += tst-malloc-thread-fail-malloc-hugetlb2
-tests-unsupported += tst-dynarray-fail
-tests-unsupported += tst-pthread_cancel-select-loop
-tests-unsupported += tst-audit14
-tests-unsupported += tst-audit14a
-tests-unsupported += tst-audit15
-tests-unsupported += tst-audit16
-tests-unsupported += tst-audit17
-tests-unsupported += test-lfs
-tests-unsupported += tst-spawn6
+# new in 2.38
+test-xfail-tst-sprof-basic = yes
+test-xfail-test-canon = yes
+test-xfail-tst-nss-files-hosts-v4mapped = yes
 
 # actually never succeded
 test-xfail-tst-create_format1 = yes
@@ -487,6 +476,9 @@ test-xfail-tst-audit24c = yes
 test-xfail-tst-audit24d = yes
 test-xfail-tst-audit25a = yes
 test-xfail-tst-audit25b = yes
+
+# dl_profile is not supported on mips*
+test-xfail-tst-sprof-basic = yes
 endif
 
 
@@ -563,6 +555,9 @@ ifeq ($(config-machine)-$(config-os),riscv64-linux-gnu)
 test-xfail-tst-resolv-res_init = yes
 test-xfail-tst-resolv-res_init-thread = yes
 test-xfail-tst-resolv-threads = yes
+
+# dl_profile is not supported on riscv
+test-xfail-tst-sprof-basic = yes
 endif
 
 
@@ -590,7 +585,7 @@ test-xfail-tst-waitid = yes
 # on sparc64 defaults to 64-bit doubles, causing the failure below. This
 # should be fixed by the following gcc patch:
 # http://gcc.gnu.org/ml/gcc-patches/2013-12/msg00318.html
-test-xfail-stdlib/isomac = yes
+test-xfail-isomac = yes
 endif
 
 
@@ -612,7 +607,7 @@ test-xfail-XOPEN2K/setjmp.h/conform = yes
 test-xfail-XOPEN2K8/pthread.h/conform = yes
 test-xfail-XOPEN2K8/setjmp.h/conform = yes
 test-xfail-XPG4/setjmp.h/conform = yes
-test-xfail-stdlib/isomac = yes
+test-xfail-isomac = yes
 test-xfail-tst-cancel24-static = yes
 test-xfail-tst-cond8-static = yes
 test-xfail-tst-mutex8-static = yes
