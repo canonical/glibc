@@ -375,6 +375,9 @@ test-xfail-tst-nss-gai-actions = yes
 # new in 2.37
 test-xfail-tst-fcntl-lock = yes
 
+# new in 2.38
+test-xfail-tst-sprof-basic = yes
+
 # upstreamed in 2.38
 tests-unsupported += tst-malloc-thread-fail
 tests-unsupported += tst-malloc-thread-fail-malloc-check
@@ -590,7 +593,7 @@ test-xfail-tst-waitid = yes
 # on sparc64 defaults to 64-bit doubles, causing the failure below. This
 # should be fixed by the following gcc patch:
 # http://gcc.gnu.org/ml/gcc-patches/2013-12/msg00318.html
-test-xfail-stdlib/isomac = yes
+test-xfail-isomac = yes
 endif
 
 
@@ -612,7 +615,7 @@ test-xfail-XOPEN2K/setjmp.h/conform = yes
 test-xfail-XOPEN2K8/pthread.h/conform = yes
 test-xfail-XOPEN2K8/setjmp.h/conform = yes
 test-xfail-XPG4/setjmp.h/conform = yes
-test-xfail-stdlib/isomac = yes
+test-xfail-isomac = yes
 test-xfail-tst-cancel24-static = yes
 test-xfail-tst-cond8-static = yes
 test-xfail-tst-mutex8-static = yes
