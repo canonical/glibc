@@ -1,0 +1,9 @@
+YES
+LP#2016252
+FirstPatch: 0001-x86-Fix-for-cache-computation-on-AMD-legacy-cpus.patch
+ced101ed9d3b7cfd12d97ef24940cb00b8658c81 x86: Fix for cache computation on AMD legacy cpus.
+
+NO
+# Not needed, older compilers
+d97cca1e5df812be0e4de1e38091f02bb1e7ec4e stdlib: Improve tst-realpath compatibility with source fortification
+

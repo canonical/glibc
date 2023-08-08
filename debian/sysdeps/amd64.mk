@@ -1,10 +1,11 @@
 # configuration options for all flavours
-extra_config_options = --enable-multi-arch
+extra_config_options = --enable-multi-arch --enable-cet
 CC = $(DEB_HOST_GNU_TYPE)-$(BASE_CC)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 CXX = $(DEB_HOST_GNU_TYPE)-$(BASE_CXX)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 
 # main library
 libc_mvec = yes
+libc_extra_cflags = -O3
 libc_rtlddir = /lib64
 
 # multilib flavours

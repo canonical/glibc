@@ -1,3 +1,5 @@
+upstream-updates/0001-x86-Fix-for-cache-computation-on-AMD-legacy-cpus.patch
+
 #git-updates.diff
 
 locale/check-unknown-symbols.diff
@@ -20,6 +22,7 @@ alpha/submitted-fts64.diff
 alpha/submitted-makecontext.diff
 
 arm/local-sigaction.diff
+arm/local-vfp-sysdeps.diff
 arm/unsubmitted-ldso-multilib.diff
 arm/local-arm-futex.diff
 
@@ -86,7 +89,21 @@ any/local-revert-bz13979.diff
 any/unsubmitted-ldso-machine-mismatch.diff
 any/local-ldconfig-ignore-ld.so.diff
 any/local-bootstrap-headers.diff
-any/local-cudacc-float128.diff
 any/local-test-install.diff
 any/local-cross.patch
 any/local-disable-tst-bz29951.diff
+
+# Ubuntu patches live in their own little world, to maintain sanity
+ubuntu/local-altlocaledir.diff
+ubuntu/local-disable-ld_audit.diff
+ubuntu/local-disable-nscd-netgroup-caching.diff
+ubuntu/localedata/en_IE-am_pm.diff
+ubuntu/localedata/eo_US.diff
+ubuntu/localedata/es_DO-am_pm.diff
+ubuntu/localedata/lv_LV-currency.diff
+ubuntu/localedata/sd_PK.diff
+ubuntu/localedata/ug_CN@latin.diff
+ubuntu/local-pldd-root.diff
+ubuntu/local-fallback-to-monotonic.diff
+ubuntu/submitted-broadcast-to-prevent-deadlock.diff
+ubuntu/sdt-headers.patch

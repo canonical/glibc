@@ -1,5 +1,6 @@
 # configuration options for all flavours
-extra_config_options = --enable-multi-arch
+extra_config_options = --enable-multi-arch --enable-cet
+libc_extra_cflags = -mno-tls-direct-seg-refs
 CC = $(DEB_HOST_GNU_TYPE)-$(BASE_CC)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 CXX = $(DEB_HOST_GNU_TYPE)-$(BASE_CXX)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 
