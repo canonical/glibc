@@ -1,3 +1,11 @@
+glibc (2.38-1ubuntu2) mantic; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-powerpc-longjmp.diff: Fix build after chk
+    hidden builtin fix.
+
+ -- Simon Chopin <schopin@ubuntu.com>  Wed, 09 Aug 2023 12:49:38 +0200
+
 glibc (2.38-1ubuntu1) mantic; urgency=medium
 
   * Merge 2.38-1 from Debian experimental
