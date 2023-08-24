@@ -1,3 +1,17 @@
+glibc (2.38-2) experimental; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-powerpc-longjmp.diff: Fix build after chk
+    hidden builtin fix.
+  * debian/libc0.3.symbols.hurd-amd64: Fix symbols for hurd-amd64.
+  * debian/testsuite-xfail-debian.mk: Add hurd-amd64-specific xfails.
+
+  [ Aurelien Jarno ]
+  * debian/rules.d/build.mk: pass --enable-bind-now to configure.
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 24 Aug 2023 23:41:23 +0200
+
 glibc (2.38-1) experimental; urgency=medium
 
   [ Aurelien Jarno ]
@@ -44,6 +58,17 @@ glibc (2.38-1) experimental; urgency=medium
     - debian/testsuite-xfail-debian.mk: Use hurd-i386 xfails for hurd-amd64 too.
 
  -- Aurelien Jarno <aurel32@debian.org>  Fri, 04 Aug 2023 12:50:01 +0200
+
+glibc (2.37-8) UNRELEASED; urgency=medium
+
+  * debian/libc0.3.symbols.hurd-i386: Update symbols.
+  * debian/patches/hurd-i386/git-jemalloc.diff: Add support for static TSD
+    data.
+  * debian/patches/hurd-i386/git-jemalloc2.diff: Initialize ___pthread_self
+    early.
+  * debian/patches/hurd-i386/git-error_t.diff: Make error_t an int on C++.
+
+ -- Samuel Thibault <sthibault@debian.org>  Fri, 04 Aug 2023 16:23:34 +0200
 
 glibc (2.37-7) unstable; urgency=medium
 
