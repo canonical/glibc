@@ -1,3 +1,11 @@
+glibc (2.38-1ubuntu4) mantic; urgency=medium
+
+  * Import the upstream maintenance branch
+  * d/p/lp2031912.patch: Fix regression in sem_open that breaks OpenMPI
+    (LP: #2031912)
+
+ -- Simon Chopin <schopin@ubuntu.com>  Mon, 28 Aug 2023 17:23:19 +0200
+
 glibc (2.38-1ubuntu3) mantic; urgency=medium
 
   * Adjust libc6-dev Breaks to account for binNMU vs no-change uploads
