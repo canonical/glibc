@@ -28,10 +28,16 @@ hppa/local-inlining.diff
 # 2.38
 hurd-i386/git-intr-msg-cfa.diff
 hurd-i386/git-intr-msg-stack.diff
-hurd-i386/git-exception-long.diff
 hurd-i386/git-ctty.diff
 hurd-i386/git-tst-system.diff
 hurd-i386/git-task_info_count.diff
+
+# 2.39
+hurd-i386/git-jemalloc.diff
+hurd-i386/git-jemalloc2.diff
+hurd-i386/git-error_t.diff
+hurd-i386/git-tls_dtors.diff
+hurd-i386/git-main_stack.diff
 
 hurd-i386/local-enable-ldconfig.diff
 hurd-i386/tg-sysvshm.diff
@@ -91,4 +97,4 @@ any/local-bootstrap-headers.diff
 any/local-cudacc-float128.diff
 any/local-test-install.diff
 any/local-cross.patch
-any/local-disable-tst-bz29951.diff
+any/git-c-utf-8-language.diff
