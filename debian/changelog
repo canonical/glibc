@@ -1,3 +1,12 @@
+glibc (2.35-0ubuntu3.4) jammy-security; urgency=medium
+
+  * SECURITY UPDATE: privilege escalation in ld.so
+    - debian/patches/any/CVE-2023-4911.patch: terminate immediately if end
+      of input is reached in elf/dl-tunables.c.
+    - CVE-2023-4911
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Mon, 25 Sep 2023 10:45:50 -0400
+
 glibc (2.35-0ubuntu3.3) jammy; urgency=medium
 
   * Drop SVE patches due to kernal-related performance regression
