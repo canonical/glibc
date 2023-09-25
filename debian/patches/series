@@ -183,3 +183,5 @@ ubuntu/lp2007599-S390-Influence-hwcaps-stfle-via-GLIBC_TUNABLES.patch
 restore-libc-DT_HASH.patch
 
 #
+any/CVE-2023-4527.patch
+any/CVE-2023-4911.patch

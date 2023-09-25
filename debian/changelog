@@ -1,3 +1,17 @@
+glibc (2.37-0ubuntu2.1) lunar-security; urgency=medium
+
+  * SECURITY UPDATE: DoS and info disclosure via no-aaaa
+    - debian/patches/any/CVE-2023-4527.patch: pass alt_dns_packet_buffer in
+      resolv/nss_dns/dns-host.c, add test to resolv/Makefile,
+      resolv/tst-resolv-noaaaa-vc.c.
+    - CVE-2023-4527
+  * SECURITY UPDATE: privilege escalation in ld.so
+    - debian/patches/any/CVE-2023-4911.patch: terminate immediately if end
+      of input is reached in elf/dl-tunables.c.
+    - CVE-2023-4911
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Mon, 25 Sep 2023 08:20:52 -0400
+
 glibc (2.37-0ubuntu2) lunar; urgency=medium
 
   * d/p/u/lp2007599*.patch: add tunables for s390x (LP: #2007599)
