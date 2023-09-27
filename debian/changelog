@@ -1,3 +1,18 @@
+glibc (2.38-1ubuntu5) mantic; urgency=medium
+
+  * Update from upstream release branche:
+    - CVE-2023-4527: Stack read overflow with large TCP responses in
+      no-aaaa mode
+    - CVE-2023-4806: use after free in getcanonname
+    - LP: #2031909: Fix oversized __io_vtables
+  * d/p/u/0001-Fix-leak-in-getaddrinfo-introduced-by-the-fix-for-CV:
+    Cherry-picked to fix a regression in one of the previous CVE fixes
+    (LP: #2037516, CVE-2023-5156)
+  * d/p/lp2032624.patch: add an escape hatch in arm64 math-vector.h.
+    This should help fixing multiple FTBFS (LP: #2032624)
+
+ -- Simon Chopin <schopin@ubuntu.com>  Wed, 27 Sep 2023 16:38:18 +0200
+
 glibc (2.38-1ubuntu4) mantic; urgency=medium
 
   * Import the upstream maintenance branch

@@ -107,3 +107,5 @@ ubuntu/local-fallback-to-monotonic.diff
 ubuntu/submitted-broadcast-to-prevent-deadlock.diff
 ubuntu/sdt-headers.patch
 lp2031495.patch
+ubuntu/0001-Fix-leak-in-getaddrinfo-introduced-by-the-fix-for-CV.patch
+lp2032624.patch
