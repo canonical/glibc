@@ -1,3 +1,19 @@
+glibc (2.36-9+deb12u2) bookworm; urgency=medium
+
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix the value of F_GETLK/F_SETLK/F_SETLKW with __USE_FILE_OFFSET64 on
+      ppc64el.  Closes: #1050592.
+    - Fix a stack read overflow in getaddrinfo in no-aaaa mode
+      (CVE-2023-4527).  Closes: #1051958.
+    - Fix use after free in getcanonname (CVE-2023-4806, CVE-2023-5156).
+    - Update the x86 cacheinfo code to look at the per-thread L3 cache to
+      determine the non-temporal threshold. This improves memory and string
+      functions on modern CPUs.
+    - Fix _dl_find_object to return correct values even during early startup.
+    - Always call destructors in reverse constructor order.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 28 Sep 2023 22:50:47 +0200
+
 glibc (2.36-9+deb12u1) bookworm; urgency=medium
 
   [ Aurelien Jarno ]
