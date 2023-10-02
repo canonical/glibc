@@ -1,3 +1,12 @@
+glibc (2.38-1ubuntu6) mantic; urgency=medium
+
+  * SECURITY UPDATE: privilege escalation in ld.so
+    - debian/patches/CVE-2023-4911.patch: terminate immediately if end of
+      input is reached in elf/dl-tunables.c.
+    - CVE-2023-4911
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Mon, 02 Oct 2023 13:30:48 -0400
+
 glibc (2.38-1ubuntu5) mantic; urgency=medium
 
   * Update from upstream release branche:
