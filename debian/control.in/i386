@@ -16,6 +16,8 @@ Architecture: amd64 x32
 Section: libdevel
 Priority: optional
 Provides: lib32c-dev
+Replaces: libc6-dev (<< 2.38-1ubuntu1)
+Breaks: libc6-dev (<< 2.38-1ubuntu1)
 Depends: libc6-i386 (= ${binary:Version}) <!stage1>, libc6-dev (= ${binary:Version}), ${misc:Depends}
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>

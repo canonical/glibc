@@ -1,0 +1,60 @@
+From c5b0acec45428ac37fd355cb14dd622d41a045cb Mon Sep 17 00:00:00 2001
+From: Simon Chopin <simon.chopin@canonical.com>
+Date: Wed, 4 Oct 2023 11:45:18 +0200
+Subject: [PATCH] test-container: disable ld.so system cache on DSO detection
+
+When building the testroot, the script runs the newly built ld.so on a
+couple of binaries in order to copy over any additional libararies
+needed. However, if the dependencies are found in the system cache, it
+will be copied over using that path.
+
+This is problematic if the system ld.so and the one built don't have the
+exact same search configuration. We encountered this in Ubuntu, where we
+build a variant of libc with -fno-omit-frame-pointer for accurate
+performance profiling.
+
+This variant is built using a non-standard slibdir to be able to be
+co-installed with the default library (e.g. slibdir = /lib/libc6-prof).
+Since we have /lib pointing to /usr/lib, any additional dependency
+should still be reachable via /usr. However, resolving via the cache
+might result in the additional DSOs being copied into $testroot/lib, out
+of the search path in the container.
+
+The problem has been triggered by 1d5024f4f052c12e404d42d3b5bfe9c3e9fd27c4
+("support: Build with exceptions and asynchronous unwind tables [BZ #30587]")
+which introduced a dependency on libgcc_s.so.1 under some circumstances.
+
+Downstream bug: https://bugs.launchpad.net/ubuntu/+source/glibc/+bug/2031495
+
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/glibc/+bug/2031495
+---
+ Makefile | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index c6d4817a9e..b938721166 100644
+--- a/Makefile
++++ b/Makefile
+@@ -624,7 +624,7 @@ $(objpfx)testroot.pristine/install.stamp :
+ ifeq ($(run-built-tests),yes)
+ 	# Copy these DSOs first so we can overwrite them with our own.
+ 	for dso in `$(test-wrapper-env) LD_TRACE_LOADED_OBJECTS=1  \
+-		$(rtld-prefix) \
++		$(rtld-prefix) --inhibit-cache \
+ 		$(objpfx)testroot.pristine/bin/sh \
+ 	        | sed -n '/\//{s@.*=> /@/@;s/^[^/]*//;s/ .*//p;}'` ;\
+ 	  do \
+@@ -633,7 +633,7 @@ ifeq ($(run-built-tests),yes)
+ 	    $(test-wrapper) cp $$dso $(objpfx)testroot.pristine$$dso ;\
+ 	  done
+ 	for dso in `$(test-wrapper-env) LD_TRACE_LOADED_OBJECTS=1  \
+-		$(rtld-prefix) \
++		$(rtld-prefix) --inhibit-cache \
+ 		$(objpfx)support/$(LINKS_DSO_PROGRAM) \
+ 	        | sed -n '/\//{s@.*=> /@/@;s/^[^/]*//;s/ .*//p;}'` ;\
+ 	  do \
+
+base-commit: 1056e5b4c3f2d90ed2b4a55f96add28da2f4c8fa
+-- 
+2.40.1
+

@@ -33,15 +33,30 @@ $(patsubst %,$(stamp)binaryinst_%,$(DEB_ARCH_REGULAR_PACKAGES) $(DEB_INDEP_REGUL
 	dh_link -p$(curpass)
 	dh_bugfiles -p$(curpass)
 
+	if test "$(curpass)" = "libc-bin"; then			\
+	  mv debian/$(curpass)/sbin/ldconfig			\
+	    debian/$(curpass)/sbin/ldconfig.real;		\
+	  install -m755 debian/local/sbin/ldconfig	\
+	    debian/$(curpass)/sbin/ldconfig;			\
+	fi
+
 	# when you want to install extra packages, use extra_pkg_install.
 	$(call xx,extra_pkg_install)
 
 ifeq ($(filter nostrip,$(DEB_BUILD_OPTIONS)),)
 	if test "$(NOSTRIP_$(curpass))" != 1; then					\
 	  if test "$(DEBUG_$(curpass))" = 1; then					\
-	    dh_strip -p$(curpass) $(DH_STRIP_DEBUG_PACKAGE);				\
+	    if test "$(DEB_HOST_ARCH)" = "armhf"; then					\
+	      dh_strip -p$(curpass) -Xld-linux-$(DEB_HOST_ARCH).so $(DH_STRIP_DEBUG_PACKAGE);	\
+	    else									\
+	      dh_strip -p$(curpass) $(DH_STRIP_DEBUG_PACKAGE);	\
+	    fi ;									\
 	  else										\
-	    dh_strip -p$(curpass);							\
+	    if test "$(DEB_HOST_ARCH)" = "armhf"; then					\
+	      dh_strip -p$(curpass) -Xld-linux-$(DEB_HOST_ARCH).so;							\
+	    else									\
+	      dh_strip -p$(curpass);							\
+	    fi ;									\
 	  fi ;										\
 	  for f in $$(find debian/$(curpass) -name \*crt\*.o) ; do			\
 	    $(DEB_HOST_GNU_TYPE)-strip --strip-debug --remove-section=.comment		\
@@ -54,6 +69,9 @@ endif
 	# Keep the setuid on pt_chown (non-Linux only).
 	# Keep the 0700 permissions of /var/cache/ldconfig
 	dh_fixperms -p$(curpass) -Xpt_chown -Xvar/cache/ldconfig
+	if [ $(curpass) = locales ] ; then \
+		chmod +x debian/$(curpass)/usr/share/locales/*-language-pack ; \
+	fi
 	# libc.so prints useful version information when executed.
 	find debian/$(curpass) -type f -regex '.*/libc\.so\.[0-9.]+' -exec chmod a+x '{}' ';'
 	# Use this instead of -X to dh_fixperms so that we can use
@@ -111,6 +129,7 @@ $(stamp)debhelper-common:
 	  y=debian/`basename $$x`; \
 	  perl -p \
 	      -e 'BEGIN {local $$/=undef; open(IN, "debian/script.in/nsscheck.sh"); $$j=<IN>;} s/__NSS_CHECK__/$$j/g;' \
+	      -e 'BEGIN {local $$/=undef; open(IN, "debian/script.in/nohwcap.sh"); $$k=<IN>;} s/__NOHWCAP__/$$k/g;' \
 	      -e 'BEGIN {open(IN, "debian/tmp/usr/share/i18n/SUPPORTED"); $$l = join("", grep { !/^C\.UTF-8/ } grep { /UTF-8/ } <IN>);} s/__PROVIDED_LOCALES__/$$l/g;' \
 	      -e 's#DEB_VERSION_UPSTREAM#$(DEB_VERSION_UPSTREAM)#g;' \
 	      -e 's#CURRENT_VER#$(DEB_VERSION)#g;' \
@@ -137,6 +156,7 @@ ifeq ($(filter stage1 stage2,$(DEB_BUILD_PROFILES)),)
 	echo 'libcrypt-dev:Depends=libcrypt-dev' >> tmp.substvars
 	echo 'libnsl-dev:Depends=libnsl-dev' >> tmp.substvars
 	echo 'rpcsvc-proto:Depends=rpcsvc-proto' >> tmp.substvars
+	echo 'libtirpc-dev:Depends=libtirpc-dev' >> tmp.substvars
 	echo 'libc-dev:Breaks=$(libc)-dev-$(DEB_HOST_ARCH)-cross (<< $(DEB_VERSION_UPSTREAM)~)' >> tmp.substvars
 endif
 	for pkg in $(DEB_ARCH_REGULAR_PACKAGES) $(DEB_INDEP_REGULAR_PACKAGES) $(DEB_UDEB_PACKAGES); do \
@@ -203,6 +223,11 @@ $(stamp)debhelper_%: $(stamp)debhelper-common $(stamp)install_%
 	  *:/lib32 | *:/lib64 | *:/libo32 | *:/libx32) \
 	    templates="libc libc-dev" \
 	    pass="-alt" \
+	    suffix="-$(curpass)" \
+	    ;; \
+	  *:*) \
+	    templates="libc" \
+	    pass="-otherbuild" \
 	    suffix="-$(curpass)" \
 	    ;; \
 	esac ; \

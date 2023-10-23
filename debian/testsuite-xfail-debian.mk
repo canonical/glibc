@@ -11,6 +11,29 @@ test-xfail-tst-timer = yes
 # control, we'll just let it fail
 test-xfail-tst-create-detached = yes
 
+# This test is skipped in chroots, and appears to fail on autopkgtest
+# testbeds.  I've run out of time to debug and fix it upstream for
+# disco, so this will have to XFAIL for now:
+test-xfail-tst-nss-test3 = yes
+
+# This test is flapping on all architectures, due to this upstream bug:
+# https://sourceware.org/bugzilla/show_bug.cgi?id=19329
+test-xfail-tst-stack4 = yes
+
+# nss/tst-reload2 fails for obscure reasons in the check_prof test run
+# (trying to create a directory that already exists)
+test-xfail-tst-reload2 = yes
+
+# LP: #1891403 needs good entropy source
+test-xfail-tst-getrandom = yes
+
+# LP: #1894447 detected as unsupported during build, fails in autopkgtest
+test-xfail-tst-localedef-path-norm = yes
+test-xfail-tst-localedef-hardlinks = yes
+test-xfail-tst-pthread-getattr = yes
+test-xfail-tst-strerror = yes
+test-xfail-tst-strsignal = yes
+
 ######################################################################
 # alpha
 ######################################################################
@@ -149,6 +172,10 @@ ifeq ($(config-machine)-$(config-os),x86_64-linux-gnu)
 # This test fails intermittently on amd64. It could be a kernel issue.
 # see https://sourceware.org/bugzilla/show_bug.cgi?id=19004
 test-xfail-tst-robust8 = yes
+
+# fails on prodstack5 https://sourceware.org/bugzilla/show_bug.cgi?id=28692
+test-xfail-tst-cpu-features-cpuinfo = yes
+test-xfail-tst-cpu-features-cpuinfo-static = yes
 endif
 
 
@@ -163,6 +190,61 @@ endif
 # armel
 ######################################################################
 ifeq ($(config-machine)-$(config-os),arm-linux-gnueabi)
+# These tests are currently known to fail under lxc, where we run our ARM
+# regression tests, so pretend they fail on ARM:
+test-xfail-tst-ttyname = yes
+test-xfail-tst-support_descriptors = yes
+
+# This test fails due to a kernel bug when building armhf on an ARM64
+# machine. See bug #904385.
+test-xfail-tst-signal6 = yes
+
+# This test has regressed with recent kernels
+test-xfail-tst-thread-exit-clobber = yes
+
+# These (new in 2.29) tests appear to fail when building armhf on aarch64
+test-xfail-tst-minsigstksz-1 = yes
+test-xfail-tst-minsigstksz-2 = yes
+test-xfail-tst-minsigstksz-3 = yes
+test-xfail-tst-minsigstksz-3a = yes
+test-xfail-tst-minsigstksz-4 = yes
+test-xfail-tst-xsigstack = yes
+
+# sleep vs child's clock seems to be even less accurate than expected on
+# armhf testbeds (LP: #1895687)
+test-xfail-tst-cpuclock1 = yes
+
+# glibc should be fast but maybe not great at geometry
+# https://sourceware.org/git/?p=glibc.git;a=commit;h=f67f9c9af228f6b84579cb8c86312d3a7a206a55
+test-xfail-test-double-asinh = yes
+test-xfail-test-double-cbrt = yes
+test-xfail-test-double-cosh = yes
+test-xfail-test-double-erfc = yes
+test-xfail-test-double-exp = yes
+test-xfail-test-double-sinh = yes
+test-xfail-test-double-tgamma = yes
+test-xfail-test-float32x-asinh = yes
+test-xfail-test-float32x-cbrt = yes
+test-xfail-test-float32x-cosh = yes
+test-xfail-test-float32x-erfc = yes
+test-xfail-test-float32x-exp = yes
+test-xfail-test-float32x-sinh = yes
+test-xfail-test-float32x-tgamma = yes
+test-xfail-test-float64-asinh = yes
+test-xfail-test-float64-cbrt = yes
+test-xfail-test-float64-cosh = yes
+test-xfail-test-float64-erfc = yes
+test-xfail-test-float64-exp = yes
+test-xfail-test-float64-sinh = yes
+test-xfail-test-float64-tgamma = yes
+test-xfail-test-ldouble-asinh = yes
+test-xfail-test-ldouble-cbrt = yes
+test-xfail-test-ldouble-cosh = yes
+test-xfail-test-ldouble-erfc = yes
+test-xfail-test-ldouble-exp = yes
+test-xfail-test-ldouble-sinh = yes
+test-xfail-test-ldouble-tgamma = yes
+
 endif
 
 
@@ -170,6 +252,68 @@ endif
 # armhf
 ######################################################################
 ifeq ($(config-machine)-$(config-os),arm-linux-gnueabihf)
+# These tests are currently known to fail under lxc, where we run our ARM
+# regression tests, so pretend they fail on ARM:
+test-xfail-tst-ttyname = yes
+test-xfail-tst-support_descriptors = yes
+
+# This test fails due to a kernel bug when building armhf on an ARM64
+# machine. See bug #904385.
+test-xfail-tst-signal6 = yes
+test-xfail-tst-minsigstksz-1 = yes
+test-xfail-tst-minsigstksz-2 = yes
+test-xfail-tst-minsigstksz-3 = yes
+test-xfail-tst-minsigstksz-3a = yes
+test-xfail-tst-minsigstksz-4 = yes
+test-xfail-tst-xsigstack = yes
+
+# This test has regressed with recent kernels
+test-xfail-tst-thread-exit-clobber = yes
+
+# This test fails when libnss-systemd is configured (LP: #1869364)
+# because getauxval doesn't work when you run a binary as
+# "/lib/ld-linux-armhf.so.3 binary"
+# (https://sourceware.org/bugzilla/show_bug.cgi?id=23293).
+test-xfail-tst-getpw = yes
+
+# sleep vs child's clock seems to be even less accurate than expected on
+# armhf testbeds (LP: #1895687)
+test-xfail-tst-cpuclock1 = yes
+
+# glibc should be fast but maybe not great at geometry
+# https://sourceware.org/git/?p=glibc.git;a=commit;h=f67f9c9af228f6b84579cb8c86312d3a7a206a55
+test-xfail-test-double-asinh = yes
+test-xfail-test-double-cbrt = yes
+test-xfail-test-double-cosh = yes
+test-xfail-test-double-erfc = yes
+test-xfail-test-double-exp = yes
+test-xfail-test-double-sinh = yes
+test-xfail-test-double-tgamma = yes
+test-xfail-test-float32x-asinh = yes
+test-xfail-test-float32x-cbrt = yes
+test-xfail-test-float32x-cosh = yes
+test-xfail-test-float32x-erfc = yes
+test-xfail-test-float32x-exp = yes
+test-xfail-test-float32x-sinh = yes
+test-xfail-test-float32x-tgamma = yes
+test-xfail-test-float64-asinh = yes
+test-xfail-test-float64-cbrt = yes
+test-xfail-test-float64-cosh = yes
+test-xfail-test-float64-erfc = yes
+test-xfail-test-float64-exp = yes
+test-xfail-test-float64-sinh = yes
+test-xfail-test-float64-tgamma = yes
+test-xfail-test-ldouble-asinh = yes
+test-xfail-test-ldouble-cbrt = yes
+test-xfail-test-ldouble-cosh = yes
+test-xfail-test-ldouble-erfc = yes
+test-xfail-test-ldouble-exp = yes
+test-xfail-test-ldouble-sinh = yes
+test-xfail-test-ldouble-tgamma = yes
+
+# Test failing in check-prof
+test-xfail-tst-statx = yes
+
 endif
 
 
@@ -471,6 +615,13 @@ endif
 # i386
 ######################################################################
 ifeq ($(config-machine)-$(config-os),i686-linux-gnu)
+
+# fails on prodstack5 https://sourceware.org/bugzilla/show_bug.cgi?id=28692
+test-xfail-tst-cpu-features-cpuinfo = yes
+test-xfail-tst-cpu-features-cpuinfo-static = yes
+
+# flaky on Ubuntu buildds
+test-xfail-tst-cancel28 = yes
 endif
 
 
@@ -595,6 +746,15 @@ endif
 ifeq ($(config-machine)-$(config-os),powerpc64le-linux-gnu)
 endif
 
+# LP: #1894447 detected as unsupported during build, fails in autopkgtest
+test-xfail-test-syslog-chk-ibm128 = yes
+test-xfail-test-syslog-chk-ieee128 = yes
+test-xfail-test-syslog-ibm128 = yes
+test-xfail-test-syslog-ieee128 = yes
+
+# LP: #1907298 Linux 5.10 slightly changed signal handling
+test-xfail-tst-sigcontext-get_pc = yes
+
 
 ######################################################################
 # ppc64
@@ -631,6 +791,26 @@ test-xfail-tst-resolv-threads = yes
 
 # dl_profile is not supported on riscv
 test-xfail-tst-sprof-basic = yes
+
+# dl_profile is not supported on riscv
+# needs investigation, fail on launchpad
+test-xfail-tst-mxfast = yes
+test-xfail-tst-mutex10 = yes
+test-xfail-tst-strtod-round = yes
+endif
+
+######################################################################
+# s390
+######################################################################
+ifeq ($(config-machine)-$(config-os),s390-linux-gnu)
+
+# In some conditions the kernel might not provide a heap, causing
+# some tests to fail. See bug#889817 for details.
+test-xfail-tst-malloc-usable-tunables = yes
+
+# nanosecond field is zero on 31bit, fixed in upstream
+# glibc-2.33.9000-213-g1966f47a1e5
+test-xfail-tst-stat = yes
 endif
 
 
@@ -700,4 +880,19 @@ endif
 ######################################################################
 ifeq ($(config-machine)-$(config-os),x86_64-linux-gnux32)
 test-xfail-tst-platform-1 = yes
+
+# fails on prodstack5 https://sourceware.org/bugzilla/show_bug.cgi?id=28692
+test-xfail-tst-cpu-features-cpuinfo = yes
+test-xfail-tst-cpu-features-cpuinfo-static = yes
+endif
+
+######################################################################
+# Ubuntu additions
+######################################################################
+
+# fail on 32bit with the xenial kernel, working with bionic and focal
+ifneq (,$(filter $(config-machine)-$(config-os), arm-linux-gnueabihf arm-linux-gnueabi i686-linux-gnu))
+test-xfail-test-sysvmsg = yes
+test-xfail-test-sysvsem = yes
+test-xfail-test-sysvshm = yes
 endif

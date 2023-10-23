@@ -97,7 +97,7 @@ BASE_CC = gcc
 BASE_CXX = g++
 BASE_MIG = mig
 # If you override DEB_GCC_VERSION, consider adding DEB_CFLAGS_APPEND=-Wno-error.
-DEB_GCC_VERSION ?= -12
+DEB_GCC_VERSION ?=
 
 RUN_TESTSUITE = yes
 TIMEOUTFACTOR = 25
@@ -141,7 +141,7 @@ else
   ifeq ($(filter stage2,$(DEB_BUILD_PROFILES)),)
     DEB_ARCH_REGULAR_PACKAGES += libc-devtools
   endif
-  DEB_INDEP_REGULAR_PACKAGES = glibc-doc glibc-source libc-l10n locales
+  DEB_INDEP_REGULAR_PACKAGES = glibc-doc glibc-source locales
   ifneq ($(filter noudeb,$(DEB_BUILD_PROFILES)),)
     DEB_UDEB_PACKAGES =
   else
@@ -167,6 +167,7 @@ standard-add-ons = libidn,
 
 -include debian/sysdeps/$(DEB_HOST_ARCH_OS).mk
 -include debian/sysdeps/$(DEB_HOST_ARCH).mk
+include debian/sysdeps/prof.mk
 
 ifneq ($(filter stage1,$(DEB_BUILD_PROFILES)),)
 DEB_ARCH_REGULAR_PACKAGES += $(foreach p,$(DEB_ARCH_MULTILIB_PACKAGES), $(if $(findstring -dev,$(p)), $(p)))
@@ -179,6 +180,7 @@ NOSTRIP_$(libc)-dbg = 1
 
 # Put the debug files from these packages in $(libc)-dbg
 DEBUG_$(libc) = 1
+DEBUG_libc6-prof = 1
 
 ifeq ($(filter stage1,$(DEB_BUILD_PROFILES)),)
   ifeq ($(threads),yes)
@@ -204,8 +206,7 @@ build-arch: $(stamp)info \
 	build-arch-post-check
 
 ifeq ($(filter stage1,$(DEB_BUILD_PROFILES)),)
-build-arch: $(stamp)build_C.utf8 \
-	$(stamp)build_locales-all
+build-arch: $(stamp)build_locales-all
 endif
 
 build-indep: $(stamp)source $(stamp)build_libc
