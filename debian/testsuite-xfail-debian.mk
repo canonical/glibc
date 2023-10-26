@@ -177,6 +177,8 @@ endif
 # armhf
 ######################################################################
 ifeq ($(config-machine)-$(config-os),arm-linux-gnueabihf)
+# See LP: #2041188
+test-xfail-tst-support_descriptors = yes
 endif
 
 
