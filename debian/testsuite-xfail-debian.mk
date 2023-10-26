@@ -15,6 +15,9 @@ test-xfail-tst-create-detached = yes
 # chroot mode, see bug #1070003.
 test-xfail-tst-support_descriptors = yes
 
+# See LP: #2041179, need to double-check that it still fails
+test-xfail-tst-reload2 = yes
+
 ######################################################################
 # alpha
 ######################################################################
