@@ -18,6 +18,25 @@ test-xfail-tst-support_descriptors = yes
 # See LP: #2041179, need to double-check that it still fails
 test-xfail-tst-reload2 = yes
 
+# This test is skipped in chroots, and appears to fail on autopkgtest
+# testbeds.  I've run out of time to debug and fix it upstream for
+# disco, so this will have to XFAIL for now:
+test-xfail-tst-nss-test3 = yes
+
+# This test is flapping on all architectures, due to this upstream bug:
+# https://sourceware.org/bugzilla/show_bug.cgi?id=19329
+test-xfail-tst-stack4 = yes
+
+# LP: #1891403 needs good entropy source
+test-xfail-tst-getrandom = yes
+
+# LP: #1894447 detected as unsupported during build, fails in autopkgtest
+test-xfail-tst-localedef-path-norm = yes
+test-xfail-tst-localedef-hardlinks = yes
+test-xfail-tst-pthread-getattr = yes
+test-xfail-tst-strerror = yes
+test-xfail-tst-strsignal = yes
+
 ######################################################################
 # alpha
 ######################################################################
@@ -156,6 +175,10 @@ ifeq ($(config-machine)-$(config-os),x86_64-linux-gnu)
 # This test fails intermittently on amd64. It could be a kernel issue.
 # see https://sourceware.org/bugzilla/show_bug.cgi?id=19004
 test-xfail-tst-robust8 = yes
+
+# fails on prodstack5, tracked in LP: #2041678
+test-xfail-tst-cpu-features-cpuinfo = yes
+test-xfail-tst-cpu-features-cpuinfo-static = yes
 endif
 
 
@@ -519,6 +542,10 @@ endif
 # i386
 ######################################################################
 ifeq ($(config-machine)-$(config-os),i686-linux-gnu)
+
+# fails on prodstack5, tracked in LP: #2041678
+test-xfail-tst-cpu-features-cpuinfo = yes
+test-xfail-tst-cpu-features-cpuinfo-static = yes
 endif
 
 
@@ -746,4 +773,8 @@ endif
 ######################################################################
 ifeq ($(config-machine)-$(config-os),x86_64-linux-gnux32)
 test-xfail-tst-platform-1 = yes
+
+# fails on prodstack5, tracked in LP: #2041678
+test-xfail-tst-cpu-features-cpuinfo = yes
+test-xfail-tst-cpu-features-cpuinfo-static = yes
 endif
