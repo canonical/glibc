@@ -1,3 +1,16 @@
+glibc (2.37-0ubuntu2.2) lunar-security; urgency=medium
+
+  * SECURITY UPDATE: use-after-free through getcanonname_r plugin call
+    - debian/patches/any/CVE-2023-4806.patch: copy h_name over and free it at
+      the end (getaddrinfo).
+    - CVE-2023-4806
+  * SECURITY UPDATE: memory leak in getaddrinfo
+    - debian/patches/any/CVE-2023-5156.patch: fix leak in getaddrinfo
+      introduced by the fix for CVE-2023-4806.
+    - CVE-2023-5156
+
+ -- Camila Camargo de Matos <camila.camargodematos@canonical.com>  Wed, 22 Nov 2023 10:31:12 -0300
+
 glibc (2.37-0ubuntu2.1) lunar-security; urgency=medium
 
   * SECURITY UPDATE: DoS and info disclosure via no-aaaa

@@ -185,3 +185,5 @@ restore-libc-DT_HASH.patch
 #
 any/CVE-2023-4527.patch
 any/CVE-2023-4911.patch
+any/CVE-2023-4806.patch
+any/CVE-2023-5156.patch
