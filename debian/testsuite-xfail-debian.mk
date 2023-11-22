@@ -35,6 +35,8 @@ test-xfail-tst-nss-db-endpwent = yes
 test-xfail-tst-nss-db-endgrent = yes
 test-xfail-tst-nss-files-hosts-long = yes
 test-xfail-tst-system = yes
+test-xfail-tst-nss-gai-actions = yes
+test-xfail-tst-nss-gai-hv2-canonname = yes
 
 # LP: #1891403 needs good entropy source
 test-xfail-tst-getrandom = yes

@@ -171,3 +171,5 @@ lp2001932/0002-strncmp-Add-a-testcase-for-page-boundary-BZ-25933.patch
 
 lp2001975/0001-x86-Fix-__wcsncmp_avx2-in-strcmp-avx2.S-BZ-28755.patch
 lp2001975/0002-string-Add-a-testcase-for-wcsncmp-with-SIZE_MAX-BZ-2.patch
+any/CVE-2023-4813.patch
+any/CVE-2023-4806.patch

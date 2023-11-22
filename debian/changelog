@@ -1,3 +1,18 @@
+glibc (2.31-0ubuntu9.14) focal-security; urgency=medium
+
+  * SECURITY UPDATE: use-after-free through getcanonname_r plugin call
+    - debian/patches/any/CVE-2023-4806.patch: copy h_name over and free it at
+      the end (getaddrinfo).
+    - CVE-2023-4806
+  * SECURITY UPDATE: use-after-free in gaih_inet function
+    - debian/patches/any/CVE-2023-4813.patch: simplify allocations and fix
+      merge and continue actions.
+    - CVE-2023-4813
+  * debian/testsuite-xfail-debian.mk: add tst-nss-gai-actions and
+    tst-nss-gai-hv2-canonname to xfails (container tests).
+
+ -- Camila Camargo de Matos <camila.camargodematos@canonical.com>  Wed, 22 Nov 2023 10:32:50 -0300
+
 glibc (2.31-0ubuntu9.12) focal; urgency=medium
 
   * Drop SVE memcpy implementation due to kernel-related performance
