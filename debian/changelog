@@ -1,3 +1,44 @@
+glibc (2.35-0ubuntu3.5) jammy-security; urgency=medium
+
+  * SECURITY UPDATE: use-after-free through getcanonname_r plugin call
+    - debian/patches/any/CVE-2023-4806-pre1.patch: sort tests and
+      tests-container and put one test per line (nss).
+    - debian/patches/any/CVE-2023-4806-pre2.patch: simplify canon name
+      resolution (gaih_inet).
+    - debian/patches/any/CVE-2023-4806-pre3.patch: fix leak with AI_ALL
+      (gaih_inet).
+    - debian/patches/any/CVE-2023-4806-pre4.patch: simplify service resolution
+      (gaih_inet).
+    - debian/patches/any/CVE-2023-4806-pre5.patch: make numeric lookup a
+      separate routine (gaih_inet).
+    - debian/patches/any/CVE-2023-4806-pre6.patch: split simple gethostbyname
+      into its own function (gaih_inet).
+    - debian/patches/any/CVE-2023-4806-pre7.patch: split nscd lookup code into
+      its own function (gaih_inet).
+    - debian/patches/any/CVE-2023-4806-pre8.patch: separate nss lookup loop
+      into its own function (gaih_inet).
+    - debian/patches/any/CVE-2023-4806-pre9.patch: make gethosts into a
+      function (gaih_inet).
+    - debian/patches/any/CVE-2023-4806-pre10.patch: split loopback lookup into
+      its own function (gaih_inet).
+    - debian/patches/any/CVE-2023-4806-pre11.patch: split result generation
+      into its own function (gaih_inet).
+    - debian/patches/any/CVE-2023-4806-pre12.patch: return EAI_MEMORY on
+      allocation failure (gethosts).
+    - debian/patches/any/CVE-2023-4806.patch: copy h_name over and free it at
+      the end (getaddrinfo).
+    - CVE-2023-4806
+  * SECURITY UPDATE: use-after-free in gaih_inet function
+    - debian/patches/any/CVE-2023-4813.patch: simplify allocations and fix
+      merge and continue actions.
+    - CVE-2023-4813
+  * SECURITY UPDATE: memory leak in getaddrinfo
+    - debian/patches/any/CVE-2023-5156.patch: fix leak in getaddrinfo
+      introduced by the fix for CVE-2023-4806.
+    - CVE-2023-5156
+
+ -- Camila Camargo de Matos <camila.camargodematos@canonical.com>  Wed, 22 Nov 2023 10:18:45 -0300
+
 glibc (2.35-0ubuntu3.4) jammy-security; urgency=medium
 
   * SECURITY UPDATE: privilege escalation in ld.so

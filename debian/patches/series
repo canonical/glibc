@@ -191,3 +191,18 @@ lp2011421/0002-x86-Check-minimum-maximum-of-non_temporal_threshold-.patch
 
 lp1992159-socket-Fix-mistyped-define-statement-in-socket-sys-s.patch
 any/CVE-2023-4911.patch
+any/CVE-2023-4813.patch
+any/CVE-2023-4806-pre1.patch
+any/CVE-2023-4806-pre2.patch
+any/CVE-2023-4806-pre3.patch
+any/CVE-2023-4806-pre4.patch
+any/CVE-2023-4806-pre5.patch
+any/CVE-2023-4806-pre6.patch
+any/CVE-2023-4806-pre7.patch
+any/CVE-2023-4806-pre8.patch
+any/CVE-2023-4806-pre9.patch
+any/CVE-2023-4806-pre10.patch
+any/CVE-2023-4806-pre11.patch
+any/CVE-2023-4806-pre12.patch
+any/CVE-2023-4806.patch
+any/CVE-2023-5156.patch
