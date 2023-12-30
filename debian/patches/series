@@ -43,6 +43,7 @@ hurd-i386/git-send_interrupt.diff
 hurd-i386/git-exec-intr.diff
 hurd-i386/git-ioctls-bsd.diff
 hurd-i386/git-dtable_reauth.diff
+hurd-i386/git-64bit-abi.diff
 
 hurd-i386/local-enable-ldconfig.diff
 hurd-i386/tg-sysvshm.diff
@@ -76,6 +77,8 @@ m68k/submitted-gcc34-seccomment.diff
 mips/submitted-rld_map.diff
 
 powerpc/local-powerpc8xx-dcbz.diff
+
+riscv64/git-risc-v-add-support-for-dl_runtime_profile.diff
 
 sh4/local-fpscr_values.diff
 

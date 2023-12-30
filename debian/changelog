@@ -1,3 +1,17 @@
+glibc (2.38-5) experimental; urgency=medium
+
+  [ Flavio Cruz ]
+  * debian/patches/hurd-i386/git-64bit-abi.diff: Finalize hurd-amd64 ABI.
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+  * debian/patches/riscv64/git-risc-v-add-support-for-dl_runtime_profile.diff:
+    backport upstream support for profile/audit PLT setup on RISC-V.
+  * debian/testsuite-xfail-debian.mk: drop tst-sprof-basic XFAIL from riscv64,
+    now that dl_profile is supported.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 30 Dec 2023 12:18:33 +0100
+
 glibc (2.38-4) experimental; urgency=medium
 
   [ Aurelien Jarno ]
