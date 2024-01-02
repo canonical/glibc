@@ -1,3 +1,24 @@
+glibc (2.35-0ubuntu3.6) jammy-security; urgency=medium
+
+  * SECURITY REGRESSION: incorrect processing of address family with nscd
+    (LP: #2047155)
+    - debian/patches/lp2047155/lp2047155-refactor-bits-for-readability.patch:
+      split out line processing for 'label', 'precedence' and 'scopev4' into
+      separate functions (gaiconf_inet).
+    - debian/patches/lp2047155/lp2047155-avoid-if-to-else-jump.patch: clean up
+      another antipattern where code flows from an if condition to its else
+      counterpart with a goto (gai_init).
+    - debian/patches/lp2047155/lp2047155-refactor-code-for-readability.patch:
+      refactor the code and make it easier to follow by removing the confusing
+      close_retry goto jump (getaddrinfo).
+    - debian/patches/lp2047155/
+      lp2047155-get-nscd-addresses-fix-subscript-typos.patch: fix the
+      subscript on air->family, which was accidentally set to 'count' when it
+      should have remained as 'i' (get_nscd_addresses).
+    - CVE-2023-4806
+
+ -- Camila Camargo de Matos <camila.camargodematos@canonical.com>  Tue, 02 Jan 2024 10:22:42 -0300
+
 glibc (2.35-0ubuntu3.5) jammy-security; urgency=medium
 
   * SECURITY UPDATE: use-after-free through getcanonname_r plugin call
