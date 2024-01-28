@@ -1,3 +1,18 @@
+glibc (2.31-13+deb11u8) bullseye; urgency=medium
+
+  * debian/patches/any/local-qsort-memory-corruption.patch: Fix a memory
+    corruption in qsort() when using nontransitive comparison functions.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 28 Jan 2024 23:58:14 +0100
+
+glibc (2.31-13+deb11u7) bullseye-security; urgency=medium
+
+  * debian/patches/any/local-CVE-2023-4911.patch: Fix a buffer overflow in the
+    dynamic loader's processing of the GLIBC_TUNABLES environment variable
+    (CVE-2023-4911).
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 02 Oct 2023 22:22:57 +0200
+
 glibc (2.31-13+deb11u6) bullseye; urgency=medium
 
   [ Aurelien Jarno ]
