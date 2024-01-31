@@ -1,3 +1,18 @@
+glibc (2.38-1ubuntu6.1) mantic-security; urgency=medium
+
+  * SECURITY UPDATE: multiple syslog() security issues
+    - debian/patches/CVE-2023-6246.patch: Fix heap buffer overflow in
+      misc/Makefile, misc/syslog.c, misc/tst-syslog-long-progname.c.
+    - debian/patches/CVE-2023-6779.patch: Fix heap buffer overflow in
+      misc/syslog.c.
+    - debian/patches/CVE-2023-6780.patch: Fix integer overflow in
+      misc/syslog.c.
+    - CVE-2023-6246
+    - CVE-2023-6779
+    - CVE-2023-6780
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Wed, 31 Jan 2024 08:04:28 -0500
+
 glibc (2.38-1ubuntu6) mantic; urgency=medium
 
   * SECURITY UPDATE: privilege escalation in ld.so

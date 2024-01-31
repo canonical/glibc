@@ -110,3 +110,6 @@ lp2031495.patch
 ubuntu/0001-Fix-leak-in-getaddrinfo-introduced-by-the-fix-for-CV.patch
 lp2032624.patch
 CVE-2023-4911.patch
+CVE-2023-6246.patch
+CVE-2023-6779.patch
+CVE-2023-6780.patch
