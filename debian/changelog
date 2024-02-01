@@ -1,3 +1,26 @@
+glibc (2.39-0ubuntu1) noble; urgency=medium
+
+  * New upstream release
+    Contains fixes for the following CVEs:
+    - CVE-2023-6246: Heap buffer overflow in __vsyslog_internal()
+    - CVE-2023-6779: Heap buffer overflow in __vsyslog_internal()
+    - CVE-2023-6780: Integer overflow in __vsyslog_internal()
+    Patches:
+    - Several patches refreshed
+    - d/p/localedata/lv_LV-current.patch: dropped, applied upstream
+    - d/p/lp{2031495,2032624}: dropped, applied upstream
+    - d/p/any/git-c-utf-8-language.diff: dropped, applied upstream
+  * d/p/ubuntu/submitted-tests-gracefully-handle-AppArmor-userns-containment.patch:
+    Fix the tests in recent apparmor environments (LP: #2048375)
+  * Drop libnss-nis and libnss-nisplus to Suggests (LP: #2045241)
+  * Fix Replaces version for libsotruss.so file move (LP: #2042665)
+  * Remove libc6-dev dependency on libtirpc-dev (LP: #2045763)
+  * Dropped a lot of Ubuntu-specific xfails that are now passing.
+  * Drop the -prof variant to instead use frame pointers on all 64-bit
+    architectures by default to match the rest of the distro (LP: #2042790)
+
+ -- Simon Chopin <schopin@ubuntu.com>  Thu, 01 Feb 2024 09:44:24 +0100
+
 glibc (2.38-3ubuntu1) noble; urgency=medium
 
   * debian/patches/git-updates.diff: update from upstream stable branch

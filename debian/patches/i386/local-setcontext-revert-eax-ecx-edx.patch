@@ -28,7 +28,7 @@ restore EAX, ECX and EDX [BZ# 25262]"). It breaks libunwind8.
 +	cfi_offset (ecx, oECX)
  	movl	oESP(%eax), %esp
  
- #if SHSTK_ENABLED
+ 	/* Push the return address on the new stack so we can return there.  */
 @@ -165,14 +167,15 @@ L(no_shstk):
  	/* Push the return address on the new stack so we can return there.  */
  	pushl	%ecx
@@ -96,5 +96,5 @@ restore EAX, ECX and EDX [BZ# 25262]"). It breaks libunwind8.
 +oECX		mreg (ECX)
 +oEAX		mreg (EAX)
  oEIP		mreg (EIP)
- oSCRATCH1	mreg (EAX)
- oSCRATCH2	mreg (ECX)
+ oFPREGS		mcontext (fpregs)
+ oSIGMASK	ucontext (uc_sigmask)

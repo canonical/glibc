@@ -41,7 +41,6 @@ $(stamp)control: debian/rules.d/control.mk $(control_deps) debian/tests/control.
 #	cat debian/control.in/armhf		>> $@T
 #	cat debian/control.in/armel		>> $@T
 	cat debian/control.in/x32		>> $@T
-	cat debian/control.in/opt		>> $@T
 	sed -e 's%@libc@%$(libc)%g' -e 's%@DEB_VERSION_UPSTREAM@%$(DEB_VERSION_UPSTREAM)%g' -e 's%@GPP_CROSS_DEP@%$(GPP_CROSS_DEP)%g' < $@T > debian/control
 	rm $@T
 

@@ -1,5 +1,3 @@
-git-updates.diff
-
 locale/check-unknown-symbols.diff
 locale/locale-print-LANGUAGE.diff
 locale/LC_IDENTIFICATION-optional-fields.diff
@@ -27,16 +25,16 @@ arm/local-arm-futex.diff
 hppa/local-inlining.diff
 
 # Committed for 2.39
-hurd-i386/git-realpath_NULL.diff
-hurd-i386/git-tst-realpath-toolong.diff
-hurd-i386/git-hidden_chk.diff
-hurd-i386/git-glob_dirent.diff
-hurd-i386/git-powerpc-longjmp.diff
-hurd-i386/git-jemalloc.diff
-hurd-i386/git-jemalloc2.diff
-hurd-i386/git-error_t.diff
-hurd-i386/git-tls_dtors.diff
-hurd-i386/git-main_stack.diff
+# hurd-i386/git-realpath_NULL.diff
+# hurd-i386/git-tst-realpath-toolong.diff
+# hurd-i386/git-hidden_chk.diff
+# hurd-i386/git-glob_dirent.diff
+# hurd-i386/git-powerpc-longjmp.diff
+# hurd-i386/git-jemalloc.diff
+# hurd-i386/git-jemalloc2.diff
+# hurd-i386/git-error_t.diff
+# hurd-i386/git-tls_dtors.diff
+# hurd-i386/git-main_stack.diff
 
 hurd-i386/local-enable-ldconfig.diff
 hurd-i386/tg-sysvshm.diff
@@ -95,7 +93,6 @@ any/local-ldconfig-ignore-ld.so.diff
 any/local-bootstrap-headers.diff
 any/local-test-install.diff
 any/local-cross.patch
-any/git-c-utf-8-language.diff
 
 # Ubuntu patches live in their own little world, to maintain sanity
 ubuntu/local-altlocaledir.diff
@@ -104,12 +101,10 @@ ubuntu/local-disable-nscd-netgroup-caching.diff
 ubuntu/localedata/en_IE-am_pm.diff
 ubuntu/localedata/eo_US.diff
 ubuntu/localedata/es_DO-am_pm.diff
-ubuntu/localedata/lv_LV-currency.diff
 ubuntu/localedata/sd_PK.diff
 ubuntu/localedata/ug_CN@latin.diff
 ubuntu/local-pldd-root.diff
 ubuntu/local-fallback-to-monotonic.diff
 ubuntu/submitted-broadcast-to-prevent-deadlock.diff
 ubuntu/sdt-headers.patch
-lp2031912.patch
-lp2031495.patch
+ubuntu/submitted-tests-gracefully-handle-AppArmor-userns-containment.patch

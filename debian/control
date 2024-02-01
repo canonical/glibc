@@ -12,7 +12,7 @@ Build-Depends: gettext, dpkg (>= 1.18.7), dpkg-dev (>= 1.17.14), xz-utils, file,
  g++-x86-64-linux-gnu [amd64] <cross>, g++-arc-linux-gnu [arc] <cross>, g++-aarch64-linux-gnu [arm64] <cross>, g++-arm-linux-gnueabi [armel] <cross>, g++-arm-linux-gnueabihf [armhf] <cross>, g++-hppa-linux-gnu [hppa] <cross>, g++-i686-linux-gnu [i386] <cross>, g++-m68k-linux-gnu [m68k] <cross>, g++-mips-linux-gnu [mips] <cross>, g++-mipsel-linux-gnu [mipsel] <cross>, g++-mips64-linux-gnuabin32 [mipsn32] <cross>, g++-mips64el-linux-gnuabin32 [mipsn32el] <cross>, g++-mips64-linux-gnuabi64 [mips64] <cross>, g++-mips64el-linux-gnuabi64 [mips64el] <cross>, g++-mipsisa32r6-linux-gnu [mipsr6] <cross>, g++-mipsisa32r6el-linux-gnu [mipsr6el] <cross>, g++-mipsisa64r6-linux-gnuabin32 [mipsn32r6] <cross>, g++-mipsisa64r6el-linux-gnuabin32 [mipsn32r6el] <cross>, g++-mipsisa64r6-linux-gnuabi64 [mips64r6] <cross>, g++-mipsisa64r6el-linux-gnuabi64 [mips64r6el] <cross>, g++-nios2-linux-gnu [nios2] <cross>, g++-powerpc-linux-gnu [powerpc] <cross>, g++-powerpc64-linux-gnu [ppc64] <cross>, g++-powerpc64le-linux-gnu [ppc64el] <cross>, g++-riscv64-linux-gnu [riscv64] <cross>, g++-sparc-linux-gnu [sparc] <cross>, g++-sparc64-linux-gnu [sparc64] <cross>, g++-s390x-linux-gnu [s390x] <cross>, g++-sh3-linux-gnu [sh3] <cross>, g++-sh4-linux-gnu [sh4] <cross>, g++-x86-64-linux-gnux32 [x32] <cross>, g++-alpha-linux-gnu [alpha] <cross>, g++-ia64-linux-gnu [ia64] <cross>,
  python3:native,
  libidn2-0 (>= 2.0.5~) <!nocheck>,
- libc-bin (>= 2.38) <cross>,
+ libc-bin (>= 2.39) <cross>,
  libgd-dev <!stage1 !stage2>,
 Build-Depends-Indep: perl, po-debconf (>= 1.0)
 Rules-Requires-Root: no
@@ -52,7 +52,7 @@ Section: libdevel
 Priority: optional
 Multi-Arch: foreign
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: manpages, manpages-dev, libc-devtools (>> 2.38)
+Recommends: manpages, manpages-dev, libc-devtools (>> 2.39)
 Build-Profiles: <!stage1>
 Description: GNU C Library: Development binaries
  This package contains utility programs related to the GNU C Library
@@ -118,7 +118,7 @@ Package: locales
 Architecture: all
 Section: localization
 Priority: standard
-Depends: libc-bin (>> 2.38), ${misc:Depends}, debconf | debconf-2.0
+Depends: libc-bin (>> 2.39), ${misc:Depends}, debconf | debconf-2.0
 Build-Profiles: <!stage1>
 Description: GNU C Library: National Language (locale) data [support]
  Machine-readable data files, shared objects and programs used by the
@@ -163,11 +163,11 @@ Section: libs
 Priority: optional
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${libgcc:Depends}
-Recommends: libidn2-0 (>= 2.0.5~), libnss-nis, libnss-nisplus
-Suggests: glibc-doc, debconf | debconf-2.0, locales [!hurd-any]
+Recommends: libidn2-0 (>= 2.0.5~)
+Suggests: glibc-doc, debconf | debconf-2.0, locales [!hurd-any], libnss-nis, libnss-nisplus
 Provides: libc6-sparcv9b [sparc sparc64], libc0.3-i686 [hurd-i386], libc6-i686 [i386], libc6-xen [i386], libc6-armel [armel], libc6-armhf [armhf], libc6-lse [arm64]
 Conflicts: libc6-i686 [i386], libc6.1-alphaev67 [alpha], libc6-xen [i386], libc6-lse [arm64]
-Breaks: nscd (<< 2.38), locales (<< 2.38), locales-all (<< 2.38), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), cyrus-imapd (<< 3.6.1-2ubuntu1)
+Breaks: nscd (<< 2.39), locales (<< 2.39), locales-all (<< 2.39), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), cyrus-imapd (<< 3.6.1-2ubuntu1)
 Replaces: libc6-amd64 [amd64],
           libc6-i386 [i386],
           libc0.3-i686 [hurd-i386],
@@ -194,8 +194,8 @@ Architecture: amd64 arc arm64 armel armhf hppa i386 m68k mips mipsel mipsn32 mip
 Section: libdevel
 Priority: optional
 Multi-Arch: same
-Depends: libc6 (= ${binary:Version}) <!stage1>, libc-dev-bin (= ${binary:Version}), ${misc:Depends}, linux-libc-dev [linux-any], gnumach-dev [hurd-any], hurd-dev (>= 20080607-3) [hurd-any] | hurd-headers-dev [hurd-any], ${libcrypt-dev:Depends}, ${libnsl-dev:Depends}, ${rpcsvc-proto:Depends}, ${libtirpc-dev:Depends}
-Replaces: hurd-dev (<< 20120408-3) [hurd-any], libc6 (<= 2.37-0ubuntu2)
+Depends: libc6 (= ${binary:Version}) <!stage1>, libc-dev-bin (= ${binary:Version}), ${misc:Depends}, linux-libc-dev [linux-any], gnumach-dev [hurd-any], hurd-dev (>= 20080607-3) [hurd-any] | hurd-headers-dev [hurd-any], ${libcrypt-dev:Depends}, ${libnsl-dev:Depends}, ${rpcsvc-proto:Depends}
+Replaces: hurd-dev (<< 20120408-3) [hurd-any], libc6 (<< 2.38-1ubuntu1)
 Suggests: glibc-doc, manpages-dev
 Provides: libc-dev (= ${binary:Version}), libc6-dev [alpha ia64 hurd-any], libc6-dev-armel [armel], libc6-dev-armhf [armhf]
 Breaks: check (<= 0.15.2-2) [s390x], ${libc-dev:Breaks}, libassimp-dev (<= 5.2.4~ds0-1), libbson-dev (<= 1.22.0-1), libdeal.ii-dev (<= 9.4.0-1), libdolfin-dev-common (<= 2019.2.0~git20220407.d29e24d-5), libeckit-dev (<= 1.20.0-1), libfclib-dev (<= 3.1.0+dfsg-2), libfltk1.3-dev (<= 1.3.8-4+b1), libinsighttoolkit4-dev (<= 4.13.3withdata-dfsg2-3+b1), libinsighttoolkit5-dev (<= 5.2.1-5+b1), libismrmrd-dev (<= 1.8.0-2), liblog4cplus-dev (<= 2.0.7-1), libmgl-dev (<= 8.0.1-2), libmimalloc2.0 (<= 2.0.6+ds-1), libminc-dev (<= 2.4.03-5), libmrpt-ros1bridge-dev (<= 1:2.4.9+ds-4+b2), libnetcdf-dev (<= 1:4.9.0-3), libnetcdf-mpi-dev (<= 1:4.9.0-1), libnetcdf-pnetcdf-dev (<= 1:4.9.0-1), libns3-dev (<= 3.36.1+dfsg-4), libopenms-dev (<= 2.6.0+cleaned1-3build4), libtrilinos-amesos2-dev (<= 13.2.0-3), libtrilinos-amesos-dev (<= 13.2.0-3), libtrilinos-anasazi-dev (<= 13.2.0-3), libtrilinos-aztecoo-dev (<= 13.2.0-3), libtrilinos-belos-dev (<= 13.2.0-3), libtrilinos-epetra-dev (<= 13.2.0-3), libtrilinos-epetraext-dev (<= 13.2.0-3), libtrilinos-galeri-dev (<= 13.2.0-3), libtrilinos-ifpack2-dev (<= 13.2.0-3), libtrilinos-ifpack-dev (<= 13.2.0-3), libtrilinos-intrepid2-dev (<= 13.2.0-3), libtrilinos-intrepid-dev (<= 13.2.0-3), libtrilinos-isorropia-dev (<= 13.2.0-3), libtrilinos-kokkos-dev (<= 13.2.0-3), libtrilinos-kokkos-kernels-dev (<= 13.2.0-3), libtrilinos-komplex-dev (<= 13.2.0-3), libtrilinos-ml-dev (<= 13.2.0-3), libtrilinos-moertel-dev (<= 13.2.0-3), libtrilinos-muelu-dev (<= 13.2.0-3), libtrilinos-nox-dev (<= 13.2.0-3), libtrilinos-phalanx-dev (<= 13.2.0-3), libtrilinos-pike-dev (<= 13.2.0-3), libtrilinos-piro-dev (<= 13.2.0-3), libtrilinos-pliris-dev (<= 13.2.0-3), libtrilinos-rol-dev (<= 13.2.0-3), libtrilinos-rtop-dev (<= 13.2.0-3), libtrilinos-rythmos-dev (<= 13.2.0-3), libtrilinos-sacado-dev (<= 13.2.0-3), libtrilinos-shylu-dev (<= 13.2.0-3), libtrilinos-stokhos-dev (<= 13.2.0-3), libtrilinos-stratimikos-dev (<= 13.2.0-3), libtrilinos-teko-dev (<= 13.2.0-3), libtrilinos-teuchos-dev (<= 13.2.0-3), libtrilinos-thyra-dev (<= 13.2.0-3), libtrilinos-tpetra-dev (<= 13.2.0-3), libtrilinos-trilinoscouplings-dev (<= 13.2.0-3), libtrilinos-triutils-dev (<= 13.2.0-3), libtrilinos-xpetra-dev (<= 13.2.0-3), libtrilinos-zoltan2-dev (<= 13.2.0-3), libvisp-dev (<= 3.5.0-2+b1), libvotca-dev (<= 2022-3), libvtk6-dev (<= 6.3.0+dfsg2-8.1+b1), libvtk7-dev (<= 7.1.1+dfsg2-10.2), igblast (<= 1.19.0-1), libasyncns-dev (<= 0.8-6build2), libatm1-dev (<= 1:2.5.1-4), libaws20-dev (<= 20.2-2+b1), libboinc-app-dev (<= 7.20.2+dfsg-1), libcups2-dev (<= 2.4.2-1), libdkim-dev (<= 1:1.0.21-4build3), libghc-resolv-dev (<= 0.1.2.0-3), libghc-resolv-prof (<= 0.1.2.0-3), libglib2.0-dev (<= 2.72.3-1), libgloox-dev (<= 1.0.24-2+b1), libhesiod-dev (<= 3.2.1-3.1+b1), libinfinity-0.7-dev (<= 0.7.2-1build1), libldap-dev (<= 2.5.12+dfsg-2), libloudmouth1-dev (<= 1.5.4-1), libmongoc-dev (<= 1.22.1-1), libmysqlclient-dev (<= 8.0.29-1), libnfsidmap-dev (<= 1:2.6.1-2), libola-dev (<= 0.10.8.nojsmin-2), libopenafs-dev (<= 1.8.8.1-3), libopendkim-dev (<= 2.11.0~beta2-7), libopendmarc-dev (<= 1.4.2-1), libopenzwave1.6-dev (<= 1.6.1914+ds-1), libpg-query-dev (<= 13-2.1.2-2), librbl-dev (<= 2.11.0~beta2-7), libre-dev (<= 1.1.0-1build1), libshishi-dev (<= 1.0.2-11), libslurm-dev (<= 21.08.8.2-1), libsocksd0-dev (<= 1.4.2+dfsg-7build7), libspf2-dev (<= 1.2.10-7.1+b1), libstrophe-dev (<= 0.12.1-2), libtaningia-dev (<= 0.2.2-2), libvbr-dev (<= 2.11.0~beta2-7), open-vm-tools-dev (<= 2:12.0.5-2), pidgin-librvp (<= 0.9.7cvs-3), proftpd-dev (<= 1.3.7d+dfsg-2), slurm-wlm-basic-plugins-dev (<= 21.08.8.2-1), catch (<< 1.12.2-0.1), heimdal-multidev (<= 7.7.0+dfsg-4), binutils (<< 2.38)
@@ -237,11 +237,11 @@ Section: libs
 Priority: optional
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${libgcc:Depends}
-Recommends: libidn2-0 (>= 2.0.5~), libnss-nis, libnss-nisplus
-Suggests: glibc-doc, debconf | debconf-2.0, locales [!hurd-any]
+Recommends: libidn2-0 (>= 2.0.5~)
+Suggests: glibc-doc, debconf | debconf-2.0, locales [!hurd-any], libnss-nis, libnss-nisplus
 Provides: libc6-sparcv9b [sparc sparc64], libc0.3-i686 [hurd-i386], libc6-i686 [i386], libc6-xen [i386], libc6-armel [armel], libc6-armhf [armhf], libc6-lse [arm64]
 Conflicts: libc6-i686 [i386], libc6.1-alphaev67 [alpha], libc6-xen [i386], libc6-lse [arm64]
-Breaks: nscd (<< 2.38), locales (<< 2.38), locales-all (<< 2.38), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), cyrus-imapd (<< 3.6.1-2ubuntu1)
+Breaks: nscd (<< 2.39), locales (<< 2.39), locales-all (<< 2.39), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), cyrus-imapd (<< 3.6.1-2ubuntu1)
 Replaces: libc6-amd64 [amd64],
           libc6-i386 [i386],
           libc0.3-i686 [hurd-i386],
@@ -268,8 +268,8 @@ Architecture: alpha ia64
 Section: libdevel
 Priority: optional
 Multi-Arch: same
-Depends: libc6.1 (= ${binary:Version}) <!stage1>, libc-dev-bin (= ${binary:Version}), ${misc:Depends}, linux-libc-dev [linux-any], gnumach-dev [hurd-any], hurd-dev (>= 20080607-3) [hurd-any] | hurd-headers-dev [hurd-any], ${libcrypt-dev:Depends}, ${libnsl-dev:Depends}, ${rpcsvc-proto:Depends}, ${libtirpc-dev:Depends}
-Replaces: hurd-dev (<< 20120408-3) [hurd-any], libc6.1 (<= 2.37-0ubuntu2)
+Depends: libc6.1 (= ${binary:Version}) <!stage1>, libc-dev-bin (= ${binary:Version}), ${misc:Depends}, linux-libc-dev [linux-any], gnumach-dev [hurd-any], hurd-dev (>= 20080607-3) [hurd-any] | hurd-headers-dev [hurd-any], ${libcrypt-dev:Depends}, ${libnsl-dev:Depends}, ${rpcsvc-proto:Depends}
+Replaces: hurd-dev (<< 20120408-3) [hurd-any], libc6.1 (<< 2.38-1ubuntu1)
 Suggests: glibc-doc, manpages-dev
 Provides: libc-dev (= ${binary:Version}), libc6-dev [alpha ia64 hurd-any], libc6-dev-armel [armel], libc6-dev-armhf [armhf]
 Breaks: check (<= 0.15.2-2) [s390x], ${libc-dev:Breaks}, libassimp-dev (<= 5.2.4~ds0-1), libbson-dev (<= 1.22.0-1), libdeal.ii-dev (<= 9.4.0-1), libdolfin-dev-common (<= 2019.2.0~git20220407.d29e24d-5), libeckit-dev (<= 1.20.0-1), libfclib-dev (<= 3.1.0+dfsg-2), libfltk1.3-dev (<= 1.3.8-4+b1), libinsighttoolkit4-dev (<= 4.13.3withdata-dfsg2-3+b1), libinsighttoolkit5-dev (<= 5.2.1-5+b1), libismrmrd-dev (<= 1.8.0-2), liblog4cplus-dev (<= 2.0.7-1), libmgl-dev (<= 8.0.1-2), libmimalloc2.0 (<= 2.0.6+ds-1), libminc-dev (<= 2.4.03-5), libmrpt-ros1bridge-dev (<= 1:2.4.9+ds-4+b2), libnetcdf-dev (<= 1:4.9.0-3), libnetcdf-mpi-dev (<= 1:4.9.0-1), libnetcdf-pnetcdf-dev (<= 1:4.9.0-1), libns3-dev (<= 3.36.1+dfsg-4), libopenms-dev (<= 2.6.0+cleaned1-3build4), libtrilinos-amesos2-dev (<= 13.2.0-3), libtrilinos-amesos-dev (<= 13.2.0-3), libtrilinos-anasazi-dev (<= 13.2.0-3), libtrilinos-aztecoo-dev (<= 13.2.0-3), libtrilinos-belos-dev (<= 13.2.0-3), libtrilinos-epetra-dev (<= 13.2.0-3), libtrilinos-epetraext-dev (<= 13.2.0-3), libtrilinos-galeri-dev (<= 13.2.0-3), libtrilinos-ifpack2-dev (<= 13.2.0-3), libtrilinos-ifpack-dev (<= 13.2.0-3), libtrilinos-intrepid2-dev (<= 13.2.0-3), libtrilinos-intrepid-dev (<= 13.2.0-3), libtrilinos-isorropia-dev (<= 13.2.0-3), libtrilinos-kokkos-dev (<= 13.2.0-3), libtrilinos-kokkos-kernels-dev (<= 13.2.0-3), libtrilinos-komplex-dev (<= 13.2.0-3), libtrilinos-ml-dev (<= 13.2.0-3), libtrilinos-moertel-dev (<= 13.2.0-3), libtrilinos-muelu-dev (<= 13.2.0-3), libtrilinos-nox-dev (<= 13.2.0-3), libtrilinos-phalanx-dev (<= 13.2.0-3), libtrilinos-pike-dev (<= 13.2.0-3), libtrilinos-piro-dev (<= 13.2.0-3), libtrilinos-pliris-dev (<= 13.2.0-3), libtrilinos-rol-dev (<= 13.2.0-3), libtrilinos-rtop-dev (<= 13.2.0-3), libtrilinos-rythmos-dev (<= 13.2.0-3), libtrilinos-sacado-dev (<= 13.2.0-3), libtrilinos-shylu-dev (<= 13.2.0-3), libtrilinos-stokhos-dev (<= 13.2.0-3), libtrilinos-stratimikos-dev (<= 13.2.0-3), libtrilinos-teko-dev (<= 13.2.0-3), libtrilinos-teuchos-dev (<= 13.2.0-3), libtrilinos-thyra-dev (<= 13.2.0-3), libtrilinos-tpetra-dev (<= 13.2.0-3), libtrilinos-trilinoscouplings-dev (<= 13.2.0-3), libtrilinos-triutils-dev (<= 13.2.0-3), libtrilinos-xpetra-dev (<= 13.2.0-3), libtrilinos-zoltan2-dev (<= 13.2.0-3), libvisp-dev (<= 3.5.0-2+b1), libvotca-dev (<= 2022-3), libvtk6-dev (<= 6.3.0+dfsg2-8.1+b1), libvtk7-dev (<= 7.1.1+dfsg2-10.2), igblast (<= 1.19.0-1), libasyncns-dev (<= 0.8-6build2), libatm1-dev (<= 1:2.5.1-4), libaws20-dev (<= 20.2-2+b1), libboinc-app-dev (<= 7.20.2+dfsg-1), libcups2-dev (<= 2.4.2-1), libdkim-dev (<= 1:1.0.21-4build3), libghc-resolv-dev (<= 0.1.2.0-3), libghc-resolv-prof (<= 0.1.2.0-3), libglib2.0-dev (<= 2.72.3-1), libgloox-dev (<= 1.0.24-2+b1), libhesiod-dev (<= 3.2.1-3.1+b1), libinfinity-0.7-dev (<= 0.7.2-1build1), libldap-dev (<= 2.5.12+dfsg-2), libloudmouth1-dev (<= 1.5.4-1), libmongoc-dev (<= 1.22.1-1), libmysqlclient-dev (<= 8.0.29-1), libnfsidmap-dev (<= 1:2.6.1-2), libola-dev (<= 0.10.8.nojsmin-2), libopenafs-dev (<= 1.8.8.1-3), libopendkim-dev (<= 2.11.0~beta2-7), libopendmarc-dev (<= 1.4.2-1), libopenzwave1.6-dev (<= 1.6.1914+ds-1), libpg-query-dev (<= 13-2.1.2-2), librbl-dev (<= 2.11.0~beta2-7), libre-dev (<= 1.1.0-1build1), libshishi-dev (<= 1.0.2-11), libslurm-dev (<= 21.08.8.2-1), libsocksd0-dev (<= 1.4.2+dfsg-7build7), libspf2-dev (<= 1.2.10-7.1+b1), libstrophe-dev (<= 0.12.1-2), libtaningia-dev (<= 0.2.2-2), libvbr-dev (<= 2.11.0~beta2-7), open-vm-tools-dev (<= 2:12.0.5-2), pidgin-librvp (<= 0.9.7cvs-3), proftpd-dev (<= 1.3.7d+dfsg-2), slurm-wlm-basic-plugins-dev (<= 21.08.8.2-1), catch (<< 1.12.2-0.1), heimdal-multidev (<= 7.7.0+dfsg-4), binutils (<< 2.38)
@@ -311,11 +311,11 @@ Section: libs
 Priority: optional
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${libgcc:Depends}
-Recommends: libidn2-0 (>= 2.0.5~), libnss-nis, libnss-nisplus
-Suggests: glibc-doc, debconf | debconf-2.0, locales [!hurd-any]
+Recommends: libidn2-0 (>= 2.0.5~)
+Suggests: glibc-doc, debconf | debconf-2.0, locales [!hurd-any], libnss-nis, libnss-nisplus
 Provides: libc6-sparcv9b [sparc sparc64], libc0.3-i686 [hurd-i386], libc6-i686 [i386], libc6-xen [i386], libc6-armel [armel], libc6-armhf [armhf], libc6-lse [arm64]
 Conflicts: libc6-i686 [i386], libc6.1-alphaev67 [alpha], libc6-xen [i386], libc6-lse [arm64]
-Breaks: nscd (<< 2.38), locales (<< 2.38), locales-all (<< 2.38), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), cyrus-imapd (<< 3.6.1-2ubuntu1)
+Breaks: nscd (<< 2.39), locales (<< 2.39), locales-all (<< 2.39), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), cyrus-imapd (<< 3.6.1-2ubuntu1)
 Replaces: libc6-amd64 [amd64],
           libc6-i386 [i386],
           libc0.3-i686 [hurd-i386],
@@ -342,8 +342,8 @@ Architecture: hurd-i386 hurd-amd64
 Section: libdevel
 Priority: optional
 Multi-Arch: same
-Depends: libc0.3 (= ${binary:Version}) <!stage1>, libc-dev-bin (= ${binary:Version}), ${misc:Depends}, linux-libc-dev [linux-any], gnumach-dev [hurd-any], hurd-dev (>= 20080607-3) [hurd-any] | hurd-headers-dev [hurd-any], ${libcrypt-dev:Depends}, ${libnsl-dev:Depends}, ${rpcsvc-proto:Depends}, ${libtirpc-dev:Depends}
-Replaces: hurd-dev (<< 20120408-3) [hurd-any], libc0.3 (<= 2.37-0ubuntu2)
+Depends: libc0.3 (= ${binary:Version}) <!stage1>, libc-dev-bin (= ${binary:Version}), ${misc:Depends}, linux-libc-dev [linux-any], gnumach-dev [hurd-any], hurd-dev (>= 20080607-3) [hurd-any] | hurd-headers-dev [hurd-any], ${libcrypt-dev:Depends}, ${libnsl-dev:Depends}, ${rpcsvc-proto:Depends}
+Replaces: hurd-dev (<< 20120408-3) [hurd-any], libc0.3 (<< 2.38-1ubuntu1)
 Suggests: glibc-doc, manpages-dev
 Provides: libc-dev (= ${binary:Version}), libc6-dev [alpha ia64 hurd-any], libc6-dev-armel [armel], libc6-dev-armhf [armhf]
 Breaks: check (<= 0.15.2-2) [s390x], ${libc-dev:Breaks}, libassimp-dev (<= 5.2.4~ds0-1), libbson-dev (<= 1.22.0-1), libdeal.ii-dev (<= 9.4.0-1), libdolfin-dev-common (<= 2019.2.0~git20220407.d29e24d-5), libeckit-dev (<= 1.20.0-1), libfclib-dev (<= 3.1.0+dfsg-2), libfltk1.3-dev (<= 1.3.8-4+b1), libinsighttoolkit4-dev (<= 4.13.3withdata-dfsg2-3+b1), libinsighttoolkit5-dev (<= 5.2.1-5+b1), libismrmrd-dev (<= 1.8.0-2), liblog4cplus-dev (<= 2.0.7-1), libmgl-dev (<= 8.0.1-2), libmimalloc2.0 (<= 2.0.6+ds-1), libminc-dev (<= 2.4.03-5), libmrpt-ros1bridge-dev (<= 1:2.4.9+ds-4+b2), libnetcdf-dev (<= 1:4.9.0-3), libnetcdf-mpi-dev (<= 1:4.9.0-1), libnetcdf-pnetcdf-dev (<= 1:4.9.0-1), libns3-dev (<= 3.36.1+dfsg-4), libopenms-dev (<= 2.6.0+cleaned1-3build4), libtrilinos-amesos2-dev (<= 13.2.0-3), libtrilinos-amesos-dev (<= 13.2.0-3), libtrilinos-anasazi-dev (<= 13.2.0-3), libtrilinos-aztecoo-dev (<= 13.2.0-3), libtrilinos-belos-dev (<= 13.2.0-3), libtrilinos-epetra-dev (<= 13.2.0-3), libtrilinos-epetraext-dev (<= 13.2.0-3), libtrilinos-galeri-dev (<= 13.2.0-3), libtrilinos-ifpack2-dev (<= 13.2.0-3), libtrilinos-ifpack-dev (<= 13.2.0-3), libtrilinos-intrepid2-dev (<= 13.2.0-3), libtrilinos-intrepid-dev (<= 13.2.0-3), libtrilinos-isorropia-dev (<= 13.2.0-3), libtrilinos-kokkos-dev (<= 13.2.0-3), libtrilinos-kokkos-kernels-dev (<= 13.2.0-3), libtrilinos-komplex-dev (<= 13.2.0-3), libtrilinos-ml-dev (<= 13.2.0-3), libtrilinos-moertel-dev (<= 13.2.0-3), libtrilinos-muelu-dev (<= 13.2.0-3), libtrilinos-nox-dev (<= 13.2.0-3), libtrilinos-phalanx-dev (<= 13.2.0-3), libtrilinos-pike-dev (<= 13.2.0-3), libtrilinos-piro-dev (<= 13.2.0-3), libtrilinos-pliris-dev (<= 13.2.0-3), libtrilinos-rol-dev (<= 13.2.0-3), libtrilinos-rtop-dev (<= 13.2.0-3), libtrilinos-rythmos-dev (<= 13.2.0-3), libtrilinos-sacado-dev (<= 13.2.0-3), libtrilinos-shylu-dev (<= 13.2.0-3), libtrilinos-stokhos-dev (<= 13.2.0-3), libtrilinos-stratimikos-dev (<= 13.2.0-3), libtrilinos-teko-dev (<= 13.2.0-3), libtrilinos-teuchos-dev (<= 13.2.0-3), libtrilinos-thyra-dev (<= 13.2.0-3), libtrilinos-tpetra-dev (<= 13.2.0-3), libtrilinos-trilinoscouplings-dev (<= 13.2.0-3), libtrilinos-triutils-dev (<= 13.2.0-3), libtrilinos-xpetra-dev (<= 13.2.0-3), libtrilinos-zoltan2-dev (<= 13.2.0-3), libvisp-dev (<= 3.5.0-2+b1), libvotca-dev (<= 2022-3), libvtk6-dev (<= 6.3.0+dfsg2-8.1+b1), libvtk7-dev (<= 7.1.1+dfsg2-10.2), igblast (<= 1.19.0-1), libasyncns-dev (<= 0.8-6build2), libatm1-dev (<= 1:2.5.1-4), libaws20-dev (<= 20.2-2+b1), libboinc-app-dev (<= 7.20.2+dfsg-1), libcups2-dev (<= 2.4.2-1), libdkim-dev (<= 1:1.0.21-4build3), libghc-resolv-dev (<= 0.1.2.0-3), libghc-resolv-prof (<= 0.1.2.0-3), libglib2.0-dev (<= 2.72.3-1), libgloox-dev (<= 1.0.24-2+b1), libhesiod-dev (<= 3.2.1-3.1+b1), libinfinity-0.7-dev (<= 0.7.2-1build1), libldap-dev (<= 2.5.12+dfsg-2), libloudmouth1-dev (<= 1.5.4-1), libmongoc-dev (<= 1.22.1-1), libmysqlclient-dev (<= 8.0.29-1), libnfsidmap-dev (<= 1:2.6.1-2), libola-dev (<= 0.10.8.nojsmin-2), libopenafs-dev (<= 1.8.8.1-3), libopendkim-dev (<= 2.11.0~beta2-7), libopendmarc-dev (<= 1.4.2-1), libopenzwave1.6-dev (<= 1.6.1914+ds-1), libpg-query-dev (<= 13-2.1.2-2), librbl-dev (<= 2.11.0~beta2-7), libre-dev (<= 1.1.0-1build1), libshishi-dev (<= 1.0.2-11), libslurm-dev (<= 21.08.8.2-1), libsocksd0-dev (<= 1.4.2+dfsg-7build7), libspf2-dev (<= 1.2.10-7.1+b1), libstrophe-dev (<= 0.12.1-2), libtaningia-dev (<= 0.2.2-2), libvbr-dev (<= 2.11.0~beta2-7), open-vm-tools-dev (<= 2:12.0.5-2), pidgin-librvp (<= 0.9.7cvs-3), proftpd-dev (<= 1.3.7d+dfsg-2), slurm-wlm-basic-plugins-dev (<= 21.08.8.2-1), catch (<< 1.12.2-0.1), heimdal-multidev (<= 7.7.0+dfsg-4), binutils (<< 2.38)
@@ -658,21 +658,4 @@ Description: GNU C Library: X32 ABI Development Libraries for AMD64
  Contains the symlinks and object files needed to compile and link programs
  which use the standard C library. This is the X32 ABI version of the
  library, meant for amd64 systems.
-
-
-
-Package: libc6-prof
-Architecture: amd64 arm64 armhf ppc64el riscv64
-Section: libs
-Priority: optional
-Multi-Arch: same
-Depends: libc6 (= ${binary:Version}), ${misc:Depends}
-Suggests: bpftrace
-Build-Profiles: <!stage1> <!stage2>
-Description: GNU C Library: Shared Libraries
- Contains the standard libraries that are used by nearly all programs on
- the system. This package includes shared versions of the standard C library
- and the standard math library, as well as many others.
- .
- This package contains all libraries compiled for profiling.
 

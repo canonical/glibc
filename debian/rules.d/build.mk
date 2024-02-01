@@ -200,13 +200,8 @@ build-arch-post-check: $(patsubst %,$(stamp)check_%,$(GLIBC_PASSES))
 	@fail=0; \
 	for pass in $(patsubst %,$(stamp)check_%,$(GLIBC_PASSES)); do \
 	  if [ -f $${pass}_failed ]; then \
-	    case "$(DEB_HOST_ARCH)-$$(basename $$pass)" in \
-	      amd64-check_prof) \
-	        echo "check for $$(basename $$pass) failed (ignored)";; \
-	      *) \
-	        echo "check for $$(basename $$pass) failed"; \
-	        fail=1;; \
-	    esac; \
+	    echo "check for $$(basename $$pass) failed"; \
+	    fail=1; \
 	  fi; \
 	done; \
 	exit $$fail
