@@ -13,6 +13,7 @@ DEB_ARCH_MULTILIB_PACKAGES += libc6-amd64 libc6-dev-amd64
 libc6-amd64_shlib_dep = libc6-amd64 (>= $(shlib_dep_ver))
 amd64_configure_target = x86_64-linux-gnu
 amd64_extra_config_options = $(extra_config_options) --enable-sframe --enable-cet=yes
+amd64_extra_cflags = -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer
 # __x86_64__ is defined here because Makeconfig uses -undef and the
 # /usr/include/asm wrappers need that symbol.
 amd64_CC = $(CC) -m64 -D__x86_64__
