@@ -30,14 +30,22 @@ $(patsubst %,$(stamp)binaryinst_%,$(DEB_ARCH_REGULAR_PACKAGES) $(DEB_INDEP_REGUL
 	dh_installsystemd -p$(curpass)
 	dh_installdocs -p$(curpass) 
 	dh_lintian -p $(curpass)
+
+	# Ensure that symlinks resolve even when /usr is unmerged.
+	set -e; \
+	find "debian/$(curpass)" \( -lname "*../lib*" -o -lname "/lib*" \) -printf "%p*%l\n" | \
+	while IFS='*' read -r p l; do \
+	  ln -svf "$${l%%/lib*}/usr/lib$${l#*/lib}" "$$p"; \
+	done
+
 	dh_link -p$(curpass)
 	dh_bugfiles -p$(curpass)
 
 	if test "$(curpass)" = "libc-bin"; then			\
-	  mv debian/$(curpass)/sbin/ldconfig			\
-	    debian/$(curpass)/sbin/ldconfig.real;		\
+	  mv debian/$(curpass)/usr/sbin/ldconfig			\
+	    debian/$(curpass)/usr/sbin/ldconfig.real;		\
 	  install -m755 debian/local/sbin/ldconfig	\
-	    debian/$(curpass)/sbin/ldconfig;			\
+	    debian/$(curpass)/usr/sbin/ldconfig;			\
 	fi
 
 	# when you want to install extra packages, use extra_pkg_install.
@@ -107,6 +115,14 @@ $(patsubst %,$(stamp)binaryinst_%,$(DEB_UDEB_PACKAGES)): debhelper $(patsubst %,
 	dh_installdirs -p$(curpass)
 	dh_install -p$(curpass)
 	dh_strip -p$(curpass)
+
+	# Ensure that symlinks resolve even when /usr is unmerged.
+	set -e; \
+	find "debian/$(curpass)" \( -lname "*../lib*" -o -lname "/lib*" \) -printf "%p*%l\n" | \
+	while IFS='*' read -r p l; do \
+	  ln -svf "$${l%%/lib*}/usr/lib$${l#*/lib}" "$$p"; \
+	done
+
 	dh_link -p$(curpass)
 	
 	# when you want to install extra packages, use extra_pkg_install.
@@ -171,6 +187,8 @@ $(stamp)debhelper_%: $(stamp)debhelper-common $(stamp)install_%
 	slibdir=$(call xx,slibdir) ; \
 	rtlddir=$(call xx,rtlddir) ; \
 	curpass=$(curpass) ; \
+	rtld_so=$(rtld_so) ; \
+	rtld_target=$(rtld_target) ; \
 	templates="libc-dev" ;\
 	pass="" ; \
 	suffix="" ;\
@@ -199,6 +217,8 @@ $(stamp)debhelper_%: $(stamp)debhelper-common $(stamp)install_%
 		-e "s#RTLDDIR#$$rtlddir#g" \
 		-e "s#SLIBDIR#$$slibdir#g" \
 		-e "s#LIBDIR#$$libdir#g" \
+	        -e "s#RTLD_SO#$$rtld_so#g" \
+	        -e "s#RTLD_TARGET#$$rtld_target#g" \
 		-e "/gdb/d" \
 		-e "/audit/d" \
 	      $$t; \
@@ -212,6 +232,7 @@ $(stamp)debhelper_%: $(stamp)debhelper-common $(stamp)install_%
 	rtlddir=$(call xx,rtlddir) ; \
 	curpass=$(curpass) ; \
 	rtld_so=$(rtld_so) ; \
+	rtld_target=$(rtld_target) ; \
 	case "$$curpass:$$slibdir" in \
 	  libc:*) \
 	    templates="libc libc-dev libc-udeb" \
@@ -235,6 +256,7 @@ $(stamp)debhelper_%: $(stamp)debhelper-common $(stamp)install_%
 	    sed -e "s#SLIBDIR#$$slibdir#g" -i $$t; \
 	    sed -e "s#LIBDIR#$$libdir#g" -i $$t; \
 	    sed -e "s#RTLD_SO#$$rtld_so#g" -i $$t ; \
+	    sed -e "s#RTLD_TARGET#$$rtld_target#g" -i $$t ; \
 	    $(if $(filter $(call xx,mvec),no),sed -e "/libmvec/d" -e "/libm-\*\.a/d" -i $$t ;) \
 	    $(if $(filter-out $(DEB_HOST_ARCH_OS),linux),sed -e "/gdb/d" -i $$t ;) \
 	  done ; \

@@ -394,6 +394,25 @@ if [ "$1" = "install" ] || [ "$1" = "upgrade" ]; then
     fi
 fi
 
+# begin-remove-after: released:forky
+# Add DEP17 M4 protective diversions. These should be added by base-files, but
+# we want to avoid Pre-Depends: base-files (>= trixie) and therefore add them
+# for base-files. As bookworm's base-files installs bin lib and sbin, the only
+# directory we may miss is the one containing the runtime linker when it is not
+# /lib.
+if [ "$1" = install -o "$1" = upgrade ] && [ "RTLDDIR" != "/lib" ]; then
+    dpkg-divert --quiet --add --no-rename --package base-files --divert "RTLDDIR.usr-is-merged" "RTLDDIR"
+fi
+# end-remove-after
+
+# Add DEP17 M8 protective diversions for the runtime dynamic linker. It is
+# installed in both libc (multiarch) and libc-alt (multilib) amounting to a
+# move and thus DEP17 P1 problem. This diversion should be removed by forky's
+# libc.postinst.
+if [ "$1" = install ] || [ "$1" = upgrade ]; then
+    dpkg-divert --quiet --add --no-rename --divert "RTLDDIR/RTLD_SO.usr-is-merged" "RTLDDIR/RTLD_SO"
+fi
+
 #DEBHELPER#
 
 if [ -n "$preversion" ]; then

@@ -1,3 +1,13 @@
+glibc (2.39-0ubuntu2) noble; urgency=medium
+
+  [ Helmut Grohne ]
+  * DEP17: Move files to /usr. (Closes: #1061248)
+
+  [ Julian Andres Klode ]
+  * Further adjustments for Ubuntu's ldconfig.real
+
+ -- Julian Andres Klode <juliank@ubuntu.com>  Thu, 22 Feb 2024 12:44:06 +0100
+
 glibc (2.39-0ubuntu1) noble; urgency=medium
 
   * New upstream release
