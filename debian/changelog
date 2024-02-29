@@ -1,3 +1,13 @@
+glibc (2.37-15.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Temporarily drop transitional dependency from libc6-dev to 
+    libnsl-dev; required for bootstrapping libnsl against libtirpc3t64.
+  * debian/sysdeps/linux.mk: undefine _TIME_BITS, glibc build breaks if
+    this is set.
+
+ -- Steve Langasek <vorlon@debian.org>  Thu, 29 Feb 2024 18:55:29 +0000
+
 glibc (2.37-15) unstable; urgency=critical
 
   * debian/patches/git-updates.diff: update from upstream stable branch:
