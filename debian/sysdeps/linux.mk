@@ -57,6 +57,9 @@ $(stamp)mkincludedir:
 # Also to make configure happy.
 export CPPFLAGS = -isystem $(shell pwd)/debian/include
 
+# we generate 64-bit time_t but can't have this set by the compiler
+extra_cflags = -U_TIME_BITS
+
 # This round of ugliness decomposes the Linux kernel version number
 # into an integer so it can be easily compared and then does so.
 CURRENT_KERNEL_VERSION=$(shell uname -r)

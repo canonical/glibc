@@ -1,3 +1,14 @@
+glibc (2.39-0ubuntu4) noble; urgency=medium
+
+  * debian/sysdeps/linux.mk: undefine _TIME_BITS, glibc build breaks if
+    this is set.
+
+  [ Simon Chopin ]
+  * Add Breaks on scipy (LP: #2052659)
+  * Disable CET on x32 from i386 as it doesn't work in that configuration
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Thu, 29 Feb 2024 18:44:11 +0000
+
 glibc (2.39-0ubuntu3) noble; urgency=medium
 
   * Drop transitional dependency from libc6-dev to libnsl-dev; required
