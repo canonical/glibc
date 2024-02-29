@@ -1,3 +1,10 @@
+glibc (2.39-0ubuntu3) noble; urgency=medium
+
+  * Drop transitional dependency from libc6-dev to libnsl-dev; required
+    for bootstrapping libnsl against libtirpc3t64.
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Thu, 29 Feb 2024 17:52:56 +0000
+
 glibc (2.39-0ubuntu2) noble; urgency=medium
 
   [ Helmut Grohne ]
