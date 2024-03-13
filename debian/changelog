@@ -1,3 +1,10 @@
+glibc (2.39-0ubuntu6) noble; urgency=medium
+
+  * Renable CET on x32 from i386 again as it may not work but disabling breaks
+    the build.
+
+ -- Michael Hudson-Doyle <michael.hudson@ubuntu.com>  Thu, 14 Mar 2024 10:39:45 +1300
+
 glibc (2.39-0ubuntu5) noble; urgency=medium
 
   * debian/testsuite-xfail-debian.mk: XFAIL a bunch of the conformance tests

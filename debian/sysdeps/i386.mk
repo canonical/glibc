@@ -44,7 +44,7 @@ GLIBC_PASSES += x32
 DEB_ARCH_MULTILIB_PACKAGES += libc6-x32 libc6-dev-x32
 libc6-x32_shlib_dep = libc6-x32 (>= $(shlib_dep_ver))
 x32_configure_target = x86_64-linux-gnux32
-x32_extra_config_options = --enable-cet=no
+x32_extra_config_options = --enable-cet=yes
 x32_CC = $(CC) -mx32
 x32_CXX = $(CXX) -mx32
 x32_mvec = yes
