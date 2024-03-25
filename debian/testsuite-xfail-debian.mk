@@ -668,6 +668,8 @@ endif
 # ppc64el
 ######################################################################
 ifeq ($(config-machine)-$(config-os),powerpc64le-linux-gnu)
+	# See LP: #2058466
+	test-xfail-tst-decorate-maps = yes
 endif
 
 
