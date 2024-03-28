@@ -175,6 +175,9 @@ test-xfail-tst-robust8 = yes
 # fails on prodstack5, tracked in LP: #2041678
 test-xfail-tst-cpu-features-cpuinfo = yes
 test-xfail-tst-cpu-features-cpuinfo-static = yes
+
+# LP: #2059603
+test-xfail-tst-shstk-legacy-1g = yes
 endif
 
 
@@ -198,6 +201,8 @@ endif
 ifeq ($(config-machine)-$(config-os),arm-linux-gnueabihf)
 # See LP: #2041188
 test-xfail-tst-support_descriptors = yes
+
+# See LP: #2055837
 test-xfail-ISO11/stdio.h/linknamespace = yes
 test-xfail-ISO99/stdio.h/linknamespace = yes
 test-xfail-ISO/stdio.h/linknamespace = yes
@@ -724,6 +729,8 @@ endif
 # ppc64el
 ######################################################################
 ifeq ($(config-machine)-$(config-os),powerpc64le-linux-gnu)
+	# See LP: #2058466
+	test-xfail-tst-decorate-maps = yes
 endif
 
 

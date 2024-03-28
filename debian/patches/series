@@ -1,3 +1,5 @@
+git-updates.diff
+
 locale/check-unknown-symbols.diff
 locale/locale-print-LANGUAGE.diff
 locale/LC_IDENTIFICATION-optional-fields.diff
@@ -107,4 +109,6 @@ ubuntu/local-pldd-root.diff
 ubuntu/local-fallback-to-monotonic.diff
 ubuntu/submitted-broadcast-to-prevent-deadlock.diff
 ubuntu/sdt-headers.patch
-ubuntu/submitted-tests-gracefully-handle-AppArmor-userns-containment.patch
+ubuntu/apparmor/0001-tests-gracefully-handle-AppArmor-userns-containment.patch
+ubuntu/apparmor/0002-tests-handle-AppArmor-userns-mitigation.patch
+ubuntu/fix-fortify-source.patch

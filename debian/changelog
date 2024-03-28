@@ -1,3 +1,25 @@
+glibc (2.39-0ubuntu7) noble; urgency=medium
+
+  * d/p/ubuntu/apparmor: tests: gracefully handle AppArmor userns mitigation
+  * d/tests: disable apparmor userns restrictions (LP: #2059278)
+  * Disable CET on the i386 variant on the x32 arch (for c-t-b-p)
+  * Add a bug reference to the block of conformance test xfails
+  * xfail elf/tst-decorate-maps on ppc64el, failing due to page size (LP: #2058466)
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - LoongArch: Correct {__ieee754, _}_scalb -> {__ieee754, _}_scalbf
+    - powerpc: Placeholder and infrastructure/build support to add Power11 related changes.
+    - powerpc: Add HWCAP3/HWCAP4 data to TCB for Power Architecture.
+    - linux: Use rseq area unconditionally in sched_getcpu (bug 31479)
+    - Use gcc __builtin_stdc_* builtins in stdbit.h if possible
+    - S390: Do not clobber r7 in clone [BZ #31402] (LP: #2055175)
+    - math: Update mips64 ulps
+    - mips: FIx clone3 implementation (BZ 31325)
+    - arm: Remove wrong ldr from _dl_start_user (BZ 31339)
+  * d/p/fix-fortify-source.patch: Fix FTBFS on Noble
+  * XFAIL elf/tst-shstk-legacy-1g (tracked in LP 2059603)
+
+ -- Simon Chopin <schopin@ubuntu.com>  Thu, 28 Mar 2024 15:16:51 +0100
+
 glibc (2.39-0ubuntu6) noble; urgency=medium
 
   * Renable CET on x32 from i386 again as it may not work but disabling breaks

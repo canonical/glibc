@@ -43,6 +43,7 @@ i386_CXX = $(CXX) -m32
 i386_mvec = no
 i386_slibdir = /lib32
 i386_libdir = /usr/lib32
+i386_extra_config_options = $(extra_config_options) --enable-cet=no
 
 define libc6-dev-i386_extra_pkg_install
 
