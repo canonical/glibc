@@ -179,6 +179,9 @@ test-xfail-tst-robust8 = yes
 # fails on prodstack5, tracked in LP: #2041678
 test-xfail-tst-cpu-features-cpuinfo = yes
 test-xfail-tst-cpu-features-cpuinfo-static = yes
+
+# LP: #2059603
+test-xfail-tst-shstk-legacy-1g = yes
 endif
 
 
