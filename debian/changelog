@@ -1,3 +1,9 @@
+glibc (2.39-0ubuntu8) noble; urgency=medium
+
+  * No-change rebuild for CVE-2024-3094
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Sat, 30 Mar 2024 07:42:05 +0000
+
 glibc (2.39-0ubuntu7) noble; urgency=medium
 
   * d/p/ubuntu/apparmor: tests: gracefully handle AppArmor userns mitigation
