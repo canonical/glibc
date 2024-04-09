@@ -1,3 +1,43 @@
+glibc (2.37-16) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/submitted-AF_ROUTE.diff: Also comment out
+    PF_ROUTE/AF_ROUTE.
+  * debian/patches/hurd-i386/git-proc_getchildren_rusage.diff: Implement
+    RUSAGE_CHILDREN, should fix the grep testsuite.
+
+  [ Aurelien Jarno ]
+  * debian/rules.d/build.mk: present glibc with a compiler that does not
+    default to -D_FILE_OFFSET_BITS=64 -D_TIME_BITS=64, as upstream doesn't
+    support this configuration. This has the consequence of hiding real issues
+    found by the testsuite, but there is a consensus that this is the way to
+    go for now. Thanks to Helmut Grohne for the hint and starting the
+    discussion.  Closes: #1068251.
+  * debian/debhelper.in/glibc-doc.{links,manpages},
+    debian/local/manpages/pthread_*: drop the man pages for libpthread
+    functions, as they are now included in manpages-dev.  Closes: #1068188.
+  * debian/control.in/main: update glibc-doc description following the removal
+    of the pthread manpages.
+  * debian/control.in/main: downgrade the Recommends from libc-dev-bin to
+    libc-devtools to a Suggests.  Closes: #1067909.
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+  * debian/patches/sparc/submitted-sparc-clone.diff: pull patch from the
+    upstream BTS to workaround issues with the clone syscall on sparc.
+    Closes: #1063937.
+
+  [ Johannes Schauer Marin Rodrigues]
+  * debian/debhelper.in/libc.preinst: skip kernel check in chrootless mode.
+    Closes: #1063624.
+
+  [ Steve Langasek ]
+  * Drop transitional dependency from libc6-dev to libnsl-dev.
+
+  [ Gioele Barabucci ]
+  * debian/debhelper.in/locales.config: Extract default environment LANG using
+    only sed.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Wed, 10 Apr 2024 00:15:44 +0200
+
 glibc (2.37-15) unstable; urgency=critical
 
   * debian/patches/git-updates.diff: update from upstream stable branch:

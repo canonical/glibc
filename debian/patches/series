@@ -44,6 +44,9 @@ hurd-i386/git-exec-intr.diff
 hurd-i386/git-ioctls-bsd.diff
 hurd-i386/git-dtable_reauth.diff
 
+# 2.40
+hurd-i386/git-proc_getchildren_rusage.diff
+
 hurd-i386/local-enable-ldconfig.diff
 hurd-i386/tg-sysvshm.diff
 hurd-i386/tg-thread-cancel.diff
@@ -78,6 +81,8 @@ mips/submitted-rld_map.diff
 powerpc/local-powerpc8xx-dcbz.diff
 
 sh4/local-fpscr_values.diff
+
+sparc/submitted-sparc-clone.diff
 
 all/local-alias-et_EE.diff
 all/local-remove-manual.diff
