@@ -1,3 +1,13 @@
+glibc (2.38-1ubuntu6.2) mantic-security; urgency=medium
+
+  * SECURITY UPDATE: OOB write in iconv plugin ISO-2022-CN-EXT
+    - debian/patches/CVE-2024-2961.patch: fix out-of-bound writes when
+      writing escape sequence in iconvdata/Makefile,
+      iconvdata/iso-2022-cn-ext.c, iconvdata/tst-iconv-iso-2022-cn-ext.c.
+    - CVE-2024-2961
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Tue, 16 Apr 2024 09:38:28 -0400
+
 glibc (2.38-1ubuntu6.1) mantic-security; urgency=medium
 
   * SECURITY UPDATE: multiple syslog() security issues
