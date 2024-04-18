@@ -1,3 +1,13 @@
+glibc (2.39-0ubuntu8.1) noble-security; urgency=medium
+
+  * SECURITY UPDATE: OOB write in iconv plugin ISO-2022-CN-EXT
+    - debian/patches/any/CVE-2024-2961.patch: fix out-of-bound writes when
+      writing escape sequence in iconvdata/Makefile,
+      iconvdata/iso-2022-cn-ext.c, iconvdata/tst-iconv-iso-2022-cn-ext.c.
+    - CVE-2024-2961
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Thu, 18 Apr 2024 09:52:32 -0400
+
 glibc (2.39-0ubuntu8) noble; urgency=medium
 
   * No-change rebuild for CVE-2024-3094

@@ -112,3 +112,5 @@ ubuntu/sdt-headers.patch
 ubuntu/apparmor/0001-tests-gracefully-handle-AppArmor-userns-containment.patch
 ubuntu/apparmor/0002-tests-handle-AppArmor-userns-mitigation.patch
 ubuntu/fix-fortify-source.patch
+
+any/CVE-2024-2961.patch
