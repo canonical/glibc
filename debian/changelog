@@ -1,7 +1,21 @@
+glibc (2.37-19) unstable; urgency=medium
+
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix a stack-based buffer overflow in nscd netgroup cache
+      (CVE-2024-33599).
+    - Fix a null pointer dereferences in nscd after failed netgroup cache
+      insertion (CVE-2024-33600).
+    - Fix a DoS in nscd in case of memory allocation failure (CVE-2024-33601).
+    - Fix a memory corruption in nscd when the underlying NSS callback
+      function does not use the buffer space to store all strings
+      (CVE-2024-33602).
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 27 Apr 2024 23:59:01 +0200
+
 glibc (2.37-18) unstable; urgency=medium
 
   * debian/patches/git-updates.diff: update from upstream stable branch:
-    - Fix fix out-of-bound writes when writing escape sequence in iconv
+    - Fix out-of-bound writes when writing escape sequence in iconv
       ISO-2022-CN-EXT module (CVE-2024-2961).  Closes: #1069191.
 
  -- Aurelien Jarno <aurel32@debian.org>  Fri, 19 Apr 2024 07:10:32 +0200
