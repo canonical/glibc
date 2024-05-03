@@ -45,6 +45,13 @@ hurd-i386/git-ioctls-bsd.diff
 hurd-i386/git-dtable_reauth.diff
 hurd-i386/git-64bit-abi.diff
 
+# Committed for 2.40
+hurd-i386/git-context.diff
+
+# 2.40
+hurd-i386/git-proc_getchildren_rusage.diff
+hurd-i386/git-AT_NO_AUTOMOUNT.diff
+
 hurd-i386/local-enable-ldconfig.diff
 hurd-i386/tg-sysvshm.diff
 hurd-i386/tg-thread-cancel.diff
@@ -82,6 +89,8 @@ riscv64/git-risc-v-add-support-for-dl_runtime_profile.diff
 
 sh4/local-fpscr_values.diff
 
+sparc/submitted-sparc-clone.diff
+
 all/local-alias-et_EE.diff
 all/local-remove-manual.diff
 all/local-ru_RU.diff
@@ -107,3 +116,4 @@ any/local-test-install.diff
 any/local-cross.patch
 any/git-c-utf-8-language.diff
 any/local-qsort-memory-corruption.patch
+any/git-test-epoll.diff
