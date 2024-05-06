@@ -212,3 +212,7 @@ lp2047155/lp2047155-avoid-if-to-else-jump.patch
 lp2047155/lp2047155-refactor-code-for-readability.patch
 lp2047155/lp2047155-get-nscd-addresses-fix-subscript-typos.patch
 any/CVE-2024-2961.patch
+CVE-2024-33599.patch
+CVE-2024-33600_1.patch
+CVE-2024-33600_2.patch
+CVE-2024-33601_33602.patch

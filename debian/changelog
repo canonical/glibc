@@ -1,3 +1,23 @@
+glibc (2.35-0ubuntu3.8) jammy-security; urgency=medium
+
+  * SECURITY UPDATE: Stack-based buffer overflow
+    - debian/patches/CVE-2024-33599.patch: CVE-2024-33599: nscd: Stack-
+      based buffer overflow in netgroup cache.
+    - CVE-2024-33599
+  * SECURITY UPDATE: Null pointer
+    - debian/patches/CVE-2024-33600_1.patch: CVE-2024-33600: nscd: Avoid
+      null pointer crashes after notfound response.
+    - debian/patches/CVE-2024-33600_2.patch: CVE-2024-33600: nscd: Do
+      not send missing not-found response in addgetnetgrentX.
+    - CVE-2024-33600
+  * SECURITY UPDATE: Memory corruption
+    - debian/patches/CVE-2024-33601_33602.patch: CVE-2024-33601, CVE-
+      2024-33602: nscd: netgroup: Use two buffers in addgetnetgrentX.
+    - CVE-2024-33601
+    - CVE-2024-33602
+
+ -- Paulo Flabiano Smorigo <pfsmorigo@canonical.com>  Mon, 06 May 2024 17:34:28 -0300
+
 glibc (2.35-0ubuntu3.7) jammy-security; urgency=medium
 
   * SECURITY UPDATE: OOB write in iconv plugin ISO-2022-CN-EXT
