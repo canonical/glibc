@@ -1,3 +1,29 @@
+glibc (2.38-10) unstable; urgency=medium
+
+  * debian/control.in/main, debian/rules.d/control.mk: build-depends on
+    g++$(DEB_GCC_VERSION)-for-host instead of listing cross-build-dependency
+    per architecture. Also depends on g++$(DEB_GCC_VERSION)-multilib instead
+    of hardcoding the version.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 10 May 2024 17:59:41 +0200
+
+glibc (2.38-9) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/rules: build with gcc-13.
+  * debian/tests/control: re-enable autopkgtest on arm64, the memory
+    consumption should be lower with gcc-13.
+  * debian/testsuite-xfail-debian.mk: remove now fixed riscv64 XFAILs.
+  * debian/debhelper.in/libc-bin.{install,lintian-overrides}: move ldconfig to
+    /usr/sbin.
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+
+  [ M. Buecher ]
+  * debian/local/usr_sbin/locale-gen: enhance to support referencing locales
+    in /usr/local/share/i18n/locales through copy.  Closes: #1066887
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 10 May 2024 15:59:00 +0200
+
 glibc (2.38-8) unstable; urgency=medium
 
   [ Aurelien Jarno ]
