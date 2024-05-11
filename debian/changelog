@@ -1,3 +1,15 @@
+glibc (2.38-11) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/testsuite-xfail-debian.mk: ignore a few math failures due to GCC
+    13 on hppa.  Closes: #1070875.
+  * debian/patches/any/submitted-static-*.diff: add proposed patches to fix
+    various missing math function in libm.a.  Closes: #1070872.
+  * debian/testsuite-xfail-debian.mk: mark tst-support_descriptors as XFAIL,
+    due to sbuild bug #1070003.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 11 May 2024 23:17:18 +0200
+
 glibc (2.38-10) unstable; urgency=medium
 
   * debian/control.in/main, debian/rules.d/control.mk: build-depends on
