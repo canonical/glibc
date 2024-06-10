@@ -114,3 +114,7 @@ ubuntu/apparmor/0002-tests-handle-AppArmor-userns-mitigation.patch
 ubuntu/fix-fortify-source.patch
 
 any/CVE-2024-2961.patch
+any/CVE-2024-33599.patch
+any/CVE-2024-33600_1.patch
+any/CVE-2024-33600_2.patch
+any/CVE-2024-33601_33602.patch
