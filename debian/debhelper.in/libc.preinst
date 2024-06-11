@@ -363,6 +363,14 @@ if [ "$1" = install -o "$1" = upgrade ] && [ "$rtlddir" != "/lib" ]; then
         echo
         exit 1
     fi
+    # Remove legacy 24.04 protective diversions without leading dot
+    # FIXME: Remove this after 26.04
+    if [ "$(dpkg-divert --truename $rtlddir)" = "$rtlddir.usr-is-merged" ]; then
+        dpkg-divert --quiet --package base-files --remove --no-rename --divert $rtlddir.usr-is-merged $rtlddir
+        if [ -d $rtlddir.usr-is-merged ]; then
+            mv --no-target-directory $rtlddir.usr-is-merged /.${rtlddir#/}.usr-is-merged
+        fi
+    fi
     if dpkg --compare-versions "$(dpkg-query -f '${Version}' -W base-files)" le 13 || ! dpkg-query -L base-files | grep -qxF "$rtlddir"; then
         dpkg-divert --quiet --add --no-rename --package base-files --divert "/.${rtlddir#/}.usr-is-merged" "$rtlddir"
     fi
