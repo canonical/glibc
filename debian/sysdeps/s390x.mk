@@ -1,6 +1,8 @@
 # configuration options for all flavours
 extra_config_options = --enable-multi-arch
 
+libc_extra_cflags = -mbackchain
+
 # multilib flavours
 ifeq (,$(filter nobiarch, $(DEB_BUILD_PROFILES)))
 
