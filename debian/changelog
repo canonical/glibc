@@ -1,3 +1,9 @@
+glibc (2.39-3.1ubuntu2) oracular; urgency=medium
+
+  * No-change re-upload
+
+ -- Simon Chopin <schopin@ubuntu.com>  Fri, 28 Jun 2024 11:40:28 +0200
+
 glibc (2.39-3.1ubuntu1) oracular; urgency=medium
 
   * Merge from Debian experimental.
