@@ -1,3 +1,14 @@
+glibc (2.39-3.1ubuntu3) oracular; urgency=medium
+
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+    (LP: #2072649)
+  * Adjust libc6-dev Breaks to account for binNMU vs no-change uploads
+    (LP: #2072657)
+  * Revert "Fall back to calling nanosleep syscall
+    when __clock_nanosleep returns EINVAL" (LP: #2072766)
+
+ -- Simon Chopin <schopin@ubuntu.com>  Thu, 11 Jul 2024 14:56:23 +0200
+
 glibc (2.39-3.1ubuntu2) oracular; urgency=medium
 
   * No-change re-upload

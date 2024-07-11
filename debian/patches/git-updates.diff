@@ -1,4 +1,4 @@
-GIT update of https://sourceware.org/git/glibc.git/release/2.39/master from glibc-2.39 to 9de9cd17e73db0ba9af9ef11dc12d490fb59720c
+GIT update of https://sourceware.org/git/glibc.git/release/2.39/master from glibc-2.39 to a03631124602f2dcef40d46660b96d2e51c44bfd
 
 diff --git a/ADVISORIES b/ADVISORIES
 new file mode 100644
@@ -47,6 +47,90 @@ index 7052b46df8..2e351c0321 100644
  # Print test summary for tests in $1 .sum file;
  # $2 is optional test identifier.
  # Fail if there are unexpected failures in the test results.
+diff --git a/NEWS b/NEWS
+index 1b89f9c010..4eadd9e51d 100644
+--- a/NEWS
++++ b/NEWS
+@@ -5,6 +5,79 @@ See the end for copying conditions.
+ Please send GNU C library bug reports via <https://sourceware.org/bugzilla/>
+ using `glibc' in the "product" field.
+ 
++Version 2.39.1
++
++Security related changes:
++
++The following CVEs were fixed in this release:
++
++  GLIBC-SA-2024-0004:
++    ISO-2022-CN-EXT: fix out-of-bound writes when writing escape
++    sequence (CVE-2024-2961)
++
++  GLIBC-SA-2024-0005:
++    nscd: Stack-based buffer overflow in netgroup cache (CVE-2024-33599)
++
++  GLIBC-SA-2024-0006:
++    nscd: Null pointer crash after notfound response (CVE-2024-33600)
++
++  GLIBC-SA-2024-0007:
++    nscd: netgroup cache may terminate daemon on memory allocation
++    failure (CVE-2024-33601)
++
++  GLIBC-SA-2024-0008:
++    nscd: netgroup cache assumes NSS callback uses in-buffer strings
++    (CVE-2024-33602)
++
++The following bugs are resolved with this release:
++
++  [19622] network: Support aliasing with struct sockaddr
++  [30701] time: getutxent misbehaves on 32-bit x86 when _TIME_BITS=64
++  [30994] REP MOVSB performance suffers from page aliasing on Zen 4
++  [31339] libc: arm32 loader crash after cleanup in 2.36
++  [31325] mips: clone3 is wrong for o32
++  [31335] math: Compile glibc with -march=x86-64-v3 should disable FMA4
++    multi-arch version
++  [31402] libc: clone (NULL, NULL, ...) clobbers %r7 register on
++    s390{,x}
++  [31479] libc: Missing #include <sys/rseq.h> in sched_getcpu.c may
++    result in a loss of rseq acceleration
++  [31316] build: Fails test misc/tst-dirname "Didn't expect signal from
++    child: got `Illegal instruction'" on non SSE CPUs
++  [31371] x86-64: APX and Tile registers aren't preserved in ld.so 
++    trampoline
++  [31372] dynamic-link: _dl_tlsdesc_dynamic doesn't preserve all caller-
++    saved registers
++  [31429] build: Glibc failed to build with -march=x86-64-v3
++  [31501] dynamic-link: _dl_tlsdesc_dynamic_xsavec may clobber %rbx
++  [31612] libc: arc4random fails to fallback to /dev/urandom if
++    getrandom is not present
++  [31640] dynamic-link: POWER10 ld.so crashes in
++    elf_machine_load_address with GCC 14
++  [31676] Configuring with CC="gcc -march=x86-64-v3"
++    --with-rtld-early-cflags=-march=x86-64 results in linker failure
++  [31677] nscd: nscd: netgroup cache: invalid memcpy under low
++    memory/storage conditions
++  [31678] nscd: nscd: Null pointer dereferences after failed netgroup
++    cache insertion
++  [31679] nscd: nscd: netgroup cache may terminate daemon on memory
++    allocation failure
++  [31680] nscd: nscd: netgroup cache assumes NSS callback uses in-buffer
++    strings
++  [31686] dynamic-link: Stack-based buffer overflow in
++    parse_tunables_string
++  [31695] libc: pidfd_spawn/pidfd_spawnp leak an fd if clone3 succeeds
++  [31719] dynamic-link: --enable-hardcoded-path-in-tests doesn't work
++    with -Wl,--enable-new-dtags
++  [31782] Test build failure with recent GCC trunk
++    (x86/tst-cpu-features-supports.c:69:3: error: parameter to builtin
++    not valid: avx5124fmaps)
++  [31798] pidfd_getpid.c is miscompiled by GCC 6.4
++  [31867] build: "CPU ISA level is lower than required" on SSE2-free
++    CPUs
++  [31883] build: ISA level support configure check relies on bashism /
++    is otherwise broken for arithmetic
++
+ Version 2.39
+ 
+ Major new features:
 diff --git a/advisories/GLIBC-SA-2023-0001 b/advisories/GLIBC-SA-2023-0001
 deleted file mode 100644
 index 3d19c91b6a..0000000000
@@ -1512,6 +1596,19 @@ index c5eacedd6a..1c7587d9c1 100644
  extern int utime (const char *__file,
  		  const struct utimbuf *__file_times)
       __THROW __nonnull ((1));
+diff --git a/localedata/locales/ssy_ER b/localedata/locales/ssy_ER
+index 05d94c9f10..43a16e0f54 100644
+--- a/localedata/locales/ssy_ER
++++ b/localedata/locales/ssy_ER
+@@ -106,7 +106,7 @@ country_ab3   "ERI"
+ country_num   232
+ country_car   "ER"
+ % country_isbn  unknown, Need ISO 2108
+-# https://en.wikipedia.org/wiki/Saho_language has "Saaho" as the endonym but CLDR has "Saho"
++% https://en.wikipedia.org/wiki/Saho_language has "Saaho" as the endonym but CLDR has "Saho"
+ lang_name     "Saho"
+ lang_ab       ""
+ lang_term     "ssy"
 diff --git a/login/Makefile b/login/Makefile
 index 1e22008a61..f91190e3dc 100644
 --- a/login/Makefile
@@ -2695,6 +2792,104 @@ index edbb7b4392..1f44ee1145 100644
  /* PID is like waitpid.  Other args are like wait3.  */
  extern __pid_t wait4 (__pid_t __pid, int *__stat_loc, int __options,
  		      struct rusage *__usage) __THROWNL;
+diff --git a/posix/tst-spawn2.c b/posix/tst-spawn2.c
+index bb507204a2..b2bad3f1f7 100644
+--- a/posix/tst-spawn2.c
++++ b/posix/tst-spawn2.c
+@@ -26,6 +26,7 @@
+ #include <stdio.h>
+ 
+ #include <support/check.h>
++#include <support/descriptors.h>
+ #include <tst-spawn.h>
+ 
+ int
+@@ -38,38 +39,53 @@ do_test (void)
+   char * const args[] = { 0 };
+   PID_T_TYPE pid = -1;
+ 
+-  int ret = POSIX_SPAWN (&pid, program, 0, 0, args, environ);
+-  if (ret != ENOENT)
+-    {
+-      errno = ret;
+-      FAIL_EXIT1 ("posix_spawn: %m");
+-    }
+-
+-  /* POSIX states the value returned on pid variable in case of an error
+-     is not specified.  GLIBC will update the value iff the child
+-     execution is successful.  */
+-  if (pid != -1)
+-    FAIL_EXIT1 ("posix_spawn returned pid != -1 (%i)", (int) pid);
+-
+-  /* Check if no child is actually created.  */
+-  TEST_COMPARE (WAITID (P_ALL, 0, NULL, WEXITED), -1);
+-  TEST_COMPARE (errno, ECHILD);
+-
+-  /* Same as before, but with posix_spawnp.  */
+-  char *args2[] = { (char*) program, 0 };
+-
+-  ret = POSIX_SPAWNP (&pid, args2[0], 0, 0, args2, environ);
+-  if (ret != ENOENT)
+-    {
+-      errno = ret;
+-      FAIL_EXIT1 ("posix_spawnp: %m");
+-    }
+-
+-  if (pid != -1)
+-    FAIL_EXIT1 ("posix_spawnp returned pid != -1 (%i)", (int) pid);
+-
+-  TEST_COMPARE (WAITID (P_ALL, 0, NULL, WEXITED), -1);
+-  TEST_COMPARE (errno, ECHILD);
++  {
++    struct support_descriptors *descrs = support_descriptors_list ();
++
++    int ret = POSIX_SPAWN (&pid, program, 0, 0, args, environ);
++    if (ret != ENOENT)
++      {
++	errno = ret;
++	FAIL_EXIT1 ("posix_spawn: %m");
++      }
++
++    /* POSIX states the value returned on pid variable in case of an error
++       is not specified.  GLIBC will update the value iff the child
++       execution is successful.  */
++    if (pid != -1)
++      FAIL_EXIT1 ("posix_spawn returned pid != -1 (%i)", (int) pid);
++
++    /* Check if no child is actually created.  */
++    TEST_COMPARE (WAITID (P_ALL, 0, NULL, WEXITED), -1);
++    TEST_COMPARE (errno, ECHILD);
++
++    /* Also check if there is no leak descriptors.  */
++    support_descriptors_check (descrs);
++    support_descriptors_free (descrs);
++  }
++
++  {
++    /* Same as before, but with posix_spawnp.  */
++    char *args2[] = { (char*) program, 0 };
++
++    struct support_descriptors *descrs = support_descriptors_list ();
++
++    int ret = POSIX_SPAWNP (&pid, args2[0], 0, 0, args2, environ);
++    if (ret != ENOENT)
++      {
++	errno = ret;
++	FAIL_EXIT1 ("posix_spawnp: %m");
++      }
++
++    if (pid != -1)
++      FAIL_EXIT1 ("posix_spawnp returned pid != -1 (%i)", (int) pid);
++
++    TEST_COMPARE (WAITID (P_ALL, 0, NULL, WEXITED), -1);
++    TEST_COMPARE (errno, ECHILD);
++
++    support_descriptors_check (descrs);
++    support_descriptors_free (descrs);
++  }
+ 
+   return 0;
+ }
 diff --git a/resolv/netdb.h b/resolv/netdb.h
 index 14228b0d95..b7f473fafe 100644
 --- a/resolv/netdb.h
@@ -2992,6 +3187,19 @@ index d587f054d1..9898cc5d8a 100644
    tst-stdc_bit_ceil \
    tst-stdc_bit_floor \
    tst-stdc_bit_width \
+diff --git a/stdlib/arc4random.c b/stdlib/arc4random.c
+index 3ae8fc1302..7818cb9cf6 100644
+--- a/stdlib/arc4random.c
++++ b/stdlib/arc4random.c
+@@ -51,7 +51,7 @@ __arc4random_buf (void *p, size_t n)
+ 	  n -= l;
+ 	  continue; /* Interrupted by a signal; keep going.  */
+ 	}
+-      else if (l == -ENOSYS)
++      else if (l < 0 && errno == ENOSYS)
+ 	break; /* No syscall, so fallback to /dev/urandom.  */
+       arc4random_getrandom_failure ();
+     }
 diff --git a/stdlib/stdbit.h b/stdlib/stdbit.h
 index f334eb174d..2801590c63 100644
 --- a/stdlib/stdbit.h
@@ -5688,6 +5896,55 @@ index 84e6686eba..f2139fc172 100644
  float128: 1
  ldouble: 1
  
+diff --git a/sysdeps/i386/fpu/w_exp10_compat.c b/sysdeps/i386/fpu/w_exp10_compat.c
+index b53455386e..49a0e03385 100644
+--- a/sysdeps/i386/fpu/w_exp10_compat.c
++++ b/sysdeps/i386/fpu/w_exp10_compat.c
+@@ -1,3 +1,8 @@
+ /* i386 provides an optimized __ieee754_exp10.  */
+-#define NO_COMPAT_NEEDED 1
+-#include <math/w_exp10_compat.c>
++#ifdef SHARED
++# define NO_COMPAT_NEEDED 1
++# include <math/w_exp10_compat.c>
++#else
++# include <math-type-macros-double.h>
++# include <w_exp10_template.c>
++#endif
+diff --git a/sysdeps/i386/fpu/w_fmod_compat.c b/sysdeps/i386/fpu/w_fmod_compat.c
+index 5ac9995ffd..528bfc2a13 100644
+--- a/sysdeps/i386/fpu/w_fmod_compat.c
++++ b/sysdeps/i386/fpu/w_fmod_compat.c
+@@ -7,8 +7,9 @@
+ # define LIBM_SVID_COMPAT 1
+ # undef compat_symbol
+ # define compat_symbol(a, b, c, d)
+-#endif
+-#include <math/w_fmod_compat.c>
+-#ifdef SHARED
++# include <math/w_fmod_compat.c>
+ libm_alias_double (__fmod_compat, fmod)
++#else
++#include <math-type-macros-double.h>
++#include <w_fmod_template.c>
+ #endif
+diff --git a/sysdeps/i386/fpu/w_fmodf_compat.c b/sysdeps/i386/fpu/w_fmodf_compat.c
+index cc417e07d3..5a61693e51 100644
+--- a/sysdeps/i386/fpu/w_fmodf_compat.c
++++ b/sysdeps/i386/fpu/w_fmodf_compat.c
+@@ -7,8 +7,9 @@
+ # define LIBM_SVID_COMPAT 1
+ # undef compat_symbol
+ # define compat_symbol(a, b, c, d)
+-#endif
+-#include <math/w_fmodf_compat.c>
+-#ifdef SHARED
++# include <math/w_fmodf_compat.c>
+ libm_alias_float (__fmod_compat, fmod)
++#else
++#include <math-type-macros-float.h>
++#include <w_fmod_template.c>
+ #endif
 diff --git a/sysdeps/i386/i586/memcpy.S b/sysdeps/i386/i586/memcpy.S
 index 3e26f112d6..79856d498a 100644
 --- a/sysdeps/i386/i586/memcpy.S
@@ -5745,6 +6002,93 @@ index d9dae04171..e123f87435 100644
  
  END (__memrchr_sse2)
 -strong_alias (__memrchr_sse2, __GI___memrchr)
+ #endif
+diff --git a/sysdeps/ieee754/float128/s_isnanf128.c b/sysdeps/ieee754/float128/s_isnanf128.c
+index 59f71533ce..b73a4e80d7 100644
+--- a/sysdeps/ieee754/float128/s_isnanf128.c
++++ b/sysdeps/ieee754/float128/s_isnanf128.c
+@@ -11,7 +11,11 @@
+ #include "../ldbl-128/s_isnanl.c"
+ #if !IS_IN (libm)
+ #include <float128-abi.h>
++#ifdef SHARED
+ hidden_ver (__isnanf128_impl, __isnanf128)
++#else
++strong_alias (__isnanf128_impl, __isnanf128)
++#endif
+ _weak_alias (__isnanf128_impl, isnanl)
+ versioned_symbol (libc, __isnanf128_impl, __isnanf128, GLIBC_2_34);
+ #if (SHLIB_COMPAT (libc, FLOAT128_VERSION_M, GLIBC_2_34))
+diff --git a/sysdeps/ieee754/ldbl-64-128/s_copysignl.c b/sysdeps/ieee754/ldbl-64-128/s_copysignl.c
+index 11b42d04ba..80137847d3 100644
+--- a/sysdeps/ieee754/ldbl-64-128/s_copysignl.c
++++ b/sysdeps/ieee754/ldbl-64-128/s_copysignl.c
+@@ -1,10 +1,10 @@
+ #include <math_ldbl_opt.h>
+ #include <libm-alias-ldouble.h>
+-#if IS_IN (libc)
++#if IS_IN (libc) && defined SHARED
+ # undef libm_alias_ldouble
+ # define libm_alias_ldouble(from, to)
+ #endif
+ #include <sysdeps/ieee754/ldbl-128/s_copysignl.c>
+-#if IS_IN (libc)
++#if IS_IN (libc) && defined SHARED
+ long_double_symbol (libc, __copysignl, copysignl);
+ #endif
+diff --git a/sysdeps/ieee754/ldbl-64-128/s_frexpl.c b/sysdeps/ieee754/ldbl-64-128/s_frexpl.c
+index 73ac41e40c..f5f7d349f7 100644
+--- a/sysdeps/ieee754/ldbl-64-128/s_frexpl.c
++++ b/sysdeps/ieee754/ldbl-64-128/s_frexpl.c
+@@ -1,10 +1,10 @@
+ #include <math_ldbl_opt.h>
+ #include <libm-alias-ldouble.h>
+-#if IS_IN (libc)
++#if IS_IN (libc) && defined SHARED
+ # undef libm_alias_ldouble
+ # define libm_alias_ldouble(from, to)
+ #endif
+ #include <sysdeps/ieee754/ldbl-128/s_frexpl.c>
+-#if IS_IN (libc)
++#if IS_IN (libc) && defined SHARED
+ long_double_symbol (libc, __frexpl, frexpl);
+ #endif
+diff --git a/sysdeps/ieee754/ldbl-64-128/s_modfl.c b/sysdeps/ieee754/ldbl-64-128/s_modfl.c
+index 7d7aeae111..ba3d31334a 100644
+--- a/sysdeps/ieee754/ldbl-64-128/s_modfl.c
++++ b/sysdeps/ieee754/ldbl-64-128/s_modfl.c
+@@ -1,10 +1,10 @@
+ #include <math_ldbl_opt.h>
+ #include <libm-alias-ldouble.h>
+-#if IS_IN (libc)
++#if IS_IN (libc) && defined SHARED
+ # undef libm_alias_ldouble
+ # define libm_alias_ldouble(from, to)
+ #endif
+ #include <sysdeps/ieee754/ldbl-128/s_modfl.c>
+-#if IS_IN (libc)
++#if IS_IN (libc) && defined SHARED
+ long_double_symbol (libc, __modfl, modfl);
+ #endif
+diff --git a/sysdeps/ieee754/ldbl-opt/s_ldexpl.c b/sysdeps/ieee754/ldbl-opt/s_ldexpl.c
+index 1afbe7d8ad..932cc4341c 100644
+--- a/sysdeps/ieee754/ldbl-opt/s_ldexpl.c
++++ b/sysdeps/ieee754/ldbl-opt/s_ldexpl.c
+@@ -17,13 +17,13 @@
+    License along with the GNU C Library; if not, see
+    <https://www.gnu.org/licenses/>.  */
+ 
+-#if IS_IN (libc)
++#if IS_IN (libc) && defined SHARED
+ # define declare_mgen_alias(f,t)
+ #endif
+ #include <math-type-macros-ldouble.h>
+ #include <s_ldexp_template.c>
+ 
+-#if IS_IN (libc)
++#if IS_IN (libc) && defined SHARED
+ long_double_symbol (libc, __ldexpl, ldexpl);
+ long_double_symbol (libc, __wrap_scalbnl, scalbnl);
  #endif
 diff --git a/sysdeps/loongarch/fpu/e_scalbf.c b/sysdeps/loongarch/fpu/e_scalbf.c
 index 9f05485236..7c0395fbb5 100644
@@ -5894,6 +6238,54 @@ index 0000000000..6ecbfe7c86
 +#define __WORDSIZE_TIME64_COMPAT32	1
 +#define __WORDSIZE32_SIZE_ULONG		0
 +#define __WORDSIZE32_PTRDIFF_LONG	0
+diff --git a/sysdeps/m68k/m680x0/fpu/w_exp10_compat.c b/sysdeps/m68k/m680x0/fpu/w_exp10_compat.c
+index 0d3e718626..350f2e4b4d 100644
+--- a/sysdeps/m68k/m680x0/fpu/w_exp10_compat.c
++++ b/sysdeps/m68k/m680x0/fpu/w_exp10_compat.c
+@@ -1,3 +1,8 @@
+ /* m68k provides an optimized __ieee754_exp10.  */
+-#define NO_COMPAT_NEEDED 1
+-#include <math/w_exp10_compat.c>
++#ifdef SHARED
++# define NO_COMPAT_NEEDED 1
++# include <math/w_exp10_compat.c>
++#else
++# include <math-type-macros-double.h>
++# include <w_exp10_template.c>
++#endif
+diff --git a/sysdeps/m68k/m680x0/fpu/w_fmod_compat.c b/sysdeps/m68k/m680x0/fpu/w_fmod_compat.c
+index 527d4fbed2..57f38091e6 100644
+--- a/sysdeps/m68k/m680x0/fpu/w_fmod_compat.c
++++ b/sysdeps/m68k/m680x0/fpu/w_fmod_compat.c
+@@ -7,8 +7,9 @@
+ # define LIBM_SVID_COMPAT 1
+ # undef compat_symbol
+ # define compat_symbol(a, b, c, d)
+-#endif
+ #include <math/w_fmod_compat.c>
+-#ifdef SHARED
+ libm_alias_double (__fmod_compat, fmod)
++#else
++#include <math-type-macros-double.h>
++#include <w_fmod_template.c>
+ #endif
+diff --git a/sysdeps/m68k/m680x0/fpu/w_fmodf_compat.c b/sysdeps/m68k/m680x0/fpu/w_fmodf_compat.c
+index 5043586b91..88db07f443 100644
+--- a/sysdeps/m68k/m680x0/fpu/w_fmodf_compat.c
++++ b/sysdeps/m68k/m680x0/fpu/w_fmodf_compat.c
+@@ -7,8 +7,9 @@
+ # define LIBM_SVID_COMPAT 1
+ # undef compat_symbol
+ # define compat_symbol(a, b, c, d)
+-#endif
+-#include <math/w_fmodf_compat.c>
+-#ifdef SHARED
++# include <math/w_fmodf_compat.c>
+ libm_alias_float (__fmod_compat, fmod)
++#else
++#include <math-type-macros-float.h>
++#include <w_fmod_template.c>
+ #endif
 diff --git a/sysdeps/m68k/utmp-size.h b/sysdeps/m68k/utmp-size.h
 new file mode 100644
 index 0000000000..5946685819
@@ -6956,10 +7348,18 @@ index e3d758b163..ea2a58ecb1 100644
    GLRO(dl_fpu_control) = auxv_values[AT_FPUCW];
    _dl_random = (void *) auxv_values[AT_RANDOM];
 diff --git a/sysdeps/unix/sysv/linux/dl-sysdep.c b/sysdeps/unix/sysv/linux/dl-sysdep.c
-index ad3692d738..e1b14e9eb3 100644
+index ad3692d738..a8ec2d7c18 100644
 --- a/sysdeps/unix/sysv/linux/dl-sysdep.c
 +++ b/sysdeps/unix/sysv/linux/dl-sysdep.c
-@@ -197,6 +197,8 @@ _dl_show_auxv (void)
+@@ -40,6 +40,7 @@
+ #include <sys/utsname.h>
+ #include <tls.h>
+ #include <unistd.h>
++#include <dl-symbol-redir-ifunc.h>
+ 
+ #include <dl-machine.h>
+ #include <dl-hwcap-check.h>
+@@ -197,6 +198,8 @@ _dl_show_auxv (void)
  	  [AT_SYSINFO_EHDR - 2] =	{ "SYSINFO_EHDR:      0x", hex },
  	  [AT_RANDOM - 2] =		{ "RANDOM:            0x", hex },
  	  [AT_HWCAP2 - 2] =		{ "HWCAP2:            0x", hex },
@@ -7834,6 +8234,40 @@ index 7562875ee2..ea103e5970 100644
 -# define __WORDSIZE_TIME64_COMPAT32	0
  #endif
 +#define __WORDSIZE_TIME64_COMPAT32	1
+diff --git a/sysdeps/unix/sysv/linux/spawni.c b/sysdeps/unix/sysv/linux/spawni.c
+index e8ed2babb9..f57e92815e 100644
+--- a/sysdeps/unix/sysv/linux/spawni.c
++++ b/sysdeps/unix/sysv/linux/spawni.c
+@@ -449,13 +449,22 @@ __spawnix (int *pid, const char *file,
+ 	 caller to actually collect it.  */
+       ec = args.err;
+       if (ec > 0)
+-	/* There still an unlikely case where the child is cancelled after
+-	   setting args.err, due to a positive error value.  Also there is
+-	   possible pid reuse race (where the kernel allocated the same pid
+-	   to an unrelated process).  Unfortunately due synchronization
+-	   issues where the kernel might not have the process collected
+-	   the waitpid below can not use WNOHANG.  */
+-	__waitpid (new_pid, NULL, 0);
++	{
++	  /* There still an unlikely case where the child is cancelled after
++	     setting args.err, due to a positive error value.  Also there is
++	     possible pid reuse race (where the kernel allocated the same pid
++	     to an unrelated process).  Unfortunately due synchronization
++	     issues where the kernel might not have the process collected
++	     the waitpid below can not use WNOHANG.  */
++	  __waitid (use_pidfd ? P_PIDFD : P_PID,
++		    use_pidfd ? args.pidfd : new_pid,
++		    NULL,
++		    WEXITED);
++	  /* For pidfd we need to also close the file descriptor for the case
++	     where execve fails.  */
++	  if (use_pidfd)
++	    __close_nocancel_nostatus (args.pidfd);
++	}
+     }
+   else
+     ec = errno;
 diff --git a/sysdeps/unix/sysv/linux/sys/epoll.h b/sysdeps/unix/sysv/linux/sys/epoll.h
 index 9b51e3bd14..fc8dce45c8 100644
 --- a/sysdeps/unix/sysv/linux/sys/epoll.h
@@ -8370,7 +8804,7 @@ index 70f652bca1..3f40aa76f9 100644
 -# define __WORDSIZE_TIME64_COMPAT32	0
  #endif
 diff --git a/sysdeps/x86/configure b/sysdeps/x86/configure
-index 1f4c2d67fd..d28d9bcb29 100644
+index 1f4c2d67fd..04c6ba3e6c 100644
 --- a/sysdeps/x86/configure
 +++ b/sysdeps/x86/configure
 @@ -98,6 +98,7 @@ printf "%s\n" "$libc_cv_have_x86_lahf_sahf" >&6; }
@@ -8381,7 +8815,7 @@ index 1f4c2d67fd..d28d9bcb29 100644
    fi
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for MOVBE instruction support" >&5
  printf %s "checking for MOVBE instruction support... " >&6; }
-@@ -120,8 +121,47 @@ printf "%s\n" "$libc_cv_have_x86_movbe" >&6; }
+@@ -120,8 +121,53 @@ printf "%s\n" "$libc_cv_have_x86_movbe" >&6; }
    if test $libc_cv_have_x86_movbe = yes; then
      printf "%s\n" "#define HAVE_X86_MOVBE 1" >>confdefs.h
  
@@ -8403,8 +8837,12 @@ index 1f4c2d67fd..d28d9bcb29 100644
 +libc_cv_have_x86_isa_level=3
 +#elif MINIMUM_X86_ISA_LEVEL == 2
 +libc_cv_have_x86_isa_level=2
-+#else
++#elif defined __x86_64__
 +libc_cv_have_x86_isa_level=baseline
++#elif MINIMUM_X86_ISA_LEVEL == 1
++libc_cv_have_x86_isa_level=1
++#else
++libc_cv_have_x86_isa_level=0
 +#endif
 +EOF
 +		 eval `${CC-cc} $CFLAGS $CPPFLAGS $ISAFLAG -I$srcdir -E conftest.c | grep libc_cv_have_x86_isa_level`
@@ -8412,8 +8850,10 @@ index 1f4c2d67fd..d28d9bcb29 100644
  fi
 +{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $libc_cv_have_x86_isa_level" >&5
 +printf "%s\n" "$libc_cv_have_x86_isa_level" >&6; }
-+else
++elif test $base_machine = x86_64; then
 +  libc_cv_have_x86_isa_level=baseline
++else
++  libc_cv_have_x86_isa_level=0
 +fi
 +if test $libc_cv_have_x86_isa_level = baseline; then
 +  printf "%s\n" "#define MINIMUM_X86_ISA_LEVEL 1" >>confdefs.h
@@ -8430,7 +8870,7 @@ index 1f4c2d67fd..d28d9bcb29 100644
  enable-x86-isa-level = $libc_cv_include_x86_isa_level"
  
 diff --git a/sysdeps/x86/configure.ac b/sysdeps/x86/configure.ac
-index 437a50623b..5b0acd03d2 100644
+index 437a50623b..8a259d3971 100644
 --- a/sysdeps/x86/configure.ac
 +++ b/sysdeps/x86/configure.ac
 @@ -72,6 +72,7 @@ if test $libc_cv_include_x86_isa_level = yes; then
@@ -8441,7 +8881,7 @@ index 437a50623b..5b0acd03d2 100644
    fi
    AC_CACHE_CHECK([for MOVBE instruction support],
  		 libc_cv_have_x86_movbe, [dnl
-@@ -81,8 +82,36 @@ if test $libc_cv_include_x86_isa_level = yes; then
+@@ -81,8 +82,42 @@ if test $libc_cv_include_x86_isa_level = yes; then
      fi])
    if test $libc_cv_have_x86_movbe = yes; then
      AC_DEFINE(HAVE_X86_MOVBE)
@@ -8459,14 +8899,20 @@ index 437a50623b..5b0acd03d2 100644
 +libc_cv_have_x86_isa_level=3
 +#elif MINIMUM_X86_ISA_LEVEL == 2
 +libc_cv_have_x86_isa_level=2
-+#else
++#elif defined __x86_64__
 +libc_cv_have_x86_isa_level=baseline
++#elif MINIMUM_X86_ISA_LEVEL == 1
++libc_cv_have_x86_isa_level=1
++#else
++libc_cv_have_x86_isa_level=0
 +#endif
 +EOF
 +		 eval `${CC-cc} $CFLAGS $CPPFLAGS $ISAFLAG -I$srcdir -E conftest.c | grep libc_cv_have_x86_isa_level`
 +		 rm -rf conftest*])
-+else
++elif test $base_machine = x86_64; then
 +  libc_cv_have_x86_isa_level=baseline
++else
++  libc_cv_have_x86_isa_level=0
 +fi
 +if test $libc_cv_have_x86_isa_level = baseline; then
 +  AC_DEFINE_UNQUOTED(MINIMUM_X86_ISA_LEVEL, 1)
@@ -8872,10 +9318,29 @@ index b9bf3115b6..cd7bd27cf3 100644
    unsigned int xsave_state_full_size;
    /* Data cache size for use in memory and string routines, typically
 diff --git a/sysdeps/x86/isa-level.h b/sysdeps/x86/isa-level.h
-index 11fe1ca90c..2c7f74212b 100644
+index 11fe1ca90c..03c1fe2bf5 100644
 --- a/sysdeps/x86/isa-level.h
 +++ b/sysdeps/x86/isa-level.h
-@@ -61,8 +61,10 @@
+@@ -35,7 +35,17 @@
+ # define __X86_ISA_V1 0
+ #endif
+ 
+-#if __X86_ISA_V1 && defined __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16               \
++#ifdef __x86_64__
++# ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16
++#  define __GCC_HAVE_SYNC_COMPARE_AND_SWAP
++# endif
++#else
++# ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
++#  define __GCC_HAVE_SYNC_COMPARE_AND_SWAP
++# endif
++#endif
++
++#if __X86_ISA_V1 && defined __GCC_HAVE_SYNC_COMPARE_AND_SWAP		      \
+     && defined HAVE_X86_LAHF_SAHF && defined __POPCNT__ && defined __SSE3__   \
+     && defined __SSSE3__ && defined __SSE4_1__ && defined __SSE4_2__
+ /* NB: ISAs in x86-64 ISA level v2 are used.  */
+@@ -61,8 +71,10 @@
  # define __X86_ISA_V4 0
  #endif
  
