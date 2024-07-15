@@ -27,11 +27,12 @@ hppa/local-inlining.diff
 
 # Committed for 2.40
 hurd-i386/git-context.diff
-
-# 2.40
+hurd-i386/git-xattr.diff
 hurd-i386/git-proc_getchildren_rusage.diff
 hurd-i386/git-AT_NO_AUTOMOUNT.diff
+hurd-i386/git-intr-msg-clobber.diff
 
+hurd-i386/local-intr-msg-clobber.diff
 hurd-i386/local-enable-ldconfig.diff
 hurd-i386/tg-sysvshm.diff
 hurd-i386/tg-thread-cancel.diff
@@ -93,9 +94,3 @@ any/local-cudacc-float128.diff
 any/local-test-install.diff
 any/local-cross.patch
 any/git-test-epoll.diff
-any/submitted-static-copysignf128.diff
-any/submitted-static-fmod-fmodf.diff
-any/submitted-static-frexpf128.diff
-any/submitted-static-isnanf128.diff
-any/submitted-static-modf128.diff
-any/submitted-static-exp10.diff
