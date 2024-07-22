@@ -32,6 +32,7 @@
 #include <ldsodefs.h>
 #include <array_length.h>
 #include <dl-minimal-malloc.h>
+#include <dl-symbol-redir-ifunc.h>
 
 #define TUNABLES_INTERNAL 1
 #include "dl-tunables.h"
@@ -118,6 +119,17 @@ do_tunable_update_val (tunable_t *cur, const tunable_val_t *valp,
   cur->initialized = true;
 }
 
+static bool
+tunable_parse_num (const char *strval, size_t len, tunable_num_t *val)
+{
+  char *endptr = NULL;
+  uint64_t numval = _dl_strtoul (strval, &endptr);
+  if (endptr != strval + len)
+    return false;
+  *val = (tunable_num_t) numval;
+  return true;
+}
+
 /* Validate range of the input value and initialize the tunable CUR if it looks
    good.  */
 static bool
@@ -127,11 +139,8 @@ tunable_initialize (tunable_t *cur, const char *strval, size_t len)
 
   if (cur->type.type_code != TUNABLE_TYPE_STRING)
     {
-      char *endptr = NULL;
-      uint64_t numval = _dl_strtoul (strval, &endptr);
-      if (endptr != strval + len)
+      if (!tunable_parse_num (strval, len, &val.numval))
 	return false;
-      val.numval = (tunable_num_t) numval;
     }
   else
     val.strval = (struct tunable_str_t) { strval, len };
@@ -221,8 +230,7 @@ parse_tunables_string (const char *valstring, struct tunable_toset_t *tunables)
 
 	  if (tunable_is_name (cur->name, name))
 	    {
-	      tunables[ntunables++] =
-		(struct tunable_toset_t) { cur, value, p - value };
+	      tunables[i] = (struct tunable_toset_t) { cur, value, p - value };
 	      break;
 	    }
 	}
@@ -232,25 +240,50 @@ parse_tunables_string (const char *valstring, struct tunable_toset_t *tunables)
 }
 
 static void
+parse_tunable_print_error (const struct tunable_toset_t *toset)
+{
+  _dl_error_printf ("WARNING: ld.so: invalid GLIBC_TUNABLES value `%.*s' "
+		    "for option `%s': ignored.\n",
+		    (int) toset->len,
+		    toset->value,
+		    toset->t->name);
+}
+
+static void
 parse_tunables (const char *valstring)
 {
-  struct tunable_toset_t tunables[tunables_list_size];
-  int ntunables = parse_tunables_string (valstring, tunables);
-  if (ntunables == -1)
+  struct tunable_toset_t tunables[tunables_list_size] = { 0 };
+  if (parse_tunables_string (valstring, tunables) == -1)
     {
       _dl_error_printf (
         "WARNING: ld.so: invalid GLIBC_TUNABLES `%s': ignored.\n", valstring);
       return;
     }
 
-  for (int i = 0; i < ntunables; i++)
-    if (!tunable_initialize (tunables[i].t, tunables[i].value,
-			     tunables[i].len))
-      _dl_error_printf ("WARNING: ld.so: invalid GLIBC_TUNABLES value `%.*s' "
-		       "for option `%s': ignored.\n",
-		       (int) tunables[i].len,
-		       tunables[i].value,
-		       tunables[i].t->name);
+  /* Ignore tunables if enable_secure is set */
+  struct tunable_toset_t *tsec =
+    &tunables[TUNABLE_ENUM_NAME(glibc, rtld, enable_secure)];
+  if (tsec->t != NULL)
+    {
+      tunable_num_t val;
+      if (!tunable_parse_num (tsec->value, tsec->len, &val))
+        parse_tunable_print_error (tsec);
+      else if (val == 1)
+	{
+	  __libc_enable_secure = 1;
+	  return;
+	}
+    }
+
+  for (int i = 0; i < tunables_list_size; i++)
+    {
+      if (tunables[i].t == NULL)
+	continue;
+
+      if (!tunable_initialize (tunables[i].t, tunables[i].value,
+			       tunables[i].len))
+	parse_tunable_print_error (&tunables[i]);
+    }
 }
 
 /* Initialize the tunables list from the environment.  For now we only use the
@@ -267,6 +300,9 @@ __tunables_init (char **envp)
   if (__libc_enable_secure)
     return;
 
+  enum { tunable_num_env_alias = array_length (tunable_env_alias_list) };
+  struct tunable_toset_t tunables_env_alias[tunable_num_env_alias] = { 0 };
+
   while ((envp = get_next_env (envp, &envname, &envval, &prev_envp)) != NULL)
     {
       /* The environment variable is allocated on the stack by the kernel, so
@@ -278,28 +314,43 @@ __tunables_init (char **envp)
 	  continue;
 	}
 
-      for (int i = 0; i < tunables_list_size; i++)
+      for (int i = 0; i < tunable_num_env_alias; i++)
 	{
-	  tunable_t *cur = &tunable_list[i];
-
-	  /* Skip over tunables that have either been set already or should be
-	     skipped.  */
-	  if (cur->initialized || cur->env_alias[0] == '\0')
-	    continue;
-
+	  tunable_t *cur = &tunable_list[tunable_env_alias_list[i]];
 	  const char *name = cur->env_alias;
 
-	  /* We have a match.  Initialize and move on to the next line.  */
+	  if (name[0] == '\0')
+	    continue;
+
 	  if (tunable_is_name (name, envname))
 	    {
 	      size_t envvallen = 0;
 	      /* The environment variable is always null-terminated.  */
 	      for (const char *p = envval; *p != '\0'; p++, envvallen++);
 
-	      tunable_initialize (cur, envval, envvallen);
+	      tunables_env_alias[i] =
+		(struct tunable_toset_t) { cur, envval, envvallen };
 	      break;
 	    }
 	}
+    }
+
+  /* Check if glibc.rtld.enable_secure was set and skip over the environment
+     variables aliases.  */
+  if (__libc_enable_secure)
+    return;
+
+  for (int i = 0; i < tunable_num_env_alias; i++)
+    {
+      /* Skip over tunables that have either been set or already initialized.  */
+      if (tunables_env_alias[i].t == NULL
+	  || tunables_env_alias[i].t->initialized)
+	continue;
+
+      if (!tunable_initialize (tunables_env_alias[i].t,
+			       tunables_env_alias[i].value,
+			       tunables_env_alias[i].len))
+	parse_tunable_print_error (&tunables_env_alias[i]);
     }
 }
 

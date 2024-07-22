@@ -358,11 +358,13 @@ class Context(object):
                                 {'variant': 'n64',
                                  'ccopts': '-mabi=64'}])
         self.add_config(arch='nios2',
-                        os_name='linux-gnu')
+                        os_name='linux-gnu',
+                        gcc_cfg=['--enable-obsolete'])
         self.add_config(arch='or1k',
                         os_name='linux-gnu',
-                        variant='soft',
-                        gcc_cfg=['--with-multilib-list=mcmov'])
+                        gcc_cfg=['--with-multilib-list=mcmov,mhard-float'],
+                        glibcs=[{'variant': 'soft'},
+                                {'variant': 'hard', 'ccopts': '-mhard-float'}])
         self.add_config(arch='powerpc',
                         os_name='linux-gnu',
                         gcc_cfg=['--disable-multilib', '--enable-secureplt'],
@@ -417,7 +419,22 @@ class Context(object):
                         glibcs=[{},
                                 {'arch': 's390', 'ccopts': '-m31'}],
                         extra_glibcs=[{'variant': 'O3',
-                                       'cflags': '-O3'}])
+                                       'cflags': '-O3'},
+                                      {'variant': 'zEC12',
+                                       'ccopts': '-march=zEC12'},
+                                      {'variant': 'z13',
+                                       'ccopts': '-march=z13'},
+                                      {'variant': 'z15',
+                                       'ccopts': '-march=z15'},
+                                      {'variant': 'zEC12-disable-multi-arch',
+                                       'ccopts': '-march=zEC12',
+                                       'cfg': ['--disable-multi-arch']},
+                                      {'variant': 'z13-disable-multi-arch',
+                                       'ccopts': '-march=z13',
+                                       'cfg': ['--disable-multi-arch']},
+                                      {'variant': 'z15-disable-multi-arch',
+                                       'ccopts': '-march=z15',
+                                       'cfg': ['--disable-multi-arch']}])
         self.add_config(arch='sh3',
                         os_name='linux-gnu')
         self.add_config(arch='sh3eb',
@@ -817,7 +834,7 @@ class Context(object):
                             'gcc': 'vcs-13',
                             'glibc': 'vcs-mainline',
                             'gmp': '6.3.0',
-                            'linux': '6.7',
+                            'linux': '6.9',
                             'mpc': '1.3.1',
                             'mpfr': '4.2.1',
                             'mig': 'vcs-mainline',
@@ -1888,7 +1905,7 @@ def get_parser():
     return parser
 
 
-def get_version_common(progname,line,word,delchars,arg1):
+def get_version_common(progname,line,word,arg1):
     try:
         out = subprocess.run([progname, arg1],
                              stdout=subprocess.PIPE,
@@ -1896,13 +1913,12 @@ def get_version_common(progname,line,word,delchars,arg1):
                              stdin=subprocess.DEVNULL,
                              check=True, universal_newlines=True)
         v = out.stdout.splitlines()[line].split()[word]
-        if delchars:
-            v = v.replace(delchars,'')
+        v = re.match(r'[0-9]+(.[0-9]+)*', v).group()
         return [int(x) for x in v.split('.')]
     except:
         return 'missing';
 
-def get_version_common_stderr(progname,line,word,delchars,arg1):
+def get_version_common_stderr(progname,line,word,arg1):
     try:
         out = subprocess.run([progname, arg1],
                              stdout=subprocess.DEVNULL,
@@ -1910,20 +1926,19 @@ def get_version_common_stderr(progname,line,word,delchars,arg1):
                              stdin=subprocess.DEVNULL,
                              check=True, universal_newlines=True)
         v = out.stderr.splitlines()[line].split()[word]
-        if delchars:
-            v = v.replace(delchars,'')
+        v = re.match(r'[0-9]+(.[0-9]+)*', v).group()
         return [int(x) for x in v.split('.')]
     except:
         return 'missing';
 
 def get_version(progname):
-    return get_version_common (progname, 0, -1, None, '--version');
+    return get_version_common(progname, 0, -1, '--version');
 
 def get_version_awk(progname):
-    return get_version_common (progname, 0, 2, ',', '--version');
+    return get_version_common(progname, 0, 2, '--version');
 
 def get_version_bzip2(progname):
-    return get_version_common_stderr (progname, 0, 6, ',', '-h');
+    return get_version_common_stderr(progname, 0, 6, '-h');
 
 def check_version(ver, req):
     for v, r in zip(ver, req):

@@ -35,17 +35,6 @@
     __ptr;                                                                    \
   })
 
-static inline uint64_t
-asuint64 (double f)
-{
-  union
-  {
-    double f;
-    uint64_t i;
-  } u = { f };
-  return u.i;
-}
-
 #define V_LOG_POLY_ORDER 6
 #define V_LOG_TABLE_BITS 7
 extern const struct v_log_data
@@ -59,6 +48,8 @@ extern const struct v_log_data
   } table[1 << V_LOG_TABLE_BITS];
 } __v_log_data attribute_hidden;
 
+#define V_EXP_TAIL_TABLE_BITS 8
+extern const uint64_t __v_exp_tail_data[1 << V_EXP_TAIL_TABLE_BITS] attribute_hidden;
 #define V_EXP_TABLE_BITS 7
 extern const uint64_t __v_exp_data[1 << V_EXP_TABLE_BITS] attribute_hidden;
 
@@ -83,5 +74,80 @@ extern const struct v_log10_data
     double invc, log10c;
   } table[1 << V_LOG10_TABLE_BITS];
 } __v_log10_data attribute_hidden;
+
+extern const struct erff_data
+{
+  struct
+  {
+    float erf, scale;
+  } tab[513];
+} __erff_data attribute_hidden;
+
+extern const struct sv_erff_data
+{
+  float erf[513];
+  float scale[513];
+} __sv_erff_data attribute_hidden;
+
+extern const struct erf_data
+{
+  struct
+  {
+    double erf, scale;
+  } tab[769];
+} __erf_data attribute_hidden;
+
+extern const struct sv_erf_data
+{
+  double erf[769];
+  double scale[769];
+} __sv_erf_data attribute_hidden;
+
+extern const struct erfc_data
+{
+  struct
+  {
+    double erfc, scale;
+  } tab[3488];
+} __erfc_data attribute_hidden;
+
+extern const struct erfcf_data
+{
+  struct
+  {
+    float erfc, scale;
+  } tab[645];
+} __erfcf_data attribute_hidden;
+
+/* Some data for AdvSIMD and SVE pow's internal exp and log.  */
+#define V_POW_EXP_TABLE_BITS 8
+extern const struct v_pow_exp_data
+{
+  double poly[3];
+  double n_over_ln2, ln2_over_n_hi, ln2_over_n_lo, shift;
+  uint64_t sbits[1 << V_POW_EXP_TABLE_BITS];
+} __v_pow_exp_data attribute_hidden;
+
+#define V_POW_LOG_TABLE_BITS 7
+extern const struct v_pow_log_data
+{
+  double poly[7]; /* First coefficient is 1.  */
+  double ln2_hi, ln2_lo;
+  double invc[1 << V_POW_LOG_TABLE_BITS];
+  double logc[1 << V_POW_LOG_TABLE_BITS];
+  double logctail[1 << V_POW_LOG_TABLE_BITS];
+} __v_pow_log_data attribute_hidden;
+
+/* Some data for SVE powf's internal exp and log.  */
+#define V_POWF_EXP2_TABLE_BITS 5
+#define V_POWF_EXP2_N (1 << V_POWF_EXP2_TABLE_BITS)
+#define V_POWF_LOG2_TABLE_BITS 5
+#define V_POWF_LOG2_N (1 << V_POWF_LOG2_TABLE_BITS)
+extern const struct v_powf_data
+{
+  double invc[V_POWF_LOG2_N];
+  double logc[V_POWF_LOG2_N];
+  uint64_t scale[V_POWF_EXP2_N];
+} __v_powf_data attribute_hidden;
 
 #endif

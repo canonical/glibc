@@ -10,7 +10,7 @@ LDFLAGS-rtld += -Wl,-z,nomark-plt
 endif
 
 ifeq ($(subdir),csu)
-gen-as-const-headers += features-offsets.sym link-defines.sym
+gen-as-const-headers += link-defines.sym
 endif
 
 ifeq ($(subdir),gmon)
@@ -32,7 +32,8 @@ sysdep_routines += \
 # sysdep_routines
 gen-as-const-headers += locale-defines.sym
 tests += \
-  tst-rsi-strlen
+  tst-rsi-strlen \
+# tests
 endif
 
 ifeq ($(subdir),elf)
@@ -210,6 +211,7 @@ tst-plt-rewrite2-ENV = GLIBC_TUNABLES=glibc.cpu.plt_rewrite=2
 $(objpfx)tst-plt-rewrite2: $(objpfx)tst-plt-rewritemod2.so
 endif
 
+test-internal-extras += tst-gnu2-tls2mod1
 endif # $(subdir) == elf
 
 ifeq ($(subdir),csu)
@@ -230,7 +232,8 @@ sysdep_routines += \
 # sysdep_routines
 
 tests += \
-  tst-rsi-wcslen
+  tst-rsi-wcslen \
+# tests
 endif
 
 
@@ -250,6 +253,10 @@ sysdep-dl-routines += dl-cet
 
 tests += \
   tst-cet-legacy-1 \
+  tst-cet-legacy-10 \
+  tst-cet-legacy-10-static \
+  tst-cet-legacy-10a \
+  tst-cet-legacy-10a-static \
   tst-cet-legacy-1a \
   tst-cet-legacy-2 \
   tst-cet-legacy-2a \
@@ -261,15 +268,11 @@ tests += \
   tst-cet-legacy-8 \
   tst-cet-legacy-9 \
   tst-cet-legacy-9-static \
-  tst-cet-legacy-10 \
-  tst-cet-legacy-10-static \
-  tst-cet-legacy-10a \
-  tst-cet-legacy-10a-static \
 # tests
 tests-static += \
-  tst-cet-legacy-9-static \
   tst-cet-legacy-10-static \
   tst-cet-legacy-10a-static \
+  tst-cet-legacy-9-static \
 # tests-static
 tst-cet-legacy-1a-ARGS = -- $(host-test-program-cmd)
 

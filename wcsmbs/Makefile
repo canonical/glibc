@@ -163,6 +163,7 @@ tests := \
   test-wcspbrk \
   test-wcsrchr \
   test-wcsspn \
+  test-wcsstr \
   test-wmemchr \
   test-wmemcmp \
   test-wmemset \
@@ -188,14 +189,14 @@ tests := \
   tst-wcstod-round \
   tst-wcstof \
   tst-wcstol-binary-c11 \
-  tst-wcstol-binary-c2x \
+  tst-wcstol-binary-c23 \
   tst-wcstol-binary-gnu11 \
-  tst-wcstol-binary-gnu2x \
+  tst-wcstol-binary-gnu23 \
   tst-wcstol-locale \
   tst-wprintf-binary \
   tst-wprintf-intn \
   tst-wscanf-binary-c11 \
-  tst-wscanf-binary-c2x \
+  tst-wscanf-binary-c23 \
   tst-wscanf-binary-gnu11 \
   tst-wscanf-binary-gnu89 \
   tst-wscanf-intn \
@@ -285,14 +286,15 @@ CPPFLAGS-wcstold_l.c += -I../stdlib
 $(objpfx)tst-wcstod-nan-locale: $(libm)
 $(objpfx)tst-wcstod-nan-sign: $(libm)
 
-# Some versions of GCC supported for building glibc do not support -std=c2x
-# or -std=gnu2x, so the tests for those versions use -std=c11 and -std=gnu11
-# and then _ISOC2X_SOURCE is defined in the test as needed.
+# Some versions of GCC supported for building glibc do not support -std=c23
+# or -std=gnu23 (added in GCC 14), or the older names -std=c2x or -std=gnu2x
+# (added in GCC 9), so the tests for those versions use -std=c11 and -std=gnu11
+# and then _ISOC23_SOURCE is defined in the test as needed.
 CFLAGS-tst-wcstol-binary-c11.c += -std=c11
-CFLAGS-tst-wcstol-binary-c2x.c += -std=c11
+CFLAGS-tst-wcstol-binary-c23.c += -std=c11
 CFLAGS-tst-wcstol-binary-gnu11.c += -std=gnu11
-CFLAGS-tst-wcstol-binary-gnu2x.c += -std=gnu11
+CFLAGS-tst-wcstol-binary-gnu23.c += -std=gnu11
 CFLAGS-tst-wscanf-binary-c11.c += -std=c11 -DOBJPFX=\"$(objpfx)\"
-CFLAGS-tst-wscanf-binary-c2x.c += -std=c11 -DOBJPFX=\"$(objpfx)\"
+CFLAGS-tst-wscanf-binary-c23.c += -std=c11 -DOBJPFX=\"$(objpfx)\"
 CFLAGS-tst-wscanf-binary-gnu11.c += -std=gnu11 -DOBJPFX=\"$(objpfx)\"
 CFLAGS-tst-wscanf-binary-gnu89.c += -std=gnu89 -DOBJPFX=\"$(objpfx)\"

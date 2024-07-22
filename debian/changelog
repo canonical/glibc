@@ -1,3 +1,37 @@
+glibc (2.40-1) experimental; urgency=medium
+
+  [ Aurelien Jarno ]
+  * New upstream release.
+    - debian/symbols.wildcards: add 2.40.
+    - debian/patches/hurd-i386/git-context.diff: upstreamed.
+    - debian/patches/hurd-i386/git-xattr.diff: upstreamed.
+    - debian/patches/hurd-i386/git-proc_getchildren_rusage.diff: upstreamed.
+    - debian/patches/hurd-i386/git-AT_NO_AUTOMOUNT.diff: upstreamed.
+    - debian/patches/hurd-i386/git-intr-msg-clobber.diff: upstreamed.
+    - debian/patches/hurd-i386/git-pthread_self.diff: upstreamed.
+    - debian/patches/hurd-i386/git-pthread_self.2.diff: upstreamed.
+    - debian/patches/hurd-i386/tg-sysvshm.diff: rebased.
+    - debian/patches/hurd-i386/tg-sendmsg-SCM_CREDS.diff: rebased.
+    - debian/patches/hurd-i386/local-exec_filename.diff: rebased.
+    - debian/patches/all/local-remove-manual.diff: refreshed.
+    - debian/patches/any/local-cross.patch: refreshed.
+    - debian/patches/any/git-test-epoll.diff: upstreamed.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 22 Jul 2024 07:14:59 +0200
+
+glibc (2.39-5) UNRELEASED; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-pthread_self{,.2}.diff: Fix pthread_self()
+    without libpthread.
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fixes stdlib/tst-swapcontext2 test on hppa.  Closes: #1076512.
+  * debian/rules.d/tarball.mk: remove useless code.
+
+ -- Samuel Thibault <sthibault@debian.org>  Wed, 17 Jul 2024 14:16:31 +0200
+
 glibc (2.39-4) unstable; urgency=medium
 
   [ Aurelien Jarno ]

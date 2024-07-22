@@ -115,7 +115,7 @@ libc_hidden_proto (__isoc23_sscanf)
 libc_hidden_proto (__isoc23_vsscanf)
 libc_hidden_proto (__isoc23_vfscanf)
 
-/* Internal uses of sscanf should call the C2X-compliant version.
+/* Internal uses of sscanf should call the C23-compliant version.
    Unfortunately, symbol redirection is not transitive, so the
    __REDIRECT in the public header does not link up with the above
    libc_hidden_proto.  Bridge the gap with a macro.  */
@@ -155,11 +155,6 @@ extern FILE *__old_tmpfile (void);
 #  include <stddef.h>
 
 #  include <bits/types/wint_t.h>
-
-/* Generate a unique file name (and possibly open it).  */
-extern int __path_search (char *__tmpl, size_t __tmpl_len,
-			  const char *__dir, const char *__pfx,
-			  int __try_tempdir) attribute_hidden;
 
 extern int __gen_tempname (char *__tmpl, int __suffixlen, int __flags,
 			   int __kind) attribute_hidden;

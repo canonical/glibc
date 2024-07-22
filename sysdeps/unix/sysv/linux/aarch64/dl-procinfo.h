@@ -27,19 +27,11 @@
 /* We cannot provide a general printing function.  */
 #define _dl_procinfo(type, word) -1
 
-/* No additional library search paths.  */
-#define HWCAP_IMPORTANT HWCAP_ATOMICS
-
 static inline const char *
 __attribute__ ((unused))
 _dl_hwcap_string (int idx)
 {
   return (unsigned)idx < _DL_HWCAP_COUNT ? GLRO(dl_aarch64_cap_flags)[idx] : "";
 };
-
-/* There're no platforms to filter out.  */
-#define _DL_HWCAP_PLATFORM 0
-
-#define _dl_string_platform(str) (-1)
 
 #endif /* dl-procinfo.h */

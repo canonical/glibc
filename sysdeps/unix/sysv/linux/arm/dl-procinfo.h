@@ -30,9 +30,6 @@
 /* Low 7 bits are allocated in HWCAP2.  */
 #define _DL_HWCAP2_LAST		6
 
-/* The kernel provides platform data but it is not interesting.  */
-#define _DL_HWCAP_PLATFORM	0
-
 
 static inline const char *
 __attribute__ ((unused))
@@ -72,9 +69,5 @@ _dl_procinfo (unsigned int type, unsigned long int word)
   _dl_printf ("\n");
   return 0;
 }
-
-#define HWCAP_IMPORTANT		(HWCAP_ARM_VFP | HWCAP_ARM_NEON)
-
-#define _dl_string_platform(str) (-1)
 
 #endif /* dl-procinfo.h */

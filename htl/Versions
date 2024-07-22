@@ -38,6 +38,7 @@ libc {
     __pthread_cleanup_stack;
     __pthread_total;
     ___pthread_self;
+    __pthread_init_thread;
   }
 }
 
@@ -167,6 +168,11 @@ libpthread {
     pthread_tryjoin_np; pthread_timedjoin_np; pthread_clockjoin_np;
 
     sem_clockwait;
+  }
+
+  GLIBC_2.40 {
+    pthread_getname_np;
+    pthread_setname_np;
   }
 
   GLIBC_PRIVATE {

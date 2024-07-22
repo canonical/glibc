@@ -34,10 +34,18 @@ double: 2
 float: 2
 ldouble: 4
 
+Function: "acosh_advsimd":
+double: 2
+float: 2
+
 Function: "acosh_downward":
 double: 2
 float: 2
 ldouble: 3
+
+Function: "acosh_sve":
+double: 2
+float: 2
 
 Function: "acosh_towardzero":
 double: 2
@@ -82,10 +90,18 @@ double: 2
 float: 2
 ldouble: 4
 
+Function: "asinh_advsimd":
+double: 1
+float: 2
+
 Function: "asinh_downward":
 double: 3
 float: 3
 ldouble: 4
+
+Function: "asinh_sve":
+double: 1
+float: 2
 
 Function: "asinh_towardzero":
 double: 2
@@ -157,10 +173,18 @@ double: 2
 float: 2
 ldouble: 4
 
+Function: "atanh_advsimd":
+double: 1
+float: 1
+
 Function: "atanh_downward":
 double: 3
 float: 3
 ldouble: 4
+
+Function: "atanh_sve":
+double: 2
+float: 1
 
 Function: "atanh_towardzero":
 double: 2
@@ -453,10 +477,18 @@ double: 4
 float: 1
 ldouble: 1
 
+Function: "cbrt_advsimd":
+double: 1
+float: 1
+
 Function: "cbrt_downward":
 double: 4
 float: 1
 ldouble: 1
+
+Function: "cbrt_sve":
+double: 1
+float: 1
 
 Function: "cbrt_towardzero":
 double: 3
@@ -701,10 +733,18 @@ double: 2
 float: 2
 ldouble: 2
 
+Function: "cosh_advsimd":
+double: 2
+float: 2
+
 Function: "cosh_downward":
 double: 3
 float: 1
 ldouble: 3
+
+Function: "cosh_sve":
+double: 2
+float: 2
 
 Function: "cosh_towardzero":
 double: 3
@@ -957,10 +997,18 @@ double: 1
 float: 1
 ldouble: 1
 
+Function: "erf_advsimd":
+double: 1
+float: 2
+
 Function: "erf_downward":
 double: 1
 float: 1
 ldouble: 2
+
+Function: "erf_sve":
+double: 1
+float: 2
 
 Function: "erf_towardzero":
 double: 1
@@ -977,10 +1025,18 @@ double: 2
 float: 2
 ldouble: 4
 
+Function: "erfc_advsimd":
+double: 1
+float: 1
+
 Function: "erfc_downward":
 double: 4
 float: 4
 ldouble: 5
+
+Function: "erfc_sve":
+double: 1
+float: 1
 
 Function: "erfc_towardzero":
 double: 3
@@ -1025,6 +1081,26 @@ double: 2
 float: 1
 ldouble: 3
 
+Function: "exp10m1":
+double: 2
+float: 1
+ldouble: 1
+
+Function: "exp10m1_downward":
+double: 1
+float: 1
+ldouble: 3
+
+Function: "exp10m1_towardzero":
+double: 1
+float: 1
+ldouble: 3
+
+Function: "exp10m1_upward":
+double: 3
+float: 1
+ldouble: 3
+
 Function: "exp2":
 double: 1
 float: 1
@@ -1049,6 +1125,26 @@ float: 1
 ldouble: 1
 
 Function: "exp2_upward":
+double: 1
+float: 1
+ldouble: 2
+
+Function: "exp2m1":
+double: 1
+float: 1
+ldouble: 1
+
+Function: "exp2m1_downward":
+double: 1
+float: 1
+ldouble: 2
+
+Function: "exp2m1_towardzero":
+double: 2
+float: 1
+ldouble: 2
+
+Function: "exp2m1_upward":
 double: 1
 float: 1
 ldouble: 2
@@ -1126,9 +1222,17 @@ double: 1
 float: 1
 ldouble: 1
 
+Function: "hypot_advsimd":
+double: 1
+float: 1
+
 Function: "hypot_downward":
 double: 1
 ldouble: 1
+
+Function: "hypot_sve":
+double: 1
+float: 1
 
 Function: "hypot_towardzero":
 double: 1
@@ -1251,6 +1355,26 @@ double: 2
 float: 2
 ldouble: 1
 
+Function: "log10p1":
+double: 1
+float: 1
+ldouble: 3
+
+Function: "log10p1_downward":
+double: 2
+float: 1
+ldouble: 2
+
+Function: "log10p1_towardzero":
+double: 2
+float: 2
+ldouble: 2
+
+Function: "log10p1_upward":
+double: 2
+float: 1
+ldouble: 3
+
 Function: "log1p":
 double: 1
 float: 1
@@ -1307,6 +1431,26 @@ double: 3
 float: 3
 ldouble: 1
 
+Function: "log2p1":
+double: 1
+float: 1
+ldouble: 3
+
+Function: "log2p1_downward":
+double: 2
+float: 2
+ldouble: 3
+
+Function: "log2p1_towardzero":
+double: 2
+float: 2
+ldouble: 2
+
+Function: "log2p1_upward":
+double: 1
+float: 2
+ldouble: 2
+
 Function: "log_advsimd":
 double: 1
 float: 3
@@ -1328,15 +1472,43 @@ double: 1
 float: 2
 ldouble: 1
 
+Function: "logp1":
+double: 1
+float: 1
+ldouble: 3
+
+Function: "logp1_downward":
+double: 1
+float: 2
+ldouble: 3
+
+Function: "logp1_towardzero":
+double: 2
+float: 2
+ldouble: 3
+
+Function: "logp1_upward":
+double: 2
+float: 2
+ldouble: 2
+
 Function: "pow":
 double: 1
 float: 1
 ldouble: 2
 
+Function: "pow_advsimd":
+double: 1
+float: 2
+
 Function: "pow_downward":
 double: 1
 float: 1
 ldouble: 2
+
+Function: "pow_sve":
+double: 1
+float: 2
 
 Function: "pow_towardzero":
 double: 1
@@ -1401,10 +1573,18 @@ double: 2
 float: 2
 ldouble: 2
 
+Function: "sinh_advsimd":
+double: 2
+float: 1
+
 Function: "sinh_downward":
 double: 3
 float: 3
 ldouble: 3
+
+Function: "sinh_sve":
+double: 2
+float: 1
 
 Function: "sinh_towardzero":
 double: 3
@@ -1448,10 +1628,18 @@ double: 2
 float: 2
 ldouble: 2
 
+Function: "tanh_advsimd":
+double: 2
+float: 2
+
 Function: "tanh_downward":
 double: 3
 float: 3
 ldouble: 4
+
+Function: "tanh_sve":
+double: 2
+float: 2
 
 Function: "tanh_towardzero":
 double: 2

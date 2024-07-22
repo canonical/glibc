@@ -139,7 +139,6 @@ _start:\n\
 _dl_start_user:\n\
 	adr	r6, .L_GET_GOT\n\
 	add	sl, sl, r6\n\
-	ldr	r4, [sl, r4]\n\
 	@ save the entry point in another register\n\
 	mov	r6, r0\n\
 	@ get the original arg count\n\
@@ -350,10 +349,7 @@ elf_machine_rel (struct link_map *map, struct r_scope_elem *scope[],
 	  break;
 	case R_ARM_ABS32:
 	  {
-	    struct unaligned
-	      {
-		Elf32_Addr x;
-	      } __attribute__ ((packed, may_alias));
+	    ElfW(Addr) tmp;
 # ifndef RTLD_BOOTSTRAP
 	   /* This is defined in rtld.c, but nowhere in the static
 	      libc.a; make the reference weak so static programs can
@@ -373,7 +369,9 @@ elf_machine_rel (struct link_map *map, struct r_scope_elem *scope[],
 	      value -= SYMBOL_ADDRESS (map, refsym, true);
 # endif
 	    /* Support relocations on mis-aligned offsets.  */
-	    ((struct unaligned *) reloc_addr)->x += value;
+	    memcpy (&tmp, reloc_addr, sizeof tmp);
+	    tmp += value;
+	    memcpy (reloc_addr, &tmp, sizeof tmp);
 	    break;
 	  }
 	case R_ARM_TLS_DESC:

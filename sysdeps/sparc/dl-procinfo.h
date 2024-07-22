@@ -52,14 +52,4 @@ _dl_hwcap_string (int idx)
   return GLRO(dl_sparc_cap_flags)[idx];
 };
 
-#include <bits/wordsize.h>
-#define HWCAP_IMPORTANT_V9	(__WORDSIZE == 64 ? 0 : HWCAP_SPARC_V9)
-#define HWCAP_IMPORTANT		(HWCAP_IMPORTANT_V9 | HWCAP_SPARC_ULTRA3 \
-				 | HWCAP_SPARC_BLKINIT | HWCAP_SPARC_N2)
-
-/* There're no platforms to filter out.  */
-#define _DL_HWCAP_PLATFORM 0
-
-#define _dl_string_platform(str) (-1)
-
 #endif /* dl-procinfo.h */

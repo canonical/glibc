@@ -61,5 +61,38 @@ elif test $enable_cet = permissive; then
 fi
 LIBC_CONFIG_VAR([enable-cet], [$enable_cet])
 
+# Check if -mamx-tile works properly.
+AC_CACHE_CHECK(whether -mamx-tile works properly,
+	       libc_cv_x86_have_amx_tile, [dnl
+cat > conftest.c <<EOF
+#include <x86intrin.h>
+EOF
+	       libc_cv_x86_have_amx_tile=no
+	       if AC_TRY_COMMAND(${CC-cc} -E $CFLAGS -mamx-tile conftest.c > conftest.i); then
+		 if grep -q __builtin_ia32_ldtilecfg conftest.i; then
+		   libc_cv_x86_have_amx_tile=yes
+	         fi
+	       fi
+	       rm -rf conftest*])
+LIBC_CONFIG_VAR([have-mamx-tile], [$libc_cv_x86_have_amx_tile])
+
+# Check if -mapxf is enabled.
+AC_CACHE_CHECK(whether -mapxf is enabled,
+	       libc_cv_x86_have_apx, [dnl
+cat > conftest.c <<EOF
+#ifndef __APX_F__
+# error APX isn't enabled
+#endif
+EOF
+	       libc_cv_x86_have_apx=no
+	       if AC_TRY_COMMAND(${CC-cc} -c $CFLAGS conftest.c -o conftest.o 1>&AS_MESSAGE_LOG_FD); then
+		   libc_cv_x86_have_apx=yes
+	       fi
+	       rm -rf conftest*])
+if test $libc_cv_x86_have_apx = yes; then
+  AC_DEFINE(HAVE_X86_APX)
+fi
+LIBC_CONFIG_VAR([have-x86-apx], [$libc_cv_x86_have_apx])
+
 test -n "$critic_missing" && AC_MSG_ERROR([
 *** $critic_missing])

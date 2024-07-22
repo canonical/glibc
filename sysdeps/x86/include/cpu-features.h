@@ -934,6 +934,8 @@ struct cpu_features
   /* The full state size for XSAVE when XSAVEC is disabled by
 
      GLIBC_TUNABLES=glibc.cpu.hwcaps=-XSAVEC
+
+     and the AMX state size when XSAVEC is available.
    */
   unsigned int xsave_state_full_size;
   /* Data cache size for use in memory and string routines, typically
@@ -942,8 +944,10 @@ struct cpu_features
   /* Shared cache size for use in memory and string routines, typically
      L2 or L3 size.  */
   unsigned long int shared_cache_size;
-  /* Threshold to use non temporal store.  */
+  /* Threshold to use non temporal store in memmove.  */
   unsigned long int non_temporal_threshold;
+  /* Threshold to use non temporal store in memset.  */
+  unsigned long int memset_non_temporal_threshold;
   /* Threshold to use "rep movsb".  */
   unsigned long int rep_movsb_threshold;
   /* Threshold to stop using "rep movsb".  */

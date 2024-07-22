@@ -34,6 +34,7 @@ routines = \
   dl-addr \
   dl-addr-obj \
   dl-early_allocate \
+  dl-find_object \
   dl-iteratephdr \
   dl-libc \
   dl-origin \
@@ -60,7 +61,6 @@ dl-routines = \
   dl-deps \
   dl-exception \
   dl-execstack \
-  dl-find_object \
   dl-fini \
   dl-init \
   dl-load \
@@ -170,6 +170,7 @@ CFLAGS-.op += $(call elide-stack-protector,.op,$(elide-routines.os))
 CFLAGS-.os += $(call elide-stack-protector,.os,$(all-rtld-routines))
 
 # Add the requested compiler flags to the early startup code.
+CFLAGS-dl-misc.os += $(rtld-early-cflags)
 CFLAGS-dl-printf.os += $(rtld-early-cflags)
 CFLAGS-dl-setup_hash.os += $(rtld-early-cflags)
 CFLAGS-dl-sysdep.os += $(rtld-early-cflags)
@@ -285,6 +286,7 @@ tests-static-internal := \
   tst-tls1-static \
   tst-tls1-static-non-pie \
   tst-tunables \
+  tst-tunables-enable_secure \
   # tests-static-internal
 
 CRT-tst-tls1-static-non-pie := $(csu-objpfx)crt1.o
@@ -314,6 +316,7 @@ tests := \
   tst-leaks1 \
   tst-stringtable \
   tst-tls9 \
+  tst-tunables-enable_secure-env \
   # tests
 
 tests-internal := \
@@ -424,6 +427,7 @@ tests += \
   tst-glibc-hwcaps-prepend \
   tst-global1 \
   tst-global2 \
+  tst-gnu2-tls2 \
   tst-initfinilazyfail \
   tst-initorder \
   tst-initorder2 \
@@ -441,6 +445,7 @@ tests += \
   tst-p_align1 \
   tst-p_align2 \
   tst-p_align3 \
+  tst-recursive-tls \
   tst-relsort1 \
   tst-ro-dynamic \
   tst-rtld-run-static \
@@ -618,16 +623,29 @@ $(objpfx)tst-valgrind-smoke.out: tst-valgrind-smoke.sh $(objpfx)ld.so $(objpfx)v
 	$(SHELL) $< $(objpfx)ld.so  $(rtlddir)/$(rtld-installed-name) '$(test-wrapper-env)' \
 		'$(run-program-env)' '$(rpath-link)' $(objpfx)valgrind-test > $@; $(evaluate-test)
 
+ifeq ($(run-built-tests),yes)
+tests-special += $(objpfx)tst-rtld-does-not-exist.out
+endif
+$(objpfx)tst-rtld-does-not-exist.out: tst-rtld-does-not-exist.sh $(objpfx)ld.so
+	$(SHELL) $< $(objpfx)ld.so > $@; \
+	$(evaluate-test)
+
 tests += $(tests-execstack-$(have-z-execstack))
 ifeq ($(run-built-tests),yes)
 tests-special += \
-  $(objpfx)noload-mem.out \
   $(objpfx)tst-ldconfig-X.out \
   $(objpfx)tst-ldconfig-p.out \
   $(objpfx)tst-ldconfig-soname.out \
-  $(objpfx)tst-leaks1-mem.out \
   $(objpfx)tst-rtld-help.out \
   # tests-special
+ifeq (yes,$(build-shared))
+ifneq ($(PERL),no)
+tests-special += \
+  $(objpfx)noload-mem.out \
+  $(objpfx)tst-leaks1-mem.out \
+  # tests-special
+endif
+endif
 endif
 tlsmod17a-suffixes = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
 tlsmod18a-suffixes = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
@@ -846,6 +864,9 @@ modules-names += \
   tst-filterobj-flt \
   tst-finilazyfailmod \
   tst-globalmod2 \
+  tst-gnu2-tls2mod0 \
+  tst-gnu2-tls2mod1 \
+  tst-gnu2-tls2mod2 \
   tst-initlazyfailmod \
   tst-initorder2a \
   tst-initorder2b \
@@ -872,6 +893,23 @@ modules-names += \
   tst-null-argv-lib \
   tst-p_alignmod-base \
   tst-p_alignmod3 \
+  tst-recursive-tlsmallocmod \
+  tst-recursive-tlsmod0 \
+  tst-recursive-tlsmod1 \
+  tst-recursive-tlsmod2 \
+  tst-recursive-tlsmod3 \
+  tst-recursive-tlsmod4 \
+  tst-recursive-tlsmod5 \
+  tst-recursive-tlsmod6 \
+  tst-recursive-tlsmod7 \
+  tst-recursive-tlsmod8 \
+  tst-recursive-tlsmod9 \
+  tst-recursive-tlsmod10 \
+  tst-recursive-tlsmod11 \
+  tst-recursive-tlsmod12 \
+  tst-recursive-tlsmod13 \
+  tst-recursive-tlsmod14 \
+  tst-recursive-tlsmod15 \
   tst-relsort1mod1 \
   tst-relsort1mod2 \
   tst-ro-dynamic-mod \
@@ -995,13 +1033,13 @@ modules-names-tests = $(filter-out ifuncmod% tst-tlsmod%,\
 # For +depfiles in Makerules.
 extra-test-objs += tst-auditmod17.os
 
-ifeq (yes,$(have-mtls-dialect-gnu2))
+ifneq (no,$(have-mtls-descriptor))
 tests += tst-gnu2-tls1
 modules-names += tst-gnu2-tls1mod
 $(objpfx)tst-gnu2-tls1: $(objpfx)tst-gnu2-tls1mod.so
 tst-gnu2-tls1mod.so-no-z-defs = yes
-CFLAGS-tst-gnu2-tls1mod.c += -mtls-dialect=gnu2
-endif # $(have-mtls-dialect-gnu2)
+CFLAGS-tst-gnu2-tls1mod.c += -mtls-dialect=$(have-mtls-descriptor)
+endif # $(have-mtls-descriptor)
 
 ifeq (yes,$(have-protected-data))
 modules-names += tst-protected1moda tst-protected1modb
@@ -1019,9 +1057,19 @@ test-xfail-tst-protected1b = yes
 endif
 ifeq (yesyes,$(have-fpie)$(build-shared))
 modules-names += tst-piemod1
-tests += tst-pie1 tst-pie2 tst-dlopen-pie tst-dlopen-tlsmodid-pie \
-  tst-dlopen-self-pie
-tests-pie += tst-pie1 tst-pie2 tst-dlopen-tlsmodid-pie tst-dlopen-self-pie
+tests += \
+  tst-dlopen-pie \
+  tst-dlopen-self-pie \
+  tst-dlopen-tlsmodid-pie \
+  tst-pie1 \
+  tst-pie2 \
+  # tests
+tests-pie += \
+  tst-dlopen-self-pie \
+  tst-dlopen-tlsmodid-pie \
+  tst-pie1 \
+  tst-pie2 \
+  # tests-pie
 ifeq (yes,$(have-protected-data))
 tests += vismain
 tests-pie += vismain
@@ -1129,7 +1177,7 @@ modules-names += \
   ifuncmod1 \
   ifuncmod3 \
   ifuncmod6 \
-  # module-names
+  # modules-names
 ifeq (no,$(with-lld))
 modules-names += ifuncmod5
 endif
@@ -2203,6 +2251,8 @@ $(objpfx)tst-unused-dep-cmp.out: $(objpfx)tst-unused-dep.out
 	cmp $< /dev/null > $@; \
 	$(evaluate-test)
 
+tst-tunables-enable_secure-env-ARGS = -- $(host-test-program-cmd)
+
 $(objpfx)tst-audit11.out: $(objpfx)tst-auditmod11.so $(objpfx)tst-audit11mod1.so
 tst-audit11-ENV = LD_AUDIT=$(objpfx)tst-auditmod11.so
 $(objpfx)tst-audit11mod1.so: $(objpfx)tst-audit11mod2.so
@@ -2676,6 +2726,7 @@ $(objpfx)tst-glibc-hwcaps-mask.out: \
 $(objpfx)tst-glibc-hwcaps-cache.out: $(objpfx)tst-glibc-hwcaps
 
 tst-tunables-ARGS = -- $(host-test-program-cmd)
+tst-tunables-enable_secure-ARGS = -- $(host-test-program-cmd)
 
 $(objpfx)list-tunables.out: tst-rtld-list-tunables.sh $(objpfx)ld.so
 	$(SHELL) $< $(objpfx)ld.so '$(test-wrapper-env)' \
@@ -2968,11 +3019,11 @@ $(objpfx)tst-tls-allocation-failure-static-patched.out: \
 $(objpfx)tst-audit-tlsdesc: $(objpfx)tst-audit-tlsdesc-mod1.so \
 			    $(objpfx)tst-audit-tlsdesc-mod2.so \
 			    $(shared-thread-library)
-ifeq (yes,$(have-mtls-dialect-gnu2))
+ifneq (no,$(have-mtls-descriptor))
 # The test is valid for all TLS types, but we want to exercise GNU2
 # TLS if possible.
-CFLAGS-tst-audit-tlsdesc-mod1.c += -mtls-dialect=gnu2
-CFLAGS-tst-audit-tlsdesc-mod2.c += -mtls-dialect=gnu2
+CFLAGS-tst-audit-tlsdesc-mod1.c += -mtls-dialect=$(have-mtls-descriptor)
+CFLAGS-tst-audit-tlsdesc-mod2.c += -mtls-dialect=$(have-mtls-descriptor)
 endif
 $(objpfx)tst-audit-tlsdesc-dlopen: $(shared-thread-library)
 $(objpfx)tst-audit-tlsdesc-dlopen.out: $(objpfx)tst-audit-tlsdesc-mod1.so \
@@ -3044,8 +3095,26 @@ $(objpfx)tst-tlsgap.out: \
   $(objpfx)tst-tlsgap-mod0.so \
   $(objpfx)tst-tlsgap-mod1.so \
   $(objpfx)tst-tlsgap-mod2.so
-ifeq (yes,$(have-mtls-dialect-gnu2))
-CFLAGS-tst-tlsgap-mod0.c += -mtls-dialect=gnu2
-CFLAGS-tst-tlsgap-mod1.c += -mtls-dialect=gnu2
-CFLAGS-tst-tlsgap-mod2.c += -mtls-dialect=gnu2
+
+$(objpfx)tst-gnu2-tls2: $(shared-thread-library)
+$(objpfx)tst-gnu2-tls2.out: \
+  $(objpfx)tst-gnu2-tls2mod0.so \
+  $(objpfx)tst-gnu2-tls2mod1.so \
+  $(objpfx)tst-gnu2-tls2mod2.so
+
+ifneq (no,$(have-mtls-descriptor))
+CFLAGS-tst-tlsgap-mod0.c += -mtls-dialect=$(have-mtls-descriptor)
+CFLAGS-tst-tlsgap-mod1.c += -mtls-dialect=$(have-mtls-descriptor)
+CFLAGS-tst-tlsgap-mod2.c += -mtls-dialect=$(have-mtls-descriptor)
+CFLAGS-tst-gnu2-tls2mod0.c += -mtls-dialect=$(have-mtls-descriptor)
+CFLAGS-tst-gnu2-tls2mod1.c += -mtls-dialect=$(have-mtls-descriptor)
+CFLAGS-tst-gnu2-tls2mod2.c += -mtls-dialect=$(have-mtls-descriptor)
 endif
+
+$(objpfx)tst-recursive-tls: $(objpfx)tst-recursive-tlsmallocmod.so
+# More objects than DTV_SURPLUS, to trigger DTV reallocation.
+$(objpfx)tst-recursive-tls.out: \
+  $(patsubst %,$(objpfx)tst-recursive-tlsmod%.so, \
+    0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)
+$(objpfx)tst-recursive-tlsmod%.os: tst-recursive-tlsmodN.c
+	$(compile-command.c) -DVAR=thread_$* -DFUNC=get_threadvar_$*

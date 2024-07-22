@@ -1,18 +1,29 @@
 libmvec-supported-funcs = acos \
+                          acosh \
                           asin \
+                          asinh \
                           atan \
+                          atanh \
                           atan2 \
+                          cbrt \
                           cos \
+                          cosh \
+                          erf \
+                          erfc \
                           exp \
                           exp10 \
                           exp2 \
                           expm1 \
+                          hypot \
                           log \
                           log10 \
                           log1p \
                           log2 \
+                          pow \
                           sin \
-                          tan
+                          sinh \
+                          tan \
+                          tanh
 
 float-advsimd-funcs = $(libmvec-supported-funcs)
 double-advsimd-funcs = $(libmvec-supported-funcs)
@@ -27,7 +38,17 @@ libmvec-support = $(addsuffix f_advsimd,$(float-advsimd-funcs)) \
                   v_log_data \
                   v_exp_data \
                   v_log2_data \
-                  v_log10_data
+                  v_log10_data \
+                  erf_data \
+                  erff_data \
+                  sv_erf_data \
+                  sv_erff_data \
+                  v_exp_tail_data \
+                  erfc_data \
+                  erfcf_data \
+                  v_pow_exp_data \
+                  v_pow_log_data \
+                  v_powf_data
 endif
 
 sve-cflags = -march=armv8-a+sve

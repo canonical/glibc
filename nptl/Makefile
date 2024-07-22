@@ -315,6 +315,7 @@ tests = \
   tst-pthread-defaultattr-free \
   tst-pthread-gdb-attach \
   tst-pthread-gdb-attach-static \
+  tst-pthread-key1-static \
   tst-pthread-timedlock-lockloop \
   tst-pthread_exit-nothreads \
   tst-pthread_exit-nothreads-static \
@@ -536,6 +537,7 @@ tests-static += \
   tst-mutex8-static \
   tst-mutexpi8-static \
   tst-pthread-gdb-attach-static \
+  tst-pthread-key1-static \
   tst-pthread_exit-nothreads-static \
   tst-sem11-static \
   tst-sem12-static tst-cond11-static \
@@ -543,6 +545,9 @@ tests-static += \
   # tests-static
 
 tests += tst-cancel24-static
+ifeq ($(static-cxx-tests),no)
+tests-unsupported += tst-cancel24-static
+endif
 
 tests-internal += \
   tst-sem11-static \
@@ -554,10 +559,12 @@ xtests-static += tst-setuid1-static
 ifeq ($(run-built-tests),yes)
 tests-special += \
   $(objpfx)tst-oddstacklimit.out \
-  $(objpfx)tst-stack3-mem.out \
   # tests-special
 ifeq ($(build-shared),yes)
 tests-special += $(objpfx)tst-tls6.out
+ifneq ($(PERL),no)
+tests-special += $(objpfx)tst-stack3-mem.out
+endif
 endif
 endif
 
@@ -615,10 +622,17 @@ tst-stack3-ENV = MALLOC_TRACE=$(objpfx)tst-stack3.mtrace \
 $(objpfx)tst-stack3-mem.out: $(objpfx)tst-stack3.out
 	$(common-objpfx)malloc/mtrace $(objpfx)tst-stack3.mtrace > $@; \
 	$(evaluate-test)
+
+ifeq ($(run-built-tests),yes)
+ifeq (yes,$(build-shared))
+ifneq ($(PERL),no)
 generated += \
   tst-stack3-mem.out \
   tst-stack3.mtrace \
   # generated
+endif
+endif
+endif
 
 tst-stack4mod.sos=$(shell for i in 0 1 2 3 4 5 6 7 8 9 10 \
 				   11 12 13 14 15 16 17 18 19; do \

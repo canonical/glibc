@@ -200,6 +200,7 @@ tests += \
   tst-clone2 \
   tst-clone3 \
   tst-epoll \
+  tst-epoll-ioctls \
   tst-fanotify \
   tst-fdopendir-o_path \
   tst-getauxval \
@@ -615,6 +616,10 @@ tests += \
 endif
 
 ifeq ($(subdir),elf)
+dl-routines += \
+  dl-rseq-symbols \
+  # dl-routines
+
 sysdep-rtld-routines += \
   dl-brk \
   dl-getcwd \

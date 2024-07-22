@@ -60,7 +60,7 @@ static const struct test_t
     /* Disable everything.  */
     "-Prefer_ERMS,-Prefer_FSRM,-AVX,-AVX2,-AVX512F,-AVX512VL,"
     "-SSE4_1,-SSE4_2,-SSSE3,-Fast_Unaligned_Load,-ERMS,"
-    "-AVX_Fast_Unaligned_Load",
+    "-AVX_Fast_Unaligned_Load,-Avoid_Non_Temporal_Memset",
     test_1,
     array_length (test_1)
   },
@@ -68,7 +68,7 @@ static const struct test_t
     /* Same as before, but with some empty suboptions.  */
     ",-,-Prefer_ERMS,-Prefer_FSRM,-AVX,-AVX2,-AVX512F,-AVX512VL,"
     "-SSE4_1,-SSE4_2,-SSSE3,-Fast_Unaligned_Load,,-,"
-    "-ERMS,-AVX_Fast_Unaligned_Load,-,",
+    "-ERMS,-AVX_Fast_Unaligned_Load,-Avoid_Non_Temporal_Memset,-,",
     test_1,
     array_length (test_1)
   }
@@ -133,7 +133,7 @@ do_test (int argc, char *argv[])
       setenv ("GLIBC_TUNABLES", tunable, 1);
 
       struct support_capture_subprocess result
-	= support_capture_subprogram (spargv[0], spargv);
+	= support_capture_subprogram (spargv[0], spargv, NULL);
       support_capture_subprocess_check (&result, "tst-tunables", 0,
 					sc_allow_stderr);
       support_capture_subprocess_free (&result);
