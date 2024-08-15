@@ -1,3 +1,19 @@
+glibc (2.31-13+deb11u11) bullseye; urgency=medium
+
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - debian/patches/any/local-CVE-2024-2961-iso-2022-cn-ext.patch: upstreamed.
+    - debian/patches/any/local-CVE-2024-33599-nscd.patch: upstreamed.
+    - debian/patches/any/local-CVE-2024-33600-nscd.patch: upstreamed.
+    - debian/patches/any/local-CVE-2024-33601-33602-nscd.diff: upstreamed.
+    - Fixes ffsll() performance issue depending on code alignment.
+    - Performance improvements for memcpy() on arm64.
+    - Fixes y2038 regression in nscd following CVE-2024-33601 and
+      CVE-2024-33602 fix.
+    - Fix compatibility with make 4.4.
+    - Fixes build with --enable-hardcoded-path-in-tests with newer linkers.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 15 Aug 2024 11:21:36 +0200
+
 glibc (2.31-13+deb11u10) bullseye-security; urgency=medium
 
   * debian/patches/local-CVE-2024-33599-nscd.patch: Fix a stack-based buffer
