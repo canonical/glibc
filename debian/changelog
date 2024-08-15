@@ -1,3 +1,38 @@
+glibc (2.36-9+deb12u8) bookworm; urgency=medium
+
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - debian/patches/kfreebsd/submitted-auxv.diff: refreshed.
+    - debian/patches/any/local-CVE-2024-2961-iso-2022-cn-ext.diff: upstreamed.
+    - debian/patches/any/local-CVE-2024-33599-nscd.diff: upstreamed.
+    - debian/patches/any/local-CVE-2024-33600-nscd.diff: upstreamed.
+    - debian/patches/any/local-CVE-2024-33601-33602-nscd.diff: upstreamed.
+    - Fixes ffsll() performance issue depending on code alignment.
+    - Fixes memmove/memset on sparc32.
+    - Fixes pthread_cancel on sparc32.
+    - Fixes a possible crash in _dl_start_user on arm32.
+    - Fixes poor malloc/free performance due to lock contentions between
+      threads when using core pinning.
+    - Uses 64-bit time_t in testsuite on 32-bit systems.
+    - Fixes rseq support when built against newer kernel headers.
+    - Performance improvements for string functions on arm64.
+    - Disables arm64 SVE functions on kernel <= 6.2.0 due to performance
+      issues.
+    - Fixes ld.so crash on powerpc64* when built with GCC 14.
+    - Fixes ld.so crash on amd64 when built with APX enabled.
+    - Fixes __WORDSIZE definition on sparc32 with sparcv9.
+    - Fixes getutxent() on 32-bit architecture with _TIME_BITS=64.
+    - Fixes y2038 regression in nscd following CVE-2024-33601 and
+      CVE-2024-33602 fix.
+    - Fixes build with --enable-hardcoded-path-in-tests with newer linkers.
+    - Fixes crash in wcsncmp() in z13/vector-optimized s390 implementation.
+    - Fixes rseq extension mechanism.
+    - Fixes misc/tst-preadvwritev2 and misc/tst-preadvwritev64v2 with kernel
+      6.9+.
+    - Fixes freeing uninitialized memory in libc_freeres_fn().  Closes:
+      #1073916.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 15 Aug 2024 11:10:46 +0200
+
 glibc (2.36-9+deb12u7) bookworm-security; urgency=medium
 
   * debian/patches/local-CVE-2024-33599-nscd.diff: Fix a stack-based buffer
