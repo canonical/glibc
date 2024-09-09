@@ -1,3 +1,17 @@
+glibc (2.40-1ubuntu2) oracular; urgency=medium
+
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+    Most of the diff is documentation tweaks and changes to the test
+    suite, with bugfixes for the following upstream bugs:
+    - strerror, strsignal TLS not handled correctly for secondary namespaces
+      (dlmopen, LD_AUDIT) [BZ 32026]
+    - double call to ungetc causes uninitialized memory reading.
+      (also: ungetc causes memory leak) [BZ 27821]
+    - Random __strchrnul_evex512 failures [BZ 32078]
+    - vfscanf returns too early if a match is longer than INT_MAX [BZ 27650]
+
+ -- Simon Chopin <schopin@ubuntu.com>  Mon, 09 Sep 2024 17:53:43 +0200
+
 glibc (2.40-1ubuntu1) oracular; urgency=medium
 
   * Merge 2.40-1 from Debian experimental (LP: #2073372)
