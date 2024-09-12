@@ -1,3 +1,13 @@
+glibc (2.40-1ubuntu3) oracular; urgency=medium
+
+  * Another update from the upstream release branch.
+    It addresses an FTBFS of src:pam on i386 due to a regression caused by
+    the ungetc fix in the previous upload, as well as the following upstream
+    bug:
+    - TLS for library gets reallocated when loaded in two contexts. [BZ 31717]
+
+ -- Simon Chopin <schopin@ubuntu.com>  Thu, 12 Sep 2024 10:17:04 +0200
+
 glibc (2.40-1ubuntu2) oracular; urgency=medium
 
   * debian/patches/git-updates.diff: update from upstream stable branch.
