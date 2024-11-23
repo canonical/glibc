@@ -22,6 +22,7 @@ alpha/submitted-makecontext.diff
 arm/local-sigaction.diff
 arm/unsubmitted-ldso-multilib.diff
 arm/local-arm-futex.diff
+arm/git-hwcap2-constants.diff
 
 hppa/local-inlining.diff
 
@@ -30,6 +31,7 @@ hurd-i386/git-fault-64bit.diff
 hurd-i386/git-pthread_symbols.diff
 hurd-i386/git-tst-aligned-alloc-random-thread.diff
 hurd-i386/git-tst-aligned-alloc-random-thread-mcheck.diff
+hurd-i386/git-default_pager.h.diff
 
 hurd-i386/local-intr-msg-clobber.diff
 hurd-i386/local-enable-ldconfig.diff
@@ -66,8 +68,6 @@ mips/submitted-rld_map.diff
 powerpc/local-powerpc8xx-dcbz.diff
 
 sh4/local-fpscr_values.diff
-
-sparc/submitted-sparc-clone.diff
 
 all/local-alias-et_EE.diff
 all/local-remove-manual.diff
