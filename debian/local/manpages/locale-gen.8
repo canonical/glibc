@@ -40,6 +40,12 @@ list of locales to build with
 .Li #
 start-of-line comments.
 .El
+.Bl -tag -compact -width ".Pa /var/lib/locales/supported.d"
+.It Pa /var/lib/locales/supported.d
+A directory containing locale.gen snippets provided by language-pack
+packages.  Do not edit these manually, they will be overwritten on
+package upgrades.
+.El
 .
 .Sh SEE ALSO
 .Xr locale 1 ,
