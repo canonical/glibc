@@ -165,7 +165,7 @@ Recommends: libidn2-0 (>= 2.0.5~)
 Suggests: glibc-doc, debconf | debconf-2.0, libc-l10n, locales [!hurd-any], libnss-nis, libnss-nisplus
 Provides: libc6-sparcv9b [sparc sparc64], libc0.3-i686 [hurd-i386], libc6-i686 [i386]
 Conflicts: libc6-i686 [i386], libc6.1-alphaev67 [alpha]
-Breaks: nscd (<< 2.40), locales (<< 2.40), locales-all (<< 2.40), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), systemd (<< 256~rc4-1~), sysvinit (<< 3.09-2~), base-files (<< 13.3~)
+Breaks: nscd (<< 2.40), locales (<< 2.40), locales-all (<< 2.40), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), systemd (<< 256~rc4-1~), sysvinit-core (<< 3.09-2~), sysvinit (<< 3.09-2~), base-files (<< 13.3~), openssh-server (<< 1:9.9p1-3+hurd.1) [hurd-amd64]
 Replaces: libc6-amd64 [amd64],
           libc6-i386 [i386],
           libc0.3-i686 [hurd-i386],
@@ -237,7 +237,7 @@ Recommends: libidn2-0 (>= 2.0.5~)
 Suggests: glibc-doc, debconf | debconf-2.0, libc-l10n, locales [!hurd-any], libnss-nis, libnss-nisplus
 Provides: libc6-sparcv9b [sparc sparc64], libc0.3-i686 [hurd-i386], libc6-i686 [i386]
 Conflicts: libc6-i686 [i386], libc6.1-alphaev67 [alpha]
-Breaks: nscd (<< 2.40), locales (<< 2.40), locales-all (<< 2.40), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), systemd (<< 256~rc4-1~), sysvinit (<< 3.09-2~), base-files (<< 13.3~)
+Breaks: nscd (<< 2.40), locales (<< 2.40), locales-all (<< 2.40), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), systemd (<< 256~rc4-1~), sysvinit-core (<< 3.09-2~), sysvinit (<< 3.09-2~), base-files (<< 13.3~), openssh-server (<< 1:9.9p1-3+hurd.1) [hurd-amd64]
 Replaces: libc6-amd64 [amd64],
           libc6-i386 [i386],
           libc0.3-i686 [hurd-i386],
@@ -309,7 +309,7 @@ Recommends: libidn2-0 (>= 2.0.5~)
 Suggests: glibc-doc, debconf | debconf-2.0, libc-l10n, locales [!hurd-any], libnss-nis, libnss-nisplus
 Provides: libc6-sparcv9b [sparc sparc64], libc0.3-i686 [hurd-i386], libc6-i686 [i386]
 Conflicts: libc6-i686 [i386], libc6.1-alphaev67 [alpha]
-Breaks: nscd (<< 2.40), locales (<< 2.40), locales-all (<< 2.40), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), systemd (<< 256~rc4-1~), sysvinit (<< 3.09-2~), base-files (<< 13.3~)
+Breaks: nscd (<< 2.40), locales (<< 2.40), locales-all (<< 2.40), gnumach-image-1.8-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-486-dbg (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486 (<< 2:1.8+git20210923~), gnumach-image-1.8-xen-486-dbg (<< 2:1.8+git20210923~), hurd (<< 1:0.9.git20220301-2), python3-iptables (<< 1.0.0-2), fakechroot (<< 2.19-3.5), tinydns (<< 1:1.05-14), chrony (<< 4.2-3~), valgrind (<< 1:3.19.0-1~), firefox (<< 91~), firefox-esr (<< 91~), systemd (<< 256~rc4-1~), sysvinit-core (<< 3.09-2~), sysvinit (<< 3.09-2~), base-files (<< 13.3~), openssh-server (<< 1:9.9p1-3+hurd.1) [hurd-amd64]
 Replaces: libc6-amd64 [amd64],
           libc6-i386 [i386],
           libc0.3-i686 [hurd-i386],
@@ -390,6 +390,7 @@ Section: libdevel
 Priority: optional
 Provides: lib32c-dev
 Depends: libc6-i386 (= ${binary:Version}) <!stage1>, libc6-dev (= ${binary:Version}), ${misc:Depends}
+Conflicts: libc6-dev-amd64 [amd64], libc6-dev-amd64:i386 [x32], libc6-dev-i386:amd64 [x32], libc6-dev-i386:x32 [amd64], libc6-dev-mips32, libc6-dev-mips64, libc6-dev-mipsn32, libc6-dev-powerpc, libc6-dev-ppc64, libc6-dev-s390, libc6-dev-sparc, libc6-dev-sparc64, libc6-dev-x32 [x32], libc6-dev-x32:i386 [amd64]
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>
 Description: GNU C Library: 32-bit development libraries for AMD64
@@ -415,6 +416,7 @@ Section: libdevel
 Priority: optional
 Provides: lib32c-dev
 Depends: libc6-sparc (= ${binary:Version}) <!stage1>, libc6-dev (= ${binary:Version}), ${misc:Depends}
+Conflicts: libc6-dev-amd64, libc6-dev-i386, libc6-dev-mips32, libc6-dev-mips64, libc6-dev-mipsn32, libc6-dev-powerpc, libc6-dev-ppc64, libc6-dev-s390, libc6-dev-sparc64, libc6-dev-x32
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>
 Description: GNU C Library: 32bit Development Libraries for SPARC
@@ -440,6 +442,7 @@ Section: libdevel
 Priority: optional
 Provides: lib64c-dev
 Depends: libc6-sparc64 (= ${binary:Version}) <!stage1>, libc6-dev (= ${binary:Version}), ${misc:Depends}
+Conflicts: libc6-dev-amd64, libc6-dev-i386, libc6-dev-mips32, libc6-dev-mips64, libc6-dev-mipsn32, libc6-dev-powerpc, libc6-dev-ppc64, libc6-dev-s390, libc6-dev-sparc, libc6-dev-x32
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>
 Description: GNU C Library: 64bit Development Libraries for UltraSPARC
@@ -465,6 +468,7 @@ Section: libdevel
 Priority: optional
 Provides: lib32c-dev
 Depends: libc6-s390 (= ${binary:Version}) <!stage1>, libc6-dev (= ${binary:Version}), ${misc:Depends}
+Conflicts: libc6-dev-amd64, libc6-dev-i386, libc6-dev-mips32, libc6-dev-mips64, libc6-dev-mipsn32, libc6-dev-powerpc, libc6-dev-ppc64, libc6-dev-sparc, libc6-dev-sparc64, libc6-dev-x32
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>
 Description: GNU C Library: 32bit Development Libraries for IBM zSeries
@@ -489,6 +493,7 @@ Architecture: i386 x32
 Section: libdevel
 Priority: optional
 Depends: libc6-amd64 (= ${binary:Version}) <!stage1>, libc6-dev (= ${binary:Version}), ${misc:Depends}
+Conflicts: libc6-dev-amd64:i386 [x32], libc6-dev-amd64:x32 [i386], libc6-dev-i386 [i386], libc6-dev-i386:amd64 [x32], libc6-dev-mips32, libc6-dev-mips64, libc6-dev-mipsn32, libc6-dev-powerpc, libc6-dev-ppc64, libc6-dev-s390, libc6-dev-sparc, libc6-dev-sparc64, libc6-dev-x32 [x32], libc6-dev-x32:amd64 [i386]
 Recommends: gcc-multilib
 Provides: lib64c-dev
 Build-Profiles: <!nobiarch>
@@ -515,6 +520,7 @@ Section: libdevel
 Priority: optional
 Provides: lib32c-dev
 Depends: libc6-powerpc (= ${binary:Version}) <!stage1>, libc6-dev (= ${binary:Version}), ${misc:Depends}
+Conflicts: libc6-dev-amd64, libc6-dev-i386, libc6-dev-mips32, libc6-dev-mips64, libc6-dev-mipsn32, libc6-dev-ppc64, libc6-dev-s390, libc6-dev-sparc, libc6-dev-sparc64, libc6-dev-x32
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>
 Description: GNU C Library: 32bit powerpc development libraries for ppc64
@@ -540,6 +546,7 @@ Section: libdevel
 Priority: optional
 Provides: lib64c-dev
 Depends: libc6-ppc64 (= ${binary:Version}) <!stage1>, libc6-dev (= ${binary:Version}), ${misc:Depends}
+Conflicts: libc6-dev-amd64, libc6-dev-i386, libc6-dev-mips32, libc6-dev-mips64, libc6-dev-mipsn32, libc6-dev-powerpc, libc6-dev-s390, libc6-dev-sparc, libc6-dev-sparc64, libc6-dev-x32
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>
 Description: GNU C Library: 64bit Development Libraries for PowerPC64
@@ -568,6 +575,7 @@ Depends: libc6-mips32 (= ${binary:Version}) <!stage1>, libc6-dev (= ${binary:Ver
    libc6-dev-mipsn32 (= ${binary:Version}) [mips64 mips64el mips64r6 mips64r6el],
    libc6-dev-mips64 (= ${binary:Version}) [mipsn32 mipsn32el mipsn32r6 mipsn32r6el],
    ${misc:Depends}
+Conflicts: libc6-dev-amd64, libc6-dev-i386, libc6-dev-mips32:mips64 [mips64el mips64r6 mips64r6el mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips32:mips64el [mips64 mips64r6 mips64r6el mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips32:mips64r6 [mips64 mips64el mips64r6el mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips32:mips64r6el [mips64 mips64el mips64r6 mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips32:mipsn32 [mips64 mips64el mips64r6 mips64r6el mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips32:mipsn32el [mips64 mips64el mips64r6 mips64r6el mipsn32 mipsn32r6 mipsn32r6el], libc6-dev-mips32:mipsn32r6 [mips64 mips64el mips64r6 mips64r6el mipsn32 mipsn32el mipsn32r6el], libc6-dev-mips32:mipsn32r6el [mips64 mips64el mips64r6 mips64r6el mipsn32 mipsn32el mipsn32r6], libc6-dev-mips64 [mips64 mips64el mips64r6 mips64r6el], libc6-dev-mips64:mips [mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips64:mipsel [mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips64:mipsn32 [mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips64:mipsn32el [mipsn32 mipsn32r6 mipsn32r6el], libc6-dev-mips64:mipsn32r6 [mipsn32 mipsn32el mipsn32r6el], libc6-dev-mips64:mipsn32r6el [mipsn32 mipsn32el mipsn32r6], libc6-dev-mips64:mipsr6 [mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips64:mipsr6el [mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mipsn32 [mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mipsn32:mips [mips64 mips64el mips64r6 mips64r6el], libc6-dev-mipsn32:mips64 [mips64el mips64r6 mips64r6el], libc6-dev-mipsn32:mips64el [mips64 mips64r6 mips64r6el], libc6-dev-mipsn32:mips64r6 [mips64 mips64el mips64r6el], libc6-dev-mipsn32:mips64r6el [mips64 mips64el mips64r6], libc6-dev-mipsn32:mipsel [mips64 mips64el mips64r6 mips64r6el], libc6-dev-mipsn32:mipsr6 [mips64 mips64el mips64r6 mips64r6el], libc6-dev-mipsn32:mipsr6el [mips64 mips64el mips64r6 mips64r6el], libc6-dev-powerpc, libc6-dev-ppc64, libc6-dev-s390, libc6-dev-sparc, libc6-dev-sparc64, libc6-dev-x32
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>
 Description: GNU C Library: o32 Development Libraries for MIPS
@@ -593,6 +601,7 @@ Section: libdevel
 Priority: optional
 Provides: libn32c-dev
 Depends: libc6-mipsn32 (= ${binary:Version}) <!stage1>, libc6-dev-mips64 (= ${binary:Version}) [mips mipsel mipsr6 mipsr6el], libc6-dev (= ${binary:Version}), ${misc:Depends}
+Conflicts: libc6-dev-amd64, libc6-dev-i386, libc6-dev-mips32 [mips mipsel mipsr6 mipsr6el], libc6-dev-mips32:mips64 [mips64el mips64r6 mips64r6el], libc6-dev-mips32:mips64el [mips64 mips64r6 mips64r6el], libc6-dev-mips32:mips64r6 [mips64 mips64el mips64r6el], libc6-dev-mips32:mips64r6el [mips64 mips64el mips64r6], libc6-dev-mips32:mipsn32 [mips64 mips64el mips64r6 mips64r6el], libc6-dev-mips32:mipsn32el [mips64 mips64el mips64r6 mips64r6el], libc6-dev-mips32:mipsn32r6 [mips64 mips64el mips64r6 mips64r6el], libc6-dev-mips32:mipsn32r6el [mips64 mips64el mips64r6 mips64r6el], libc6-dev-mips64 [mips64 mips64el mips64r6 mips64r6el], libc6-dev-mips64:mips [mipsel mipsr6 mipsr6el], libc6-dev-mips64:mipsel [mips mipsr6 mipsr6el], libc6-dev-mips64:mipsn32 [mips mipsel mipsr6 mipsr6el], libc6-dev-mips64:mipsn32el [mips mipsel mipsr6 mipsr6el], libc6-dev-mips64:mipsn32r6 [mips mipsel mipsr6 mipsr6el], libc6-dev-mips64:mipsn32r6el [mips mipsel mipsr6 mipsr6el], libc6-dev-mips64:mipsr6 [mips mipsel mipsr6el], libc6-dev-mips64:mipsr6el [mips mipsel mipsr6], libc6-dev-mipsn32:mips [mips64 mips64el mips64r6 mips64r6el mipsel mipsr6 mipsr6el], libc6-dev-mipsn32:mips64 [mips mips64el mips64r6 mips64r6el mipsel mipsr6 mipsr6el], libc6-dev-mipsn32:mips64el [mips mips64 mips64r6 mips64r6el mipsel mipsr6 mipsr6el], libc6-dev-mipsn32:mips64r6 [mips mips64 mips64el mips64r6el mipsel mipsr6 mipsr6el], libc6-dev-mipsn32:mips64r6el [mips mips64 mips64el mips64r6 mipsel mipsr6 mipsr6el], libc6-dev-mipsn32:mipsel [mips mips64 mips64el mips64r6 mips64r6el mipsr6 mipsr6el], libc6-dev-mipsn32:mipsr6 [mips mips64 mips64el mips64r6 mips64r6el mipsel mipsr6el], libc6-dev-mipsn32:mipsr6el [mips mips64 mips64el mips64r6 mips64r6el mipsel mipsr6], libc6-dev-powerpc, libc6-dev-ppc64, libc6-dev-s390, libc6-dev-sparc, libc6-dev-sparc64, libc6-dev-x32
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>
 Description: GNU C Library: n32 Development Libraries for MIPS64
@@ -618,6 +627,7 @@ Section: libdevel
 Priority: optional
 Provides: lib64c-dev
 Depends: libc6-mips64 (= ${binary:Version}) <!stage1>, libc6-dev (= ${binary:Version}), ${misc:Depends}
+Conflicts: libc6-dev-amd64, libc6-dev-i386, libc6-dev-mips32 [mips mipsel mipsr6 mipsr6el], libc6-dev-mips32:mips64 [mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips32:mips64el [mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips32:mips64r6 [mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips32:mips64r6el [mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips32:mipsn32 [mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mips32:mipsn32el [mipsn32 mipsn32r6 mipsn32r6el], libc6-dev-mips32:mipsn32r6 [mipsn32 mipsn32el mipsn32r6el], libc6-dev-mips32:mipsn32r6el [mipsn32 mipsn32el mipsn32r6], libc6-dev-mips64:mips [mipsel mipsn32 mipsn32el mipsn32r6 mipsn32r6el mipsr6 mipsr6el], libc6-dev-mips64:mipsel [mips mipsn32 mipsn32el mipsn32r6 mipsn32r6el mipsr6 mipsr6el], libc6-dev-mips64:mipsn32 [mips mipsel mipsn32el mipsn32r6 mipsn32r6el mipsr6 mipsr6el], libc6-dev-mips64:mipsn32el [mips mipsel mipsn32 mipsn32r6 mipsn32r6el mipsr6 mipsr6el], libc6-dev-mips64:mipsn32r6 [mips mipsel mipsn32 mipsn32el mipsn32r6el mipsr6 mipsr6el], libc6-dev-mips64:mipsn32r6el [mips mipsel mipsn32 mipsn32el mipsn32r6 mipsr6 mipsr6el], libc6-dev-mips64:mipsr6 [mips mipsel mipsn32 mipsn32el mipsn32r6 mipsn32r6el mipsr6el], libc6-dev-mips64:mipsr6el [mips mipsel mipsn32 mipsn32el mipsn32r6 mipsn32r6el mipsr6], libc6-dev-mipsn32 [mipsn32 mipsn32el mipsn32r6 mipsn32r6el], libc6-dev-mipsn32:mips [mipsel mipsr6 mipsr6el], libc6-dev-mipsn32:mips64 [mips mipsel mipsr6 mipsr6el], libc6-dev-mipsn32:mips64el [mips mipsel mipsr6 mipsr6el], libc6-dev-mipsn32:mips64r6 [mips mipsel mipsr6 mipsr6el], libc6-dev-mipsn32:mips64r6el [mips mipsel mipsr6 mipsr6el], libc6-dev-mipsn32:mipsel [mips mipsr6 mipsr6el], libc6-dev-mipsn32:mipsr6 [mips mipsel mipsr6el], libc6-dev-mipsn32:mipsr6el [mips mipsel mipsr6], libc6-dev-powerpc, libc6-dev-ppc64, libc6-dev-s390, libc6-dev-sparc, libc6-dev-sparc64, libc6-dev-x32
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>
 Description: GNU C Library: 64bit Development Libraries for MIPS64
@@ -642,6 +652,7 @@ Architecture: amd64 i386
 Section: libdevel
 Priority: optional
 Depends: libc6-x32 (= ${binary:Version}) <!stage1>, libc6-dev-i386 (= ${binary:Version}) [amd64], libc6-dev-amd64 (= ${binary:Version}) [i386], libc6-dev (= ${binary:Version}), ${misc:Depends}
+Conflicts: libc6-dev-amd64 [amd64], libc6-dev-amd64:x32 [i386], libc6-dev-i386 [i386], libc6-dev-i386:x32 [amd64], libc6-dev-mips32, libc6-dev-mips64, libc6-dev-mipsn32, libc6-dev-powerpc, libc6-dev-ppc64, libc6-dev-s390, libc6-dev-sparc, libc6-dev-sparc64, libc6-dev-x32:amd64 [i386], libc6-dev-x32:i386 [amd64]
 Recommends: gcc-multilib
 Build-Profiles: <!nobiarch>
 Description: GNU C Library: X32 ABI Development Libraries for AMD64

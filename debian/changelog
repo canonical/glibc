@@ -1,3 +1,37 @@
+glibc (2.40-6) unstable; urgency=medium
+
+  [ Ian Jackson ]
+  * debian/local/manpages/getconf.1: Mention `sysconf', mostly for the benefit
+    of search.  Closes: #942866.
+
+  [ Samuel Thibault ]
+  * debian/testsuite-xfail-debian.mk: Update for upcoming 2.41.
+  * debian/testsuite-xfail-debian.mk: Update against make 4.4.
+  * debian/patches/hurd-i386/git-CMSG_DATA.diff: Fix CMSG_DATA macro.
+  * control: On hurd-amd64, break openssh before rebuild against this.
+  * debian/patches/hurd-i386/git-early-kill.diff: Fix early kill.
+
+  [ Helge Kreutzmann ]
+  * Update German debconf translation.  Closes: #1092303.
+
+  [ Aurelien Jarno ]
+  * debian/control.in/arm{el,hf}, debian/sysdeps/arm{el,hf}.mk: drop disabled
+    code for armel/armhf multilib. It has never been used in Debian and is
+    also disabled in Ubuntu.
+  * debian/control.in/*: mirror existing Conflicts: of libc6 multilib packages
+    to libc6-dev multilib packages.  Closes: #1092278.
+  * debian/rules: update copyright header with all the previous maintainers.
+  * debian/copyright: rewrite in Machine-readable format.
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fixes a buffer overflow when printing assertion failure message
+      (GLIBC-SA-2025-0001 / CVE-2025-0395.
+
+  [ Luca Boccassi ]
+  * debian/control.in/libc: Fix breaks against sysvinit (source package) to
+    target sysvinit-core instead (binary package).
+
+ -- Aurelien Jarno <aurel32@debian.org>  Wed, 22 Jan 2025 23:57:51 +0100
+
 glibc (2.40-5) unstable; urgency=medium
 
   [ Samuel Thibault ]

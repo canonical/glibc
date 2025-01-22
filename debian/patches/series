@@ -34,6 +34,8 @@ hurd-i386/git-tst-aligned-alloc-random-thread-mcheck.diff
 hurd-i386/git-default_pager.h.diff
 hurd-i386/git-MAP_NORESERVE.diff
 hurd-i386/git-signal-reply-port.diff
+hurd-i386/git-CMSG_DATA.diff
+hurd-i386/git-early-kill.diff
 
 hurd-i386/local-intr-msg-clobber.diff
 hurd-i386/local-enable-ldconfig.diff
@@ -44,7 +46,6 @@ hurd-i386/tg-sendmsg-SCM_CREDS.diff
 hurd-i386/tg-mach-hurd-link.diff
 hurd-i386/local-ED.diff
 hurd-i386/local-madvise_warn.diff
-#hurd-i386/tg-hooks.diff
 hurd-i386/local-usr.diff
 hurd-i386/tg-ifaddrs_v6.diff
 hurd-i386/unsubmitted-clock_t_centiseconds.diff
