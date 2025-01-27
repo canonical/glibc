@@ -99,3 +99,4 @@ ubuntu/local-pldd-root.diff
 ubuntu/submitted-broadcast-to-prevent-deadlock.diff
 ubuntu/apparmor/0002-tests-handle-AppArmor-userns-mitigation.patch
 ubuntu/fix-fortify-source.patch
+any/CVE-2025-0395.patch
