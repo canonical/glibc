@@ -1,3 +1,13 @@
+glibc (2.35-0ubuntu3.9) jammy-security; urgency=medium
+
+  * SECURITY UPDATE: Buffer overflow in the assert function.
+    - debian/patches/any/CVE-2025-0395.patch: Change total to ALIGN_UP
+      calculation and include libc-pointer-arith.h in assert/assert.c and
+      sysdeps/posix/libc_fatal.c.
+    - CVE-2025-0395
+
+ -- Hlib Korzhynskyy <hlib.korzhynskyy@canonical.com>  Tue, 28 Jan 2025 16:55:30 -0330
+
 glibc (2.35-0ubuntu3.8) jammy-security; urgency=medium
 
   * SECURITY UPDATE: Stack-based buffer overflow
