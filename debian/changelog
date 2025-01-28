@@ -1,3 +1,13 @@
+glibc (2.39-0ubuntu8.4) noble-security; urgency=medium
+
+  * SECURITY UPDATE: Buffer overflow in the assert function.
+    - debian/patches/any/CVE-2025-0395.patch: Change total to ALIGN_UP
+      calculation and include libc-pointer-arith.h in assert/assert.c and
+      sysdeps/posix/libc_fatal.c.
+    - CVE-2025-0395
+
+ -- Hlib Korzhynskyy <hlib.korzhynskyy@canonical.com>  Tue, 28 Jan 2025 13:37:37 -0330
+
 glibc (2.39-0ubuntu8.3) noble; urgency=medium
 
   * Fix framepointer flags for s390x and ppc64el
