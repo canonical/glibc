@@ -1,6 +1,6 @@
 /* Data structure for communication from the run-time dynamic linker for
    loaded ELF shared objects.
-   Copyright (C) 1995-2024 Free Software Foundation, Inc.
+   Copyright (C) 1995-2025 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -212,6 +212,7 @@ struct link_map
     unsigned int l_find_object_processed:1; /* Zero if _dl_find_object_update
 					       needs to process this
 					       lt_library map.  */
+    unsigned int l_tls_in_slotinfo:1; /* TLS slotinfo updated in dlopen.  */
 
     /* NODELETE status of the map.  Only valid for maps of type
        lt_loaded.  Lazy binding sets l_nodelete_active directly,

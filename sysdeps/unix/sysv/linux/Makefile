@@ -95,6 +95,8 @@ sysdep_routines += \
   process_vm_writev \
   pselect32 \
   readahead \
+  sched_getattr \
+  sched_setattr \
   setfsgid \
   setfsuid \
   setvmaname \
@@ -206,6 +208,7 @@ tests += \
   tst-getauxval \
   tst-gettid \
   tst-gettid-kill \
+  tst-linux-mremap1 \
   tst-memfd_create \
   tst-misalign-clone \
   tst-mlock2 \
@@ -223,9 +226,12 @@ tests += \
   tst-process_mrelease \
   tst-quota \
   tst-rlimit-infinity \
+  tst-sched-affinity-inheritance \
+  tst-sched_setattr \
   tst-scm_rights \
   tst-sigtimedwait \
   tst-sync_file_range \
+  tst-syscall-restart \
   tst-sysconf-iov_max \
   tst-sysvmsg-linux \
   tst-sysvsem-linux \
@@ -261,6 +267,11 @@ tests-internal += \
 tests-internal += \
   tst-rseq-disable \
   # tests-internal
+
+tests-static += \
+  tst-rseq-disable-static \
+  tst-rseq-static \
+  # tests-static
 
 tests-time64 += \
   tst-adjtimex-time64 \
@@ -394,7 +405,18 @@ $(objpfx)tst-mount-compile.out: ../sysdeps/unix/sysv/linux/tst-mount-compile.py
 	  < /dev/null > $@ 2>&1; $(evaluate-test)
 $(objpfx)tst-mount-compile.out: $(sysdeps-linux-python-deps)
 
+tests-special += \
+  $(objpfx)tst-sched-consts.out \
+  # tests-special
+$(objpfx)tst-sched-consts.out: ../sysdeps/unix/sysv/linux/tst-sched-consts.py
+	$(sysdeps-linux-python) \
+	  ../sysdeps/unix/sysv/linux/tst-sched-consts.py \
+	    $(sysdeps-linux-python-cc) \
+	  < /dev/null > $@ 2>&1; $(evaluate-test)
+$(objpfx)tst-sched-consts.out: $(sysdeps-linux-python-deps)
+
 tst-rseq-disable-ENV = GLIBC_TUNABLES=glibc.pthread.rseq=0
+tst-rseq-disable-static-ENV = GLIBC_TUNABLES=glibc.pthread.rseq=0
 
 endif # $(subdir) == misc
 
@@ -637,7 +659,29 @@ install-bin += \
   # install-bin
 
 $(objpfx)pldd: $(objpfx)xmalloc.o
+
+tests += tst-rseq-tls-range tst-rseq-tls-range-4096
+tests-static += tst-rseq-tls-range-static tst-rseq-tls-range-4096-static
+modules-names += tst-rseq-tls-range-mod
+CFLAGS-tst-rseq-tls-range.c += -DMAIN_TLS_ALIGN=4
+CFLAGS-tst-rseq-tls-range-4096.c += -DMAIN_TLS_ALIGN=4096
+CFLAGS-tst-rseq-tls-range-static.c += -DMAIN_TLS_ALIGN=4
+CFLAGS-tst-rseq-tls-range-4096-static.c += -DMAIN_TLS_ALIGN=4096
+$(objpfx)tst-rseq-tls-range.out: $(objpfx)tst-rseq-tls-range-mod.so
+$(objpfx)tst-rseq-tls-range-4096.out: $(objpfx)tst-rseq-tls-range-mod.so
+$(objpfx)tst-rseq-tls-range-static.out: $(objpfx)tst-rseq-tls-range-mod.so
+$(objpfx)tst-rseq-tls-range-4096-static.out: $(objpfx)tst-rseq-tls-range-mod.so
+tst-rseq-tls-range-static-ENV = LD_LIBRARY_PATH=$(objpfx):$(common-objpfx)
+tst-rseq-tls-range-4096-static-ENV = LD_LIBRARY_PATH=$(objpfx):$(common-objpfx)
+
+test-internal-extras += tst-nolink-libc
+ifeq ($(run-built-tests),yes)
+tests-special += \
+  $(objpfx)tst-nolink-libc-1.out \
+  $(objpfx)tst-nolink-libc-2.out \
+  # tests-special
 endif
+endif # $(subdir) == elf
 
 ifeq ($(subdir),rt)
 CFLAGS-mq_send.c += -fexceptions
@@ -653,6 +697,7 @@ ifeq ($(subdir),nptl)
 tests += \
   tst-align-clone \
   tst-getpid1 \
+  tst-sem_getvalue-affinity \
   # tests
 
 # tst-rseq-nptl is an internal test because it requires a definition of
@@ -660,4 +705,8 @@ tests += \
 tests-internal += \
   tst-rseq-nptl \
   # tests-internal
+
+tests-static += \
+  tst-rseq-nptl-static \
+  # tests-static
 endif

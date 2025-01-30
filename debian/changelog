@@ -1,3 +1,42 @@
+glibc (2.41-1) experimental; urgency=medium
+
+  [ Aurelien Jarno ]
+  * New upstream release:
+    - Add the sched_setattr and sched_getattr functions.  Closes: #870488.
+    - Fix failure of pthread_cond_signal() to wake up pthread_cond_wait().
+      Closes: #986724.
+    - debian/copyright: update following upstream changes.
+    - debian/symbols.wildcards: add 2.41.
+    - debian/patches/git-updates.diff: update from upstream stable branch.
+    - debian/patches/arm/git-hwcap2-constants.diff: upstreamed.
+    - debian/patches/hurd-i386/git-fault-64bit.diff: upstreamed.
+    - debian/patches/hurd-i386/git-pthread_symbols.diff: upstreamed.
+    - debian/patches/hurd-i386/git-tst-aligned-alloc-random-thread.diff:
+      upstreamed.
+    - debian/patches/hurd-i386/git-tst-aligned-alloc-random-thread-mcheck.diff:
+      upstreamed.
+    - debian/patches/hurd-i386/git-default_pager.h.diff: upstreamed.
+    - debian/patches/hurd-i386/git-MAP_NORESERVE.diff: upstreamed.
+    - debian/patches/hurd-i386/git-signal-reply-port.diff: upstreamed.
+    - debian/patches/hurd-i386/git-CMSG_DATA.diff: upstreamed.
+    - debian/patches/hurd-i386/git-early-kill.diff: upstreamed.
+    - debian/patches/hurd-i386/submitted-bind_umask2.diff: rebased.
+    - debian/patches/hurd-i386/submitted-net.diff: rebased.
+    - debian/patches/hurd-i386/local-clock_gettime_MONOTONIC.diff: rebased.
+    - debian/patches/any/local-cudacc-float128.diff: dropped, obsolete.
+    - debian/patches/any/git-iconv-*: upstreamed.
+    - debian/patches/any/git-posix-fix-system-when-a-child-cannot-be*.patch:
+      upstreamed.
+  * debian/watch: rewrite pointing to git instead of release tarball (as we
+    need to mangle it anyway).
+  * debian/rules.d/tarball.mk: get rid of the now useless get-orig-source
+    target.
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/local-clock_gettime_MONOTONIC.diff: rebased.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 30 Jan 2025 23:14:50 +0100
+
 glibc (2.40-6) unstable; urgency=medium
 
   [ Ian Jackson ]

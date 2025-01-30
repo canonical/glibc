@@ -1,6 +1,6 @@
 /* Single-precision vector (SVE) erfc function
 
-   Copyright (C) 2024 Free Software Foundation, Inc.
+   Copyright (C) 2024-2025 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -77,7 +77,7 @@ svfloat32_t SV_NAME_F1 (erfc) (svfloat32_t x, const svbool_t pg)
 
   /* Lookup erfc(r) and 2/sqrt(pi)*exp(-r^2) in tables.  */
   i = svmul_x (pg, i, 2);
-  const float32_t *p = &__erfcf_data.tab[0].erfc - 2 * dat->off_arr;
+  const float32_t *p = &__v_erfcf_data.tab[0].erfc - 2 * dat->off_arr;
   svfloat32_t erfcr = svld1_gather_index (pg, p, i);
   svfloat32_t scale = svld1_gather_index (pg, p + 1, i);
 

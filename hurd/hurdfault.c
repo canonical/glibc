@@ -1,5 +1,5 @@
 /* Handle faults in the signal thread.
-   Copyright (C) 1994-2024 Free Software Foundation, Inc.
+   Copyright (C) 1994-2025 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -121,7 +121,14 @@ faulted (void)
   struct
     {
       mach_msg_header_t head;
-      char buf[64];
+        /* This is the size of the exception_raise request
+         * including mach_msg_header_t.
+         * See generated code in faultexc_server.c.  */
+#ifdef __LP64__
+        char buf[112];
+#else
+        char buf[64];
+#endif
     } request;
   mig_reply_header_t reply;
   extern int _hurdsig_fault_exc_server (mach_msg_header_t *,

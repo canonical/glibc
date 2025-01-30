@@ -279,7 +279,8 @@ mach_interface_list=
 for ifc in mach mach4 gnumach \
 	   clock clock_priv host_priv host_security ledger lock_set \
 	   processor processor_set task task_notify thread_act vm_map \
-	   memory_object memory_object_default i386/mach_i386 x86_64/mach_i386 \
+	   memory_object memory_object_default default_pager \
+	   i386/mach_i386 x86_64/mach_i386 \
 	   ; do
   as_ac_Header=`printf "%s\n" "ac_cv_header_mach/${ifc}.defs" | sed "$as_sed_sh"`
 ac_fn_c_check_header_preproc "$LINENO" "mach/${ifc}.defs" "$as_ac_Header"
@@ -457,6 +458,36 @@ fi
 printf "%s\n" "$libc_cv_mach_rpc_host_page_size" >&6; }
 if test $libc_cv_mach_rpc_host_page_size = yes; then
   printf "%s\n" "#define HAVE_HOST_PAGE_SIZE 1" >>confdefs.h
+
+fi
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for host_get_uptime64 in mach_host.defs" >&5
+printf %s "checking for host_get_uptime64 in mach_host.defs... " >&6; }
+if test ${libc_cv_mach_rpc_host_get_uptime64+y}
+then :
+  printf %s "(cached) " >&6
+else case e in #(
+  e) cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <mach/mach_host.defs>
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP_TRADITIONAL "host_get_uptime64" >/dev/null 2>&1
+then :
+  libc_cv_mach_rpc_host_get_uptime64=yes
+else case e in #(
+  e) libc_cv_mach_rpc_host_get_uptime64=no ;;
+esac
+fi
+rm -rf conftest*
+ ;;
+esac
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $libc_cv_mach_rpc_host_get_uptime64" >&5
+printf "%s\n" "$libc_cv_mach_rpc_host_get_uptime64" >&6; }
+if test $libc_cv_mach_rpc_host_get_uptime64 = yes; then
+  printf "%s\n" "#define HAVE_HOST_GET_UPTIME64 1" >>confdefs.h
 
 fi
 

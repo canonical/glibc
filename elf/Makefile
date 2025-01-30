@@ -1,4 +1,4 @@
-# Copyright (C) 1995-2024 Free Software Foundation, Inc.
+# Copyright (C) 1995-2025 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -322,6 +322,7 @@ tests := \
 tests-internal := \
   $(tests-static-internal) \
   tst-tls1 \
+  tst-tls_tp_offset \
   # tests-internal
 
 tests-static := $(tests-static-normal) $(tests-static-internal)
@@ -414,8 +415,13 @@ tests += \
   tst-dlmopen1 \
   tst-dlmopen3 \
   tst-dlmopen4 \
+  tst-dlopen-auditdup \
   tst-dlopen-self \
   tst-dlopen-tlsmodid \
+  tst-dlopen-tlsreinit1 \
+  tst-dlopen-tlsreinit2 \
+  tst-dlopen-tlsreinit3 \
+  tst-dlopen-tlsreinit4 \
   tst-dlopenfail \
   tst-dlopenfail-2 \
   tst-dlopenrpath \
@@ -428,6 +434,12 @@ tests += \
   tst-global1 \
   tst-global2 \
   tst-gnu2-tls2 \
+  tst-hash-collision1 \
+  tst-hash-collision1-gnu \
+  tst-hash-collision1-sysv \
+  tst-hash-collision2 \
+  tst-hash-collision2-gnu \
+  tst-hash-collision2-sysv \
   tst-initfinilazyfail \
   tst-initorder \
   tst-initorder2 \
@@ -448,11 +460,15 @@ tests += \
   tst-recursive-tls \
   tst-relsort1 \
   tst-ro-dynamic \
+  tst-rtld-no-malloc \
+  tst-rtld-no-malloc-audit \
+  tst-rtld-no-malloc-preload \
   tst-rtld-run-static \
   tst-single_threaded \
   tst-single_threaded-pthread \
   tst-sonamemove-dlopen \
   tst-sonamemove-link \
+  tst-startup-errno \
   tst-thrlock \
   tst-tls-dlinfo \
   tst-tls-ie \
@@ -472,6 +488,8 @@ tests += \
   tst-tls19 \
   tst-tls20 \
   tst-tls21 \
+  tst-tls22 \
+  tst-tls22-gnu2 \
   tst-tlsalign \
   tst-tlsalign-extern \
   tst-tlsgap \
@@ -488,11 +506,15 @@ tests += \
   valgrind-test \
   # tests
 tests-cxx = \
-  tst-dlopen-nodelete-reloc \
   tst-nodelete \
   tst-unique3 \
   tst-unique4 \
   # tests-cxx
+ifeq ($(have-test-stb-gnu-unique), yes)
+tests-cxx += \
+  tst-dlopen-nodelete-reloc \
+  # tests-cxx
+endif
 
 tests += $(if $(CXX),$(tests-cxx))
 
@@ -509,6 +531,7 @@ tests-internal += \
   tst-dl_find_object \
   tst-dl_find_object-threads \
   tst-dlmopen2 \
+  tst-hash-collision3 \
   tst-ptrguard1 \
   tst-stackguard1 \
   tst-tls-surplus \
@@ -539,11 +562,23 @@ endif
 selinux-enabled := $(shell cat /selinux/enforce 2> /dev/null)
 
 ifneq ($(selinux-enabled),1)
+ifeq ($(have-test-cc-trampoline),yes)
 tests-execstack-yes = \
   tst-execstack \
   tst-execstack-needed \
   tst-execstack-prog \
   # tests-execstack-yes
+tests-execstack-static-yes = \
+  tst-execstack-prog-static
+  # tests-execstack-static-yes
+ifeq (yes,$(run-built-tests))
+tests-execstack-special-yes = \
+  $(objpfx)tst-execstack-needed-noexecstack.out \
+  $(objpfx)tst-execstack-prog-noexecstack.out \
+  $(objpfx)tst-execstack-prog-static-noexecstack.out \
+  # tests-execstack-special-yes
+endif # $(run-built-tests)
+endif
 endif
 ifeq ($(have-depaudit),yes)
 tests += \
@@ -630,7 +665,16 @@ $(objpfx)tst-rtld-does-not-exist.out: tst-rtld-does-not-exist.sh $(objpfx)ld.so
 	$(SHELL) $< $(objpfx)ld.so > $@; \
 	$(evaluate-test)
 
+ifeq ($(run-built-tests),yes)
+tests-special += $(objpfx)tst-rtld-dash-dash.out
+endif
+$(objpfx)tst-rtld-dash-dash.out: tst-rtld-dash-dash.sh $(objpfx)ld.so
+	$(SHELL) $< $(objpfx)ld.so > $@; \
+	$(evaluate-test)
+
 tests += $(tests-execstack-$(have-z-execstack))
+tests-static+= $(tests-execstack-static-$(have-z-execstack))
+tests-special += $(tests-execstack-special-$(have-z-execstack))
 ifeq ($(run-built-tests),yes)
 tests-special += \
   $(objpfx)tst-ldconfig-X.out \
@@ -665,9 +709,15 @@ tst-tls-many-dynamic-modules-dep-bad = \
 extra-test-objs += \
   $(tlsmod17a-modules:=.os) \
   $(tlsmod18a-modules:=.os) \
+  tst-tls22-mod1-vars.os \
+  tst-tls22-mod2-vars.os \
+  tst-tls22-vars.o \
   tst-tlsalign-vars.o \
   # extra-test-objs
 test-extras += \
+  tst-tls22-mod1-vars \
+  tst-tls22-mod2-vars \
+  tst-tls22-vars \
   tst-tlsalign-vars \
   tst-tlsmod17a \
   tst-tlsmod18a \
@@ -853,6 +903,11 @@ modules-names += \
   tst-dlmopen-twice-mod1 \
   tst-dlmopen-twice-mod2 \
   tst-dlmopen1mod \
+  tst-dlopen-auditdup-auditmod \
+  tst-dlopen-auditdupmod \
+  tst-dlopen-tlsreinitmod1 \
+  tst-dlopen-tlsreinitmod2 \
+  tst-dlopen-tlsreinitmod3 \
   tst-dlopenfaillinkmod \
   tst-dlopenfailmod1 \
   tst-dlopenfailmod2 \
@@ -867,6 +922,16 @@ modules-names += \
   tst-gnu2-tls2mod0 \
   tst-gnu2-tls2mod1 \
   tst-gnu2-tls2mod2 \
+  tst-hash-collision1-mod \
+  tst-hash-collision1-mod-gnu \
+  tst-hash-collision1-mod-sysv \
+  tst-hash-collision2-mod1 \
+  tst-hash-collision2-mod1-gnu \
+  tst-hash-collision2-mod1-sysv \
+  tst-hash-collision2-mod2 \
+  tst-hash-collision2-mod2-gnu \
+  tst-hash-collision2-mod2-sysv \
+  tst-hash-collision3-mod \
   tst-initlazyfailmod \
   tst-initorder2a \
   tst-initorder2b \
@@ -934,6 +999,10 @@ modules-names += \
   tst-tls19mod3 \
   tst-tls20mod-bad \
   tst-tls21mod \
+  tst-tls22-mod1 \
+  tst-tls22-mod1-gnu2 \
+  tst-tls22-mod2 \
+  tst-tls22-mod2-gnu2 \
   tst-tlsalign-lib \
   tst-tlsgap-mod0 \
   tst-tlsgap-mod1 \
@@ -990,6 +1059,15 @@ modules-names += \
   # modules-names
 
 modules-names-cxx = \
+  tst-nodelete-rtldmod \
+  tst-nodelete-uniquemod \
+  tst-nodelete-zmod \
+  tst-unique3lib \
+  tst-unique3lib2 \
+  tst-unique4lib \
+  # modules-names-cxx
+ifeq ($(have-test-stb-gnu-unique), yes)
+modules-names-cxx += \
   tst-dlopen-nodelete-reloc-mod1 \
   tst-dlopen-nodelete-reloc-mod2 \
   tst-dlopen-nodelete-reloc-mod3 \
@@ -1007,13 +1085,8 @@ modules-names-cxx = \
   tst-dlopen-nodelete-reloc-mod15 \
   tst-dlopen-nodelete-reloc-mod16 \
   tst-dlopen-nodelete-reloc-mod17 \
-  tst-nodelete-rtldmod \
-  tst-nodelete-uniquemod \
-  tst-nodelete-zmod \
-  tst-unique3lib \
-  tst-unique3lib2 \
-  tst-unique4lib \
   # modules-names-cxx
+endif
 
 modules-names += \
   $(if $(CXX),$(modules-names-cxx)) \
@@ -1027,19 +1100,20 @@ modules-names += \
 
 # Most modules build with _ISOMAC defined, but those filtered out
 # depend on internal headers.
-modules-names-tests = $(filter-out ifuncmod% tst-tlsmod%,\
+modules-names-tests = $(filter-out ifuncmod% tst-tlsmod% \
+				   tst-hash-collision3-mod,\
 				   $(modules-names))
 
 # For +depfiles in Makerules.
 extra-test-objs += tst-auditmod17.os
 
-ifneq (no,$(have-mtls-descriptor))
+ifneq (no,$(have-test-mtls-descriptor))
 tests += tst-gnu2-tls1
 modules-names += tst-gnu2-tls1mod
 $(objpfx)tst-gnu2-tls1: $(objpfx)tst-gnu2-tls1mod.so
 tst-gnu2-tls1mod.so-no-z-defs = yes
-CFLAGS-tst-gnu2-tls1mod.c += -mtls-dialect=$(have-mtls-descriptor)
-endif # $(have-mtls-descriptor)
+CFLAGS-tst-gnu2-tls1mod.c += -mtls-dialect=$(have-test-mtls-descriptor)
+endif # $(have-test-mtls-descriptor)
 
 ifeq (yes,$(have-protected-data))
 modules-names += tst-protected1moda tst-protected1modb
@@ -1070,13 +1144,34 @@ tests-pie += \
   tst-pie1 \
   tst-pie2 \
   # tests-pie
+ifneq (,$(load-address-ldflag))
+tests += \
+  tst-pie-address \
+  # tests
+tests-pie += \
+  tst-pie-address \
+  # tests-pie
+LDFLAGS-tst-pie-address += $(load-address-ldflag)=$(pde-load-address)
+ifeq (yes,$(enable-static-pie))
+tests += \
+  tst-pie-address-static \
+  # tests
+tests-static += \
+  tst-pie-address-static \
+  # tests-static
+LDFLAGS-tst-pie-address-static += \
+  $(load-address-ldflag)=$(pde-load-address)
+endif
+endif
 ifeq (yes,$(have-protected-data))
 tests += vismain
 tests-pie += vismain
 CFLAGS-vismain.c += $(PIE-ccflag)
 endif
 endif
+ifeq ($(have-test-cc-trampoline),yes)
 modules-execstack-yes = tst-execstack-mod
+endif
 extra-test-objs += $(addsuffix .os,$(strip $(modules-names)))
 
 # filtmod1.so, tst-big-note-lib.so, tst-ro-dynamic-mod.so have special
@@ -1241,14 +1336,38 @@ $(objpfx)$(1).generated-makefile: $(1)
 	mv $$@T $$@
 -include $(objpfx)$(1).generated-makefile
 endef
+# Likewise, where the .def file itself is generated.
+define include_dsosort_tests_objpfx
+$(objpfx)$(1).generated-makefile: $(objpfx)$(1)
+	$(PYTHON) $(..)scripts/dso-ordering-test.py \
+	--description-file $$< --objpfx $(objpfx) --output-makefile $$@T
+	mv $$@T $$@
+-include $(objpfx)$(1).generated-makefile
+endef
 endif
 
-postclean-generated += $(objpfx)/dso-sort-tests-2.generated-makefile \
-		       $(objpfx)/dso-sort-tests-2.generated-makefile
+postclean-generated += $(objpfx)/dso-sort-tests-1.generated-makefile \
+		       $(objpfx)/dso-sort-tests-2.generated-makefile \
+		       $(objpfx)/dso-sort-tests-all2.generated-makefile \
+		       $(objpfx)/dso-sort-tests-all3.generated-makefile \
+		       $(objpfx)/dso-sort-tests-all4.generated-makefile
 
 # Generate from each testcase description file
 $(eval $(call include_dsosort_tests,dso-sort-tests-1.def))
 $(eval $(call include_dsosort_tests,dso-sort-tests-2.def))
+
+$(objpfx)dso-sort-tests-all2.def: dso-sort-tests-all.py
+	$(PYTHON) $< 2 > $@
+
+$(objpfx)dso-sort-tests-all3.def: dso-sort-tests-all.py
+	$(PYTHON) $< 3 > $@
+
+$(objpfx)dso-sort-tests-all4.def: dso-sort-tests-all.py
+	$(PYTHON) $< 4 > $@
+
+$(eval $(call include_dsosort_tests_objpfx,dso-sort-tests-all2.def))
+$(eval $(call include_dsosort_tests_objpfx,dso-sort-tests-all3.def))
+$(eval $(call include_dsosort_tests_objpfx,dso-sort-tests-all4.def))
 
 # BZ15311 is intentionally underlinked.
 LDFLAGS-tst-bz15311-b.so += -Wl,-z,lazy
@@ -1314,11 +1433,8 @@ $(objpfx)dl-allobjs.os: $(all-rtld-routines:%=$(objpfx)%.os)
 # discovery mechanism is not compatible with the libc implementation
 # when compiled for libc.
 rtld-stubbed-symbols = \
-  __GI___pthread_disable_asynccancel \
-  __GI___pthread_enable_asynccancel \
   __libc_assert_fail \
-  __pthread_disable_asynccancel \
-  __pthread_enable_asynccancel \
+  __syscall_cancel \
   calloc \
   free \
   malloc \
@@ -1879,6 +1995,45 @@ LDFLAGS-tst-execstack-needed = -Wl,-z,noexecstack
 LDFLAGS-tst-execstack-prog = -Wl,-z,execstack
 CFLAGS-tst-execstack-prog.c += -Wno-trampolines
 CFLAGS-tst-execstack-mod.c += -Wno-trampolines
+
+LDFLAGS-tst-execstack-prog-static = -Wl,-z,execstack
+CFLAGS-tst-execstack-prog-static.c += -Wno-trampolines
+
+ifeq (yes,$(build-hardcoded-path-in-tests))
+tst-execstack-prog-noexecstack-msg = "Fatal glibc error: executable stack is not allowed$$"
+else
+tst-execstack-prog-noexecstack-msg = "error while loading shared libraries:.*cannot enable executable stack as shared object requires:"
+endif
+
+$(objpfx)tst-execstack-prog-noexecstack.out: $(objpfx)tst-execstack-prog
+	$(test-program-cmd-before-env) \
+		$(run-program-env) \
+		GLIBC_TUNABLES=glibc.rtld.execstack=0 \
+		$(test-program-cmd-after-env) $< \
+		> $@ 2>&1; echo "status: $$?" >> $@; \
+	grep -q $(tst-execstack-prog-noexecstack-msg) $@ \
+	  && grep -q '^status: 127$$' $@; \
+	  $(evaluate-test)
+
+$(objpfx)tst-execstack-needed-noexecstack.out: $(objpfx)tst-execstack-needed
+	$(test-program-cmd-before-env) \
+		$(run-program-env) \
+		GLIBC_TUNABLES=glibc.rtld.execstack=0 \
+		$(test-program-cmd-after-env) $< \
+		> $@ 2>&1; echo "status: $$?" >> $@; \
+	grep -q 'error while loading shared libraries:.*cannot enable executable stack as shared object requires:' $@ \
+	  && grep -q '^status: 127$$' $@; \
+	  $(evaluate-test)
+
+$(objpfx)tst-execstack-prog-static-noexecstack.out: $(objpfx)tst-execstack-prog-static
+	$(test-program-cmd-before-env) \
+		$(run-program-env) \
+		GLIBC_TUNABLES=glibc.rtld.execstack=0 \
+		$< \
+		> $@ 2>&1; echo "status: $$?" >> $@; \
+	grep -q 'Fatal glibc error: executable stack is not allowed$$' $@ \
+	  && grep -q '^status: 127$$' $@; \
+	  $(evaluate-test)
 endif
 
 LDFLAGS-tst-array2 = -Wl,--no-as-needed
@@ -1919,6 +2074,7 @@ $(objpfx)tst-array5-static-cmp.out: tst-array5-static.exp \
 
 CFLAGS-tst-pie1.c += $(pie-ccflag)
 CFLAGS-tst-pie2.c += $(pie-ccflag)
+CFLAGS-tst-pie-address.c += $(pie-ccflag)
 
 $(objpfx)tst-piemod1.so: $(libsupport)
 $(objpfx)tst-pie1: $(objpfx)tst-piemod1.so
@@ -3019,11 +3175,11 @@ $(objpfx)tst-tls-allocation-failure-static-patched.out: \
 $(objpfx)tst-audit-tlsdesc: $(objpfx)tst-audit-tlsdesc-mod1.so \
 			    $(objpfx)tst-audit-tlsdesc-mod2.so \
 			    $(shared-thread-library)
-ifneq (no,$(have-mtls-descriptor))
+ifneq (no,$(have-test-mtls-descriptor))
 # The test is valid for all TLS types, but we want to exercise GNU2
 # TLS if possible.
-CFLAGS-tst-audit-tlsdesc-mod1.c += -mtls-dialect=$(have-mtls-descriptor)
-CFLAGS-tst-audit-tlsdesc-mod2.c += -mtls-dialect=$(have-mtls-descriptor)
+CFLAGS-tst-audit-tlsdesc-mod1.c += -mtls-dialect=$(have-test-mtls-descriptor)
+CFLAGS-tst-audit-tlsdesc-mod2.c += -mtls-dialect=$(have-test-mtls-descriptor)
 endif
 $(objpfx)tst-audit-tlsdesc-dlopen: $(shared-thread-library)
 $(objpfx)tst-audit-tlsdesc-dlopen.out: $(objpfx)tst-audit-tlsdesc-mod1.so \
@@ -3102,13 +3258,13 @@ $(objpfx)tst-gnu2-tls2.out: \
   $(objpfx)tst-gnu2-tls2mod1.so \
   $(objpfx)tst-gnu2-tls2mod2.so
 
-ifneq (no,$(have-mtls-descriptor))
-CFLAGS-tst-tlsgap-mod0.c += -mtls-dialect=$(have-mtls-descriptor)
-CFLAGS-tst-tlsgap-mod1.c += -mtls-dialect=$(have-mtls-descriptor)
-CFLAGS-tst-tlsgap-mod2.c += -mtls-dialect=$(have-mtls-descriptor)
-CFLAGS-tst-gnu2-tls2mod0.c += -mtls-dialect=$(have-mtls-descriptor)
-CFLAGS-tst-gnu2-tls2mod1.c += -mtls-dialect=$(have-mtls-descriptor)
-CFLAGS-tst-gnu2-tls2mod2.c += -mtls-dialect=$(have-mtls-descriptor)
+ifneq (no,$(have-test-mtls-descriptor))
+CFLAGS-tst-tlsgap-mod0.c += -mtls-dialect=$(have-test-mtls-descriptor)
+CFLAGS-tst-tlsgap-mod1.c += -mtls-dialect=$(have-test-mtls-descriptor)
+CFLAGS-tst-tlsgap-mod2.c += -mtls-dialect=$(have-test-mtls-descriptor)
+CFLAGS-tst-gnu2-tls2mod0.c += -mtls-dialect=$(have-test-mtls-descriptor)
+CFLAGS-tst-gnu2-tls2mod1.c += -mtls-dialect=$(have-test-mtls-descriptor)
+CFLAGS-tst-gnu2-tls2mod2.c += -mtls-dialect=$(have-test-mtls-descriptor)
 endif
 
 $(objpfx)tst-recursive-tls: $(objpfx)tst-recursive-tlsmallocmod.so
@@ -3118,3 +3274,121 @@ $(objpfx)tst-recursive-tls.out: \
     0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)
 $(objpfx)tst-recursive-tlsmod%.os: tst-recursive-tlsmodN.c
 	$(compile-command.c) -DVAR=thread_$* -DFUNC=get_threadvar_$*
+
+# Order matters here.  The test needs the constructor for
+# tst-dlopen-tlsreinitmod2.so to be called first.
+LDFLAGS-tst-dlopen-tlsreinitmod1.so = -Wl,--no-as-needed
+$(objpfx)tst-dlopen-tlsreinitmod1.so: \
+  $(objpfx)tst-dlopen-tlsreinitmod3.so $(objpfx)tst-dlopen-tlsreinitmod2.so
+LDFLAGS-tst-dlopen-tlsreinit2 = -Wl,--no-as-needed
+$(objpfx)tst-dlopen-tlsreinit2: \
+  $(objpfx)tst-dlopen-tlsreinitmod3.so $(objpfx)tst-dlopen-tlsreinitmod2.so
+LDFLAGS-tst-dlopen-tlsreinit4 = -Wl,--no-as-needed
+$(objpfx)tst-dlopen-tlsreinit4: \
+  $(objpfx)tst-dlopen-tlsreinitmod3.so $(objpfx)tst-dlopen-tlsreinitmod2.so
+# tst-dlopen-tlsreinitmod2.so is underlinked and refers to
+# tst-dlopen-tlsreinitmod3.so.  The dependency is provided via
+# $(objpfx)tst-dlopen-tlsreinitmod1.so.
+tst-dlopen-tlsreinitmod2.so-no-z-defs = yes
+$(objpfx)tst-dlopen-tlsreinit1.out: $(objpfx)tst-dlopen-tlsreinitmod1.so \
+  $(objpfx)tst-dlopen-tlsreinitmod2.so $(objpfx)tst-dlopen-tlsreinitmod3.so
+# Reuse an audit module which provides ample debug logging.
+$(objpfx)tst-dlopen-tlsreinit3.out: $(objpfx)tst-auditmod1.so
+tst-dlopen-tlsreinit3-ENV = LD_AUDIT=$(objpfx)tst-auditmod1.so
+$(objpfx)tst-dlopen-tlsreinit4.out: $(objpfx)tst-auditmod1.so
+tst-dlopen-tlsreinit4-ENV = LD_AUDIT=$(objpfx)tst-auditmod1.so
+
+tst-dlopen-auditdup-ENV = LD_AUDIT=$(objpfx)tst-dlopen-auditdup-auditmod.so
+$(objpfx)tst-dlopen-auditdup.out: \
+  $(objpfx)tst-dlopen-auditdupmod.so $(objpfx)tst-dlopen-auditdup-auditmod.so
+
+# Reuse an audit module which provides ample debug logging.
+tst-rtld-no-malloc-audit-ENV = LD_AUDIT=$(objpfx)tst-auditmod1.so
+
+# Any shared object should do.
+tst-rtld-no-malloc-preload-ENV = LD_PRELOAD=$(objpfx)tst-auditmod1.so
+
+LDFLAGS-tst-hash-collision1-mod.so = -Wl,--hash-style=both
+$(objpfx)tst-hash-collision1: $(objpfx)tst-hash-collision1-mod.so
+LDFLAGS-tst-hash-collision1-mod-gnu.so = -Wl,--hash-style=gnu
+$(objpfx)tst-hash-collision1-gnu: $(objpfx)tst-hash-collision1-mod-gnu.so
+LDFLAGS-tst-hash-collision1-mod-sysv.so = -Wl,--hash-style=sysv
+$(objpfx)tst-hash-collision1-sysv: $(objpfx)tst-hash-collision1-mod-sysv.so
+LDFLAGS-tst-hash-collision2-mod1.so = -Wl,--hash-style=both
+LDFLAGS-tst-hash-collision2-mod2.so = -Wl,--hash-style=both
+$(objpfx)tst-hash-collision2: $(objpfx)tst-hash-collision2-mod1.so \
+  $(objpfx)tst-hash-collision2-mod2.so
+LDFLAGS-tst-hash-collision2-mod1-gnu.so = -Wl,--hash-style=gnu
+LDFLAGS-tst-hash-collision2-mod2-gnu.so = -Wl,--hash-style=gnu
+$(objpfx)tst-hash-collision2-gnu: $(objpfx)tst-hash-collision2-mod1-gnu.so \
+  $(objpfx)tst-hash-collision2-mod2-gnu.so
+LDFLAGS-tst-hash-collision2-mod1-sysv.so = -Wl,--hash-style=sysv
+LDFLAGS-tst-hash-collision2-mod2-sysv.so = -Wl,--hash-style=sysv
+$(objpfx)tst-hash-collision2-sysv: $(objpfx)tst-hash-collision2-mod1-sysv.so \
+  $(objpfx)tst-hash-collision2-mod2-sysv.so
+LDFLAGS-tst-hash-collision3-mod.so = \
+  -Wl,--version-script=tst-hash-collision3-mod.map
+$(objpfx)tst-hash-collision3: $(objpfx)tst-hash-collision3-mod.so
+
+$(objpfx)tst-tls22: $(objpfx)tst-tls22-vars.o $(objpfx)tst-tls22-mod1.so \
+  $(objpfx)tst-tls22-mod2.so $(shared-thread-library)
+$(objpfx)tst-tls22-mod1.so: $(objpfx)tst-tls22-mod1.os \
+  $(objpfx)tst-tls22-mod1-vars.os $(objpfx)tst-tls22-mod2.so
+$(objpfx)tst-tls22-mod2.so: $(objpfx)tst-tls22-mod2.os \
+  $(objpfx)tst-tls22-mod2-vars.os
+$(objpfx)tst-tls22-gnu2: $(objpfx)tst-tls22-vars.o \
+  $(objpfx)tst-tls22-mod1-gnu2.so $(objpfx)tst-tls22-mod2-gnu2.so \
+  $(shared-thread-library)
+$(objpfx)tst-tls22-mod1-gnu2.so: $(objpfx)tst-tls22-mod1-gnu2.os \
+  $(objpfx)tst-tls22-mod1-vars.os $(objpfx)tst-tls22-mod2-gnu2.so
+$(objpfx)tst-tls22-mod2-gnu2.so: $(objpfx)tst-tls22-mod2-gnu2.os \
+  $(objpfx)tst-tls22-mod2-vars.os
+ifneq (no,$(have-test-mtls-descriptor))
+CFLAGS-tst-tls22-gnu2.c += -mtls-dialect=$(have-test-mtls-descriptor)
+CFLAGS-tst-tls22-mod1-gnu2.c += -mtls-dialect=$(have-test-mtls-descriptor)
+CFLAGS-tst-tls22-mod2-gnu2.c += -mtls-dialect=$(have-test-mtls-descriptor)
+endif
+# These reference symbols from the main executable.
+tst-tls22-mod1.so-no-z-defs = yes
+tst-tls22-mod1-gnu2.so-no-z-defs = yes
+tst-tls22-mod2.so-no-z-defs = yes
+tst-tls22-mod2-gnu2.so-no-z-defs = yes
+
+ifeq ($(have-test-cc-cflags-fsemantic-interposition),yes)
+# Compiler may default to -fno-semantic-interposition.  These modules
+# must be compiled with -fsemantic-interposition.
+modules-semantic-interposition = \
+  tst-dlclose-lazy-mod1 \
+  tst-dlclose-lazy-mod2 \
+  tst-piemod1 \
+  unload4mod1 \
+  unload4mod2 \
+  unload4mod3 \
+  unload4mod4 \
+# modules-semantic-interposition
+
+define enable-semantic-interposition
+CFLAGS-$(1).c += -fsemantic-interposition
+endef
+$(foreach m,$(modules-semantic-interposition),\
+  $(eval $(call enable-semantic-interposition,$(m))))
+endif
+
+# These rules link and run the special elf/tst-nolink-libc-* tests if
+# a port adds them to the tests variables.  Neither test variant is
+# linked against libc.so, but tst-nolink-libc-1 is linked against
+# ld.so.  The test is always run directly, not under the dynamic
+# linker.  It is necessary to minimize run-time dependencies, by
+# disabling stack protection and unwinding.
+CFLAGS-tst-nolink-libc.c += $(no-stack-protector) \
+ -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables
+$(objpfx)tst-nolink-libc-1: $(objpfx)tst-nolink-libc.o $(objpfx)ld.so
+	$(LINK.o) -nostdlib -nostartfiles -o $@ $< \
+	  -Wl,--dynamic-linker=$(objpfx)ld.so,--no-as-needed $(objpfx)ld.so
+$(objpfx)tst-nolink-libc-1.out: $(objpfx)tst-nolink-libc-1 $(objpfx)ld.so
+	$< > $@ 2>&1; $(evaluate-test)
+$(objpfx)tst-nolink-libc-2: $(objpfx)tst-nolink-libc.o
+	$(LINK.o) -nostdlib -nostartfiles -o $@ $< \
+	  -Wl,--dynamic-linker=$(objpfx)ld.so
+$(objpfx)tst-nolink-libc-2.out: $(objpfx)tst-nolink-libc-2 $(objpfx)ld.so
+	$< > $@ 2>&1; $(evaluate-test)

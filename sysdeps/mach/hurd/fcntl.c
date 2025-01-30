@@ -1,4 +1,4 @@
-/* Copyright (C) 1992-2024 Free Software Foundation, Inc.
+/* Copyright (C) 1992-2025 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -148,6 +148,7 @@ __libc_fcntl (int fd, int cmd, ...)
 	    cmd = F_SETLKW64;
 	    break;
 	  default:
+	    va_end (ap);
 	    return __hurd_fail (EINVAL);
 	  }
 
@@ -204,7 +205,10 @@ __libc_fcntl (int fd, int cmd, ...)
 		 && fl->l_start != fl64.l_start)
 	     || (sizeof fl->l_len != sizeof fl64.l_len
 		 && fl->l_len != fl64.l_len))
-	      return __hurd_fail (EOVERFLOW);
+	      {
+	        va_end (ap);
+	        return __hurd_fail (EOVERFLOW);
+	      }
 	  }
 
 	result = err ? __hurd_dfail (fd, err) : 0;

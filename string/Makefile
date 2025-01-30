@@ -1,4 +1,4 @@
-# Copyright (C) 1991-2024 Free Software Foundation, Inc.
+# Copyright (C) 1991-2025 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -184,6 +184,7 @@ tests := \
   test-strncpy \
   test-strndup \
   test-strnlen \
+  test-strnlen-nonarray \
   test-strpbrk \
   test-strrchr \
   test-strspn \
@@ -235,7 +236,10 @@ tests-unsupported += $(tests-translation)
 endif
 
 # This test allocates a lot of memory and can run for a long time.
-xtests = tst-strcoll-overflow
+xtests += tst-strcoll-overflow
+
+# This test runs for a long time.
+xtests += test-strncmp-nonarray
 
 # This test needs libdl.
 ifeq (yes,$(build-shared))
@@ -248,8 +252,11 @@ endif
 
 include ../Rules
 
-CFLAGS-inl-tester.c += -fno-builtin
-CFLAGS-noinl-tester.c += -fno-builtin
+CFLAGS-tester.c += $(test-config-cflags-wno-fortify-source)
+CFLAGS-inl-tester.c += -fno-builtin \
+		       $(test-config-cflags-wno-fortify-source)
+CFLAGS-noinl-tester.c += -fno-builtin \
+		       $(test-config-cflags-wno-fortify-source)
 CFLAGS-tst-strlen.c += -fno-builtin
 CFLAGS-stratcliff.c += -fno-builtin
 CFLAGS-test-ffs.c += -fno-builtin

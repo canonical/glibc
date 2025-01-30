@@ -1,4 +1,4 @@
-/* Copyright (C) 2002-2024 Free Software Foundation, Inc.
+/* Copyright (C) 2002-2025 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -132,6 +132,8 @@ get_cached_stack (size_t *sizep, void **memp)
   __libc_lock_init (result->exit_lock);
   memset (&result->tls_state, 0, sizeof result->tls_state);
 
+  result->getrandom_buf = NULL;
+
   /* Clear the DTV.  */
   dtv_t *dtv = GET_DTV (TLS_TPADJ (result));
   for (size_t cnt = 0; cnt < dtv[-1].counter; ++cnt)
@@ -139,7 +141,7 @@ get_cached_stack (size_t *sizep, void **memp)
   memset (dtv, '\0', (dtv[-1].counter + 1) * sizeof (dtv_t));
 
   /* Re-initialize the TLS.  */
-  _dl_allocate_tls_init (TLS_TPADJ (result), true);
+  _dl_allocate_tls_init (TLS_TPADJ (result), false);
 
   return result;
 }
@@ -445,25 +447,6 @@ allocate_stack (const struct pthread_attr *attr, struct pthread **pdp,
 	  __nptl_stack_list_add (&pd->list, &GL (dl_stack_used));
 
 	  lll_unlock (GL (dl_stack_cache_lock), LLL_PRIVATE);
-
-
-	  /* There might have been a race.  Another thread might have
-	     caused the stacks to get exec permission while this new
-	     stack was prepared.  Detect if this was possible and
-	     change the permission if necessary.  */
-	  if (__builtin_expect ((GL(dl_stack_flags) & PF_X) != 0
-				&& (prot & PROT_EXEC) == 0, 0))
-	    {
-	      int err = __nptl_change_stack_perm (pd);
-	      if (err != 0)
-		{
-		  /* Free the stack memory we just allocated.  */
-		  (void) __munmap (mem, size);
-
-		  return err;
-		}
-	    }
-
 
 	  /* Note that all of the stack and the thread descriptor is
 	     zeroed.  This means we do not have to initialize fields

@@ -1,6 +1,6 @@
 /* x86 CPU feature tuning.
    This file is part of the GNU C Library.
-   Copyright (C) 2017-2024 Free Software Foundation, Inc.
+   Copyright (C) 2017-2025 Free Software Foundation, Inc.
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -193,6 +193,8 @@ TUNABLE_CALLBACK (set_hwcaps) (tunable_val_t *valp)
 						11);
 	      CHECK_GLIBC_IFUNC_PREFERRED_BOTH (n, cpu_features, Prefer_FSRM,
 						11);
+	      CHECK_GLIBC_IFUNC_PREFERRED_BOTH (n, cpu_features, Avoid_STOSB,
+						11);
 	      CHECK_GLIBC_IFUNC_PREFERRED_NEED_BOTH (n, cpu_features,
 						     Slow_SSE4_2,
 						     SSE4_2,
@@ -248,6 +250,7 @@ TUNABLE_CALLBACK (set_hwcaps) (tunable_val_t *valp)
 	    CHECK_GLIBC_IFUNC_PREFERRED_BOTH (n, cpu_features,
 					      Avoid_Non_Temporal_Memset, 25);
 	  }
+	  break;
 	case 26:
 	    {
 	      CHECK_GLIBC_IFUNC_PREFERRED_NEED_BOTH

@@ -1,5 +1,5 @@
 /* Data structure for x86 CPU features.
-   Copyright (C) 2020-2024 Free Software Foundation, Inc.
+   Copyright (C) 2020-2025 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -881,6 +881,7 @@ enum cpu_features_kind
   arch_kind_intel,
   arch_kind_amd,
   arch_kind_zhaoxin,
+  arch_kind_hygon,
   arch_kind_other
 };
 

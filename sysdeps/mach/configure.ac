@@ -63,7 +63,8 @@ mach_interface_list=
 for ifc in mach mach4 gnumach \
 	   clock clock_priv host_priv host_security ledger lock_set \
 	   processor processor_set task task_notify thread_act vm_map \
-	   memory_object memory_object_default i386/mach_i386 x86_64/mach_i386 \
+	   memory_object memory_object_default default_pager \
+	   i386/mach_i386 x86_64/mach_i386 \
 	   ; do
   AC_CHECK_HEADER(mach/${ifc}.defs, [dnl
   mach_interface_list="$mach_interface_list $ifc"],, -)
@@ -91,6 +92,8 @@ fi
 
 mach_RPC_CHECK(mach_host.defs, host_page_size,
 	       HAVE_HOST_PAGE_SIZE)
+mach_RPC_CHECK(mach_host.defs, host_get_uptime64,
+	       HAVE_HOST_GET_UPTIME64)
 mach_RPC_CHECK(gnumach.defs, thread_set_name,
 	       HAVE_MACH_THREAD_SET_NAME)
 mach_RPC_CHECK(gnumach.defs, thread_get_name,

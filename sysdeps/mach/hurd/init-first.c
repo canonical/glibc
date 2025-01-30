@@ -1,5 +1,5 @@
 /* Initialization code run first thing by the ELF startup code.  For Hurd.
-   Copyright (C) 1995-2024 Free Software Foundation, Inc.
+   Copyright (C) 1995-2025 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -249,6 +249,8 @@ _hurd_stack_setup (void **argptr)
   _hurd_startup (argptr, &doinit);
   __builtin_unreachable ();
 }
+
+RETURN_TO_TRAMPOLINE();
 #endif
 
 
