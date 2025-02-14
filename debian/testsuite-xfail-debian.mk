@@ -673,6 +673,13 @@ endif
 ifeq ($(config-machine)-$(config-os),powerpc64le-linux-gnu)
 	# See LP: #2058466
 	test-xfail-tst-decorate-maps = yes
+
+	# See LP: #2098505
+	test-xfail-test-double-acospi = yes
+	test-xfail-test-float-acospi = yes
+	test-xfail-test-float32-acospi = yes
+	test-xfail-test-float32x-acospi = yes
+	test-xfail-test-float64-acospi = yes
 endif
 
 
