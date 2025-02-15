@@ -37,6 +37,9 @@ hurd-i386/git-signal-reply-port.diff
 hurd-i386/git-CMSG_DATA.diff
 hurd-i386/git-early-kill.diff
 
+# Commited for 2.42
+hurd-i386/git-mig-strncpy.diff
+
 hurd-i386/local-intr-msg-clobber.diff
 hurd-i386/local-enable-ldconfig.diff
 hurd-i386/tg-sysvshm.diff
@@ -54,7 +57,6 @@ hurd-i386/submitted-bind_umask2.diff
 hurd-i386/tg-bootstrap.diff
 hurd-i386/tg-libc_rwlock_recursive.diff
 hurd-i386/local-no_unsupported_ioctls.diff
-hurd-i386/local-exec_filename.diff
 hurd-i386/proc_reauth.diff
 hurd-i386/local-stack_chk_guard.diff
 

@@ -403,6 +403,7 @@ test-xfail-tst-initgroups1 = yes
 test-xfail-tst-initgroups2 = yes
 test-xfail-tst-sprintf-fortify-rdonly = yes
 test-xfail-tst-plt-rewrite1 = yes
+test-xfail-tst-tunables = yes
 test-xfail-tst-cancel11 = yes
 test-xfail-tst-cancelx11 = yes
 test-xfail-tst-mremap1 = yes

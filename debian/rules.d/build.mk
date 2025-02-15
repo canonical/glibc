@@ -178,7 +178,7 @@ $(stamp)check_%: $(stamp)build_%
 	    echo "+---------------------------------------------------------------------+" ; \
 	    grep -E '^FAIL:' $(DEB_BUILDDIR)/tests.sum | sort ; \
 	    if ! echo $(DEB_VERSION) | grep -q -E '^Version:.*\+deb[0-9]+u[0-9]+' ; then \
-	        touch $@_failed ; \
+	        grep -E '^FAIL:' $(DEB_BUILDDIR)/tests.sum | sort > $@_failed ; \
 	    fi ; \
 	  else \
 	    echo "+---------------------------------------------------------------------+" ; \
@@ -200,6 +200,7 @@ build-arch-post-check: $(patsubst %,$(stamp)check_%,$(GLIBC_PASSES))
 	for pass in $(patsubst %,$(stamp)check_%,$(GLIBC_PASSES)); do \
 	  if [ -f $${pass}_failed ]; then \
 	    echo "check for $$(basename $$pass) failed"; \
+	    sed -e 's/^/  /' $${pass}_failed ; \
 	    fail=1; \
 	  fi; \
 	done; \

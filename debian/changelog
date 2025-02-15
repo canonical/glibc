@@ -1,3 +1,33 @@
+glibc (2.40-7) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/libc0.3.symbols.hurd-*: Prepare removal of experimental
+    exec_exec_file_name and file_exec_file_name.
+  * debian/patches/hurd-i386/local-exec_filename.diff: Drop old experimental
+    patch.
+  * debian/patches/hurd-i386/git-mig-strncpy.diff: ensure destination string is
+    null terminated.
+
+  [ Aurelien Jarno ]
+  * debian/libc0.1.symbols.common: remove leftover from kfreebsd removal.
+  * debhelper.in/locales.NEWS: remove asterisks list to make lintian happier.
+  * debian/copyright: fix issues reported by lintian.
+  * debian/tests/rebuild: rename into upstream-testsuite and only run the
+    build-arch-post-check target instead of the full build.
+  * debian/tests/control.in: update accordingly and drop fakeroot from the
+    depends.
+  * debian/rules.d/build.mk: display the failures again in the
+    build-arch-post-check target, useful for debci which drop the middle of
+    the autopkgtest log.
+
+  [ Frans Spiesschaert ]
+  * Update Dutch debconf translation.  Closes: #1094154.
+
+  [ Bjarni Ingi Gislason ]
+  * debian/local/manpages/locale.gen.5: editorial fixes.  Closes: #1095789.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 15 Feb 2025 11:20:09 +0100
+
 glibc (2.40-6) unstable; urgency=medium
 
   [ Ian Jackson ]
@@ -963,7 +993,7 @@ glibc (2.36-6) unstable; urgency=medium
   * debian/rules.d/build.mk: ensure that an empty libanl.a is shipped even on
     newly added upstream architectures.
   * debian/patches/git-updates.diff: update from upstream stable branch.
-  
+
   [ Dandan Zhang ]
   * debian/sysdeps/loong64.mk: add support for loong64 architecture.  Closes:
     #1024130.
