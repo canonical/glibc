@@ -238,7 +238,11 @@ $(stamp)debhelper_%: $(stamp)debhelper-common $(stamp)install_%
 	    sed -e "s#LIBDIR#$$libdir#g" -i $$t; \
 	    sed -e "s#RTLD_SO#$$rtld_so#g" -i $$t ; \
 	    sed -e "s#RTLD_TARGET#$$rtld_target#g" -i $$t ; \
-	    $(if $(filter $(call xx,mvec),no),sed -e "/libmvec/d" -e "/libm-\*\.a/d" -i $$t ;) \
+	    $(if $(filter $(call xx,mvec),no),sed -e "/libmvec/d" \
+	                                          -e "/libm-\*\.a/d" \
+	                                          -e "/lacks-unversioned-link-to-shared-library.*libm\.so/d" \
+	                                          -e "/unpack-message-for-deb-data.*libm\.a/d" \
+	                                          -i $$t ;) \
 	    $(if $(filter-out $(DEB_HOST_ARCH_OS),linux),sed -e "/gdb/d" -i $$t ;) \
 	  done ; \
 	done

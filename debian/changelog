@@ -1,3 +1,34 @@
+glibc (2.41-2) sid; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/proc_reauth.diff: Mark as committed for 2.42.
+
+  [ Aurelien Jarno ]
+  * debian/debhelper.in/*.lintian-overrides, debian/source/lintian-overrides:
+    update to limit the errors/warnings with recent lintian versions.
+  * debian/salsa-ci.yml: add CI/CD pipeline configuration for salsa.
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+  * debian/patches/m68k/local-dwarf2-buildfix.diff: drop, obsolete.
+  * debian/patches/m68k/submitted-gcc34-seccomment.diff: drop, obsolete.
+  * debian/patches/hppa/local-inlining.diff: drop, obsolete.
+  * debian/control.in/libc: add breaks against dhcpcd (<< 1:10.1.0-7~), see
+    #1096157.
+  * debian/testsuite-xfail-debian.mk: mark math/test-float-log10 and
+    math/test-float32-log10 as XFAIL on powerpc as requested by the porters.
+  * debian/control.in/libc: add breaks against libraries with executable stack
+    that can be dlopened().
+
+  [ Camaleón ]
+  * Update Spanish debconf translation.  Closes: #1098283.
+
+  [ Paulo Henrique de Lima Santana ]
+  * Update Brazilian Portuguese translation.  Closes: #1098500.
+
+  [ Carles Pina i Estany ]
+  * Update Catalan debconf translation.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 28 Feb 2025 18:57:42 +0100
+
 glibc (2.41-1) experimental; urgency=medium
 
   [ Aurelien Jarno ]
@@ -36,6 +67,36 @@ glibc (2.41-1) experimental; urgency=medium
   * debian/patches/hurd-i386/local-clock_gettime_MONOTONIC.diff: rebased.
 
  -- Aurelien Jarno <aurel32@debian.org>  Thu, 30 Jan 2025 23:14:50 +0100
+
+glibc (2.40-7) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/libc0.3.symbols.hurd-*: Prepare removal of experimental
+    exec_exec_file_name and file_exec_file_name.
+  * debian/patches/hurd-i386/local-exec_filename.diff: Drop old experimental
+    patch.
+  * debian/patches/hurd-i386/git-mig-strncpy.diff: ensure destination string is
+    null terminated.
+
+  [ Aurelien Jarno ]
+  * debian/libc0.1.symbols.common: remove leftover from kfreebsd removal.
+  * debhelper.in/locales.NEWS: remove asterisks list to make lintian happier.
+  * debian/copyright: fix issues reported by lintian.
+  * debian/tests/rebuild: rename into upstream-testsuite and only run the
+    build-arch-post-check target instead of the full build.
+  * debian/tests/control.in: update accordingly and drop fakeroot from the
+    depends.
+  * debian/rules.d/build.mk: display the failures again in the
+    build-arch-post-check target, useful for debci which drop the middle of
+    the autopkgtest log.
+
+  [ Frans Spiesschaert ]
+  * Update Dutch debconf translation.  Closes: #1094154.
+
+  [ Bjarni Ingi Gislason ]
+  * debian/local/manpages/locale.gen.5: editorial fixes.  Closes: #1095789.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 15 Feb 2025 11:20:09 +0100
 
 glibc (2.40-6) unstable; urgency=medium
 
@@ -1002,7 +1063,7 @@ glibc (2.36-6) unstable; urgency=medium
   * debian/rules.d/build.mk: ensure that an empty libanl.a is shipped even on
     newly added upstream architectures.
   * debian/patches/git-updates.diff: update from upstream stable branch.
-  
+
   [ Dandan Zhang ]
   * debian/sysdeps/loong64.mk: add support for loong64 architecture.  Closes:
     #1024130.

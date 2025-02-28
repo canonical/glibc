@@ -670,6 +670,10 @@ test-xfail-tst-waitid = yes
 
 # The 32-bit protection key behavior is somewhat unclear on 32-bit powerpc.
 test-xfail-tst-pkey = yes
+
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67771
+test-xfail-test-float-log10 = yes
+test-xfail-test-float32-log10 = yes
 endif
 
 
