@@ -1,3 +1,14 @@
+glibc (2.41-3) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debhelper.in/libc{,-dev}.lintian-overrides: drop libm related lintian
+    overrides, as lintian does not provide a multiarch compatible way to
+    provide overrides.  Closes: #1099166, #1099167.
+  * debian/salsa-ci.yml: add unpack-message-for-deb-data to
+    SALSA_CI_LINTIAN_SUPPRESS_TAGS due to the above.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 01 Mar 2025 15:24:08 +0100
+
 glibc (2.41-2) sid; urgency=medium
 
   [ Samuel Thibault ]

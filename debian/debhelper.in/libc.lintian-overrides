@@ -7,7 +7,6 @@ shared-library-lacks-prerequisites */ld*.so.*
 
 # A linker script is used instead of a symlink (see debian-policy bug#1095039)
 lacks-unversioned-link-to-shared-library * [*/libc.so.*]
-lacks-unversioned-link-to-shared-library * [*/libm.so.*]
 
 # These are empty libraries shipped for backward compatibilities
 lacks-unversioned-link-to-shared-library * [*/libdl.so.*]
