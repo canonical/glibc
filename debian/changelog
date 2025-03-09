@@ -1,3 +1,28 @@
+glibc (2.41-4) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/control.in/libc: change breaks against postgresql-15-pllua to the
+    fixed version available in apt.postgresql.org.  Closes: #1099197.
+  * debian/control.in/libc: add more conflicts against shared libraries with
+    executable stack.
+  * debian/tests/upstream-testsuite: disable biarch testsuite for i386
+    autopkgtest as the i386 debci runners are not powerful to run all the
+    testsuites within the default timeout.
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Remove an extra semicolon in math function declarations in
+      bits/mathcalls.h.  Addresses: #1099232.
+    - Move environ helper variables next to environ definition to help with
+      statically interposing getenv.  Closes: #1099217.
+  * debian/control.in/main: add conflicts against unscd.
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-pthread_once.diff: Move pthread_once symbol
+    to libc, to fix bison.
+  * debian/patches/hurd-i386/git-pthread_sigmask_nothread.diff: Fix calling
+    pthread_sigmask when no thread was created yet.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 09 Mar 2025 10:54:43 +0100
+
 glibc (2.41-3) unstable; urgency=medium
 
   [ Aurelien Jarno ]

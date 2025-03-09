@@ -28,6 +28,8 @@ hurd-i386/git-proc_reauth.diff
 
 # Commited for 2.42
 hurd-i386/git-mig-strncpy.diff
+hurd-i386/local-pthread_once.diff
+hurd-i386/git-pthread_sigmask_nothread.diff
 
 hurd-i386/local-intr-msg-clobber.diff
 hurd-i386/local-enable-ldconfig.diff

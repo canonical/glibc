@@ -8,6 +8,19 @@ index 0000000000..d4e33f2df3
 @@ -0,0 +1,2 @@
 +For the GNU C Library Security Advisories, see the git master branch:
 +https://sourceware.org/git/?p=glibc.git;a=tree;f=advisories;hb=HEAD
+diff --git a/Makeconfig b/Makeconfig
+index d0108d2caa..aa547a443f 100644
+--- a/Makeconfig
++++ b/Makeconfig
+@@ -633,7 +633,7 @@ link-libc-printers-tests = $(link-libc-rpath) \
+ 			   $(link-libc-tests-after-rpath-link)
+ 
+ # This is how to find at build-time things that will be installed there.
+-rpath-dirs = math elf dlfcn nss nis rt resolv mathvec support
++rpath-dirs = math elf dlfcn nss nis rt resolv mathvec support misc
+ rpath-link = \
+ $(common-objdir):$(subst $(empty) ,:,$(patsubst ../$(subdir),.,$(rpath-dirs:%=$(common-objpfx)%)))
+ else  # build-static
 diff --git a/NEWS b/NEWS
 index b11422b060..d819f5d896 100644
 --- a/NEWS
@@ -588,6 +601,398 @@ index 0000000000..102cb0078d
 +#define EXPECTED_SIGNAL SIGABRT
 +#define TEST_FUNCTION_ARGV do_test
 +#include <support/test-driver.c>
+diff --git a/config.make.in b/config.make.in
+index 36096881b7..59897eaec2 100644
+--- a/config.make.in
++++ b/config.make.in
+@@ -53,6 +53,7 @@ c++-bits-std_abs-h = @CXX_BITS_STD_ABS_H@
+ enable-werror = @enable_werror@
+ 
+ have-z-execstack = @libc_cv_z_execstack@
++have-no-error-execstack = @libc_cv_no_error_execstack@
+ have-protected-data = @libc_cv_protected_data@
+ have-insert = @libc_cv_insert@
+ have-glob-dat-reloc = @libc_cv_has_glob_dat@
+diff --git a/configure b/configure
+index eb8abd0054..674d1d7e4a 100755
+--- a/configure
++++ b/configure
+@@ -659,6 +659,7 @@ libc_cv_has_glob_dat
+ libc_cv_fpie
+ libc_cv_test_static_pie
+ libc_cv_z_execstack
++libc_cv_no_error_execstack
+ ASFLAGS_config
+ libc_cv_cc_with_libunwind
+ libc_cv_insert
+@@ -7114,6 +7115,40 @@ if test $libc_cv_as_noexecstack = yes; then
+ fi
+ 
+ 
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for linker that supports --no-error-execstack" >&5
++printf %s "checking for linker that supports --no-error-execstack... " >&6; }
++libc_linker_feature=no
++cat > conftest.c <<EOF
++int _start (void) { return 42; }
++EOF
++if { ac_try='${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS $no_ssp
++		  -Wl,--no-error-execstack -nostdlib -nostartfiles
++		  -fPIC -shared -o conftest.so conftest.c
++		  1>&5'
++  { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; }
++then
++  if ${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS $no_ssp -Wl,--no-error-execstack -nostdlib \
++      -nostartfiles -fPIC -shared -o conftest.so conftest.c 2>&1 \
++      | grep "warning: --no-error-execstack ignored" > /dev/null 2>&1; then
++    true
++  else
++    libc_linker_feature=yes
++  fi
++fi
++rm -f conftest*
++if test $libc_linker_feature = yes; then
++  libc_cv_no_error_execstack=yes
++else
++  libc_cv_no_error_execstack=no
++fi
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $libc_linker_feature" >&5
++printf "%s\n" "$libc_linker_feature" >&6; }
++
++
+ { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for linker that supports -z execstack" >&5
+ printf %s "checking for linker that supports -z execstack... " >&6; }
+ libc_linker_feature=no
+@@ -8643,6 +8678,35 @@ if test $libc_cv_builtin_trap = yes; then
+ 
+ fi
+ 
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the compiler supports __attribute__ ((aligned (65536)))" >&5
++printf %s "checking whether the compiler supports __attribute__ ((aligned (65536)))... " >&6; }
++if test ${libc_cv_aligned_65536+y}
++then :
++  printf %s "(cached) " >&6
++else case e in #(
++  e)
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++char bss0xb5dce8 __attribute__ ((aligned (65536)));
++
++_ACEOF
++if ac_fn_c_try_compile "$LINENO"
++then :
++  libc_cv_aligned_65536=yes
++else case e in #(
++  e) libc_cv_aligned_65536=no ;;
++esac
++fi
++rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
++ ;;
++esac
++fi
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $libc_cv_aligned_65536" >&5
++printf "%s\n" "$libc_cv_aligned_65536" >&6; }
++config_vars="$config_vars
++aligned-65536 = $libc_cv_aligned_65536"
++
+ ac_ext=cpp
+ ac_cpp='$CXXCPP $CPPFLAGS'
+ ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+@@ -8908,6 +8972,104 @@ printf "%s\n" "$libc_linker_feature" >&6; }
+ config_vars="$config_vars
+ load-address-ldflag = $libc_cv_load_address_ldflag"
+ 
++# Check if compilers support GCS in branch protection:
++
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if compiler supports -mbranch-protection=gcs" >&5
++printf %s "checking if compiler supports -mbranch-protection=gcs... " >&6; }
++if test ${libc_cv_cc_gcs+y}
++then :
++  printf %s "(cached) " >&6
++else case e in #(
++  e) if { ac_try='${CC-cc} -Werror -mbranch-protection=gcs -xc /dev/null -S -o /dev/null'
++  { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; }
++then :
++  libc_cv_cc_gcs=yes
++else case e in #(
++  e) libc_cv_cc_gcs=no ;;
++esac
++fi ;;
++esac
++fi
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $libc_cv_cc_gcs" >&5
++printf "%s\n" "$libc_cv_cc_gcs" >&6; }
++if test "$TEST_CC" = "$CC"; then
++  libc_cv_test_cc_gcs=$libc_cv_cc_gcs
++else
++
++saved_CC="$CC"
++CC="$TEST_CC"
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if compiler supports -mbranch-protection=gcs in testing" >&5
++printf %s "checking if compiler supports -mbranch-protection=gcs in testing... " >&6; }
++if test ${libc_cv_test_cc_gcs+y}
++then :
++  printf %s "(cached) " >&6
++else case e in #(
++  e) if { ac_try='${CC-cc} -Werror -mbranch-protection=gcs -xc /dev/null -S -o /dev/null'
++  { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; }
++then :
++  libc_cv_test_cc_gcs=yes
++else case e in #(
++  e) libc_cv_test_cc_gcs=no ;;
++esac
++fi ;;
++esac
++fi
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $libc_cv_test_cc_gcs" >&5
++printf "%s\n" "$libc_cv_test_cc_gcs" >&6; }
++
++CC="$saved_CC"
++
++fi
++
++config_vars="$config_vars
++have-cc-gcs = $libc_cv_cc_gcs"
++config_vars="$config_vars
++have-test-cc-gcs = $libc_cv_test_cc_gcs"
++
++# Check if linker supports GCS marking
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for linker that supports -z gcs=always" >&5
++printf %s "checking for linker that supports -z gcs=always... " >&6; }
++libc_linker_feature=no
++cat > conftest.c <<EOF
++int _start (void) { return 42; }
++EOF
++if { ac_try='${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS $no_ssp
++		  -Wl,-z,gcs=always -nostdlib -nostartfiles
++		  -fPIC -shared -o conftest.so conftest.c
++		  1>&5'
++  { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; }
++then
++  if ${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS $no_ssp -Wl,-z,gcs=always -nostdlib \
++      -nostartfiles -fPIC -shared -o conftest.so conftest.c 2>&1 \
++      | grep "warning: -z gcs=always ignored" > /dev/null 2>&1; then
++    true
++  else
++    libc_linker_feature=yes
++  fi
++fi
++rm -f conftest*
++if test $libc_linker_feature = yes; then
++  libc_cv_ld_gcs=yes
++else
++  libc_cv_ld_gcs=no
++fi
++{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $libc_linker_feature" >&5
++printf "%s\n" "$libc_linker_feature" >&6; }
++config_vars="$config_vars
++have-ld-gcs = $libc_cv_ld_gcs"
++
+ { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if we can build programs as PIE" >&5
+ printf %s "checking if we can build programs as PIE... " >&6; }
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+diff --git a/configure.ac b/configure.ac
+index 050bfa65e3..57cd24c87d 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1318,6 +1318,10 @@ if test $libc_cv_as_noexecstack = yes; then
+ fi
+ AC_SUBST(ASFLAGS_config)
+ 
++LIBC_LINKER_FEATURE([--no-error-execstack], [-Wl,--no-error-execstack],
++		    [libc_cv_no_error_execstack=yes], [libc_cv_no_error_execstack=no])
++AC_SUBST(libc_cv_no_error_execstack)
++
+ LIBC_LINKER_FEATURE([-z execstack], [-Wl,-z,execstack],
+ 		    [libc_cv_z_execstack=yes], [libc_cv_z_execstack=no])
+ AC_SUBST(libc_cv_z_execstack)
+@@ -1820,6 +1824,17 @@ if test $libc_cv_builtin_trap = yes; then
+   AC_DEFINE([HAVE_BUILTIN_TRAP])
+ fi
+ 
++dnl Check if
++AC_CACHE_CHECK([whether the compiler supports __attribute__ ((aligned (65536)))],
++	       libc_cv_aligned_65536, [
++AC_COMPILE_IFELSE([AC_LANG_SOURCE([
++char bss[0xb5dce8] __attribute__ ((aligned (65536)));
++])],
++	       [libc_cv_aligned_65536=yes],
++	       [libc_cv_aligned_65536=no])
++])
++LIBC_CONFIG_VAR([aligned-65536], [$libc_cv_aligned_65536])
++
+ dnl C++ feature tests.
+ AC_LANG_PUSH([C++])
+ 
+@@ -1992,6 +2007,23 @@ LIBC_LINKER_FEATURE([-Ttext-segment=$libc_cv_pde_load_address],
+ 		    [libc_cv_load_address_ldflag=])
+ LIBC_CONFIG_VAR([load-address-ldflag], [$libc_cv_load_address_ldflag])
+ 
++# Check if compilers support GCS in branch protection:
++LIBC_TRY_CC_AND_TEST_CC_OPTION([if compiler supports -mbranch-protection=gcs],
++  [-Werror -mbranch-protection=gcs],
++  libc_cv_cc_gcs,
++  [libc_cv_cc_gcs=yes],
++  [libc_cv_cc_gcs=no],
++  libc_cv_test_cc_gcs,
++  [libc_cv_test_cc_gcs=yes],
++  [libc_cv_test_cc_gcs=no])
++LIBC_CONFIG_VAR([have-cc-gcs], [$libc_cv_cc_gcs])
++LIBC_CONFIG_VAR([have-test-cc-gcs], [$libc_cv_test_cc_gcs])
++
++# Check if linker supports GCS marking
++LIBC_LINKER_FEATURE([-z gcs=always], [-Wl,-z,gcs=always],
++		    [libc_cv_ld_gcs=yes], [libc_cv_ld_gcs=no])
++LIBC_CONFIG_VAR([have-ld-gcs], [$libc_cv_ld_gcs])
++
+ AC_MSG_CHECKING(if we can build programs as PIE)
+ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#ifdef PIE_UNSUPPORTED
+ # error PIE is not supported
+diff --git a/elf/Makefile b/elf/Makefile
+index 4b1d0d8741..d6bba4b0ec 100644
+--- a/elf/Makefile
++++ b/elf/Makefile
+@@ -1144,6 +1144,10 @@ tests-pie += \
+   tst-pie1 \
+   tst-pie2 \
+   # tests-pie
++ifeq (yes,$(aligned-65536))
++tests += tst-pie-bss
++tests-pie += tst-pie-bss
++endif
+ ifneq (,$(load-address-ldflag))
+ tests += \
+   tst-pie-address \
+@@ -1159,6 +1163,10 @@ tests += \
+ tests-static += \
+   tst-pie-address-static \
+   # tests-static
++ifeq (yes,$(aligned-65536))
++tests += tst-pie-bss-static
++tests-static += tst-pie-bss-static
++endif
+ LDFLAGS-tst-pie-address-static += \
+   $(load-address-ldflag)=$(pde-load-address)
+ endif
+@@ -1988,6 +1996,9 @@ $(objpfx)tst-execstack.out: $(objpfx)tst-execstack-mod.so
+ CPPFLAGS-tst-execstack.c += -DUSE_PTHREADS=0
+ LDFLAGS-tst-execstack = -Wl,-z,noexecstack
+ LDFLAGS-tst-execstack-mod.so = -Wl,-z,execstack
++ifeq ($(have-no-error-execstack),yes)
++LDFLAGS-tst-execstack-mod.so += -Wl,--no-error-execstack
++endif
+ 
+ $(objpfx)tst-execstack-needed: $(objpfx)tst-execstack-mod.so
+ LDFLAGS-tst-execstack-needed = -Wl,-z,noexecstack
+@@ -1997,6 +2008,9 @@ CFLAGS-tst-execstack-prog.c += -Wno-trampolines
+ CFLAGS-tst-execstack-mod.c += -Wno-trampolines
+ 
+ LDFLAGS-tst-execstack-prog-static = -Wl,-z,execstack
++ifeq ($(have-no-error-execstack),yes)
++LDFLAGS-tst-execstack-prog-static += -Wl,--no-error-execstack
++endif
+ CFLAGS-tst-execstack-prog-static.c += -Wno-trampolines
+ 
+ ifeq (yes,$(build-hardcoded-path-in-tests))
+@@ -2074,6 +2088,7 @@ $(objpfx)tst-array5-static-cmp.out: tst-array5-static.exp \
+ 
+ CFLAGS-tst-pie1.c += $(pie-ccflag)
+ CFLAGS-tst-pie2.c += $(pie-ccflag)
++CFLAGS-tst-pie-bss.c += $(pie-ccflag)
+ CFLAGS-tst-pie-address.c += $(pie-ccflag)
+ 
+ $(objpfx)tst-piemod1.so: $(libsupport)
+diff --git a/elf/dl-reloc-static-pie.c b/elf/dl-reloc-static-pie.c
+index e34bf5f7ce..758bf9893e 100644
+--- a/elf/dl-reloc-static-pie.c
++++ b/elf/dl-reloc-static-pie.c
+@@ -51,7 +51,8 @@ _dl_relocate_static_pie (void)
+     switch (ph->p_type)
+       {
+       case PT_LOAD:
+-	if (ph->p_offset == 0)
++	/* Skip the empty PT_LOAD segment at offset 0.  */
++	if (ph->p_filesz != 0 && ph->p_offset == 0)
+ 	  file_p_vaddr = ph->p_vaddr;
+ 	break;
+       case PT_DYNAMIC:
+diff --git a/elf/tst-pie-bss-static.c b/elf/tst-pie-bss-static.c
+new file mode 100644
+index 0000000000..5df542f9ee
+--- /dev/null
++++ b/elf/tst-pie-bss-static.c
+@@ -0,0 +1,19 @@
++/* Test static PIE with an empty PT_LOAD segment at offset 0.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "tst-pie-bss.c"
+diff --git a/elf/tst-pie-bss.c b/elf/tst-pie-bss.c
+new file mode 100644
+index 0000000000..ee92754249
+--- /dev/null
++++ b/elf/tst-pie-bss.c
+@@ -0,0 +1,30 @@
++/* Test PIE with an empty PT_LOAD segment at offset 0.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <stdio.h>
++
++char bss[0xb5dce8] __attribute__ ((aligned (65536)));
++
++static int
++do_test (void)
++{
++  printf ("Hello\n");
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/math/auto-libm-test-in b/math/auto-libm-test-in
 index 01ba689aa8..4f194da19d 100644
 --- a/math/auto-libm-test-in
@@ -725,6 +1130,33 @@ index 7d00d03e1d..1d5999ab90 100644
  tan 0x1p-5
  = tan downward binary32 0x8p-8 : 0x8.00aabp-8 : inexact-ok
  = tan tonearest binary32 0x8p-8 : 0x8.00aacp-8 : inexact-ok
+diff --git a/math/bits/mathcalls-macros.h b/math/bits/mathcalls-macros.h
+index 1ef07f1f58..321ae00ec8 100644
+--- a/math/bits/mathcalls-macros.h
++++ b/math/bits/mathcalls-macros.h
+@@ -34,7 +34,7 @@
+ #define __MATHCALLX(function,suffix, args, attrib)	\
+   __MATHDECLX (_Mdouble_,function,suffix, args, attrib)
+ #define __MATHDECLX(type, function,suffix, args, attrib) \
+-  __MATHDECL_1(type, function,suffix, args) __attribute__ (attrib);
++  __MATHDECL_1(type, function,suffix, args) __attribute__ (attrib)
+ #define __MATHDECL_1_IMPL(type, function, suffix, args) \
+   extern type __MATH_PRECNAME(function,suffix) args __THROW
+ #define __MATHDECL_1(type, function, suffix, args) \
+diff --git a/nptl/Makefile b/nptl/Makefile
+index 82621c7954..4be778ad65 100644
+--- a/nptl/Makefile
++++ b/nptl/Makefile
+@@ -701,6 +701,9 @@ $(objpfx)tst-execstack-threads.out: $(objpfx)tst-execstack-threads-mod.so
+ LDFLAGS-tst-execstack-threads = -Wl,-z,noexecstack
+ LDFLAGS-tst-execstack-threads-mod.so = -Wl,-z,execstack
+ CFLAGS-tst-execstack-threads-mod.c += -Wno-trampolines
++ifeq ($(have-no-error-execstack),yes)
++LDFLAGS-tst-execstack-threads-mod.so += -Wl,--no-error-execstack
++endif
+ 
+ tst-stackguard1-ARGS = --command "$(host-test-program-cmd) --child"
+ tst-stackguard1-static-ARGS = --command "$(objpfx)tst-stackguard1-static --child"
 diff --git a/nptl/pthread_getattr_np.c b/nptl/pthread_getattr_np.c
 index e98e2df152..43dd16d59c 100644
 --- a/nptl/pthread_getattr_np.c
@@ -741,6 +1173,103 @@ index e98e2df152..43dd16d59c 100644
  			iattr->stacksize = to - (size_t) iattr->stackaddr;
  #endif
  		      /* We succeed and no need to look further.  */
+diff --git a/posix/environ.c b/posix/environ.c
+index a0ed0d80ea..924effe3cd 100644
+--- a/posix/environ.c
++++ b/posix/environ.c
+@@ -2,6 +2,7 @@
+ 
+ #include <unistd.h>
+ #include <stddef.h>
++#include <stdlib/setenv.h>
+ 
+ /* This must be initialized; we cannot have a weak alias into bss.  */
+ char **__environ = NULL;
+@@ -10,3 +11,6 @@ weak_alias (__environ, environ)
+ /* The SVR4 ABI says `_environ' will be the name to use
+    in case the user overrides the weak alias `environ'.  */
+ weak_alias (__environ, _environ)
++
++struct environ_array *__environ_array_list;
++environ_counter __environ_counter;
+diff --git a/stdlib/Makefile b/stdlib/Makefile
+index 1c4fa2382f..c9c8f702a2 100644
+--- a/stdlib/Makefile
++++ b/stdlib/Makefile
+@@ -282,6 +282,7 @@ tests := \
+   tst-environ-change-3 \
+   tst-environ-change-4 \
+   tst-getenv-signal \
++  tst-getenv-static \
+   tst-getenv-thread \
+   tst-getenv-unsetenv \
+   tst-getrandom \
+@@ -377,6 +378,7 @@ tests-internal := \
+   # tests-internal
+ 
+ tests-static := \
++  tst-getenv-static \
+   tst-secure-getenv \
+   # tests-static
+ 
+diff --git a/stdlib/getenv.c b/stdlib/getenv.c
+index 5e7212cca6..1a7b0bfc06 100644
+--- a/stdlib/getenv.c
++++ b/stdlib/getenv.c
+@@ -20,9 +20,6 @@
+ #include <string.h>
+ #include <unistd.h>
+ 
+-struct environ_array *__environ_array_list;
+-environ_counter __environ_counter;
+-
+ char *
+ getenv (const char *name)
+ {
+diff --git a/stdlib/tst-getenv-static.c b/stdlib/tst-getenv-static.c
+new file mode 100644
+index 0000000000..f5f484c83a
+--- /dev/null
++++ b/stdlib/tst-getenv-static.c
+@@ -0,0 +1,38 @@
++/* Static interposition of getenv (bug 32541).
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <stdlib.h>
++#include <support/check.h>
++
++/* Some programs try to interpose getenv for their own use (not
++   glibc's internal use).  Make sure that this is possible without
++   introducing linker failures due to duplicate symbols.  */
++
++char *
++getenv (const char *ignored)
++{
++  return NULL;
++}
++
++static int
++do_test (void)
++{
++  TEST_COMPARE_STRING (getenv ("PATH"), NULL);
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/sysdeps/aarch64/fpu/asinh_sve.c b/sysdeps/aarch64/fpu/asinh_sve.c
 index 0889f79dbb..ff6b71390c 100644
 --- a/sysdeps/aarch64/fpu/asinh_sve.c
@@ -1869,6 +2398,206 @@ index f208d33896..16b81fc738 100644
  }
 -
  #endif
+diff --git a/sysdeps/aarch64/multiarch/Makefile b/sysdeps/aarch64/multiarch/Makefile
+index 772b16a358..1c3c392513 100644
+--- a/sysdeps/aarch64/multiarch/Makefile
++++ b/sysdeps/aarch64/multiarch/Makefile
+@@ -14,6 +14,7 @@ sysdep_routines += \
+   memset_kunpeng \
+   memset_mops \
+   memset_oryon1 \
++  memset_sve_zva64 \
+   memset_zva64 \
+   strlen_asimd \
+   strlen_generic \
+diff --git a/sysdeps/aarch64/multiarch/ifunc-impl-list.c b/sysdeps/aarch64/multiarch/ifunc-impl-list.c
+index 0481e450be..8dc314b67d 100644
+--- a/sysdeps/aarch64/multiarch/ifunc-impl-list.c
++++ b/sysdeps/aarch64/multiarch/ifunc-impl-list.c
+@@ -57,6 +57,7 @@ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
+ 	      IFUNC_IMPL_ADD (array, i, memset, 1, __memset_kunpeng)
+ #if HAVE_AARCH64_SVE_ASM
+ 	      IFUNC_IMPL_ADD (array, i, memset, sve && !bti && zva_size == 256, __memset_a64fx)
++	      IFUNC_IMPL_ADD (array, i, memset, sve && zva_size == 64, __memset_sve_zva64)
+ #endif
+ 	      IFUNC_IMPL_ADD (array, i, memset, mops, __memset_mops)
+ 	      IFUNC_IMPL_ADD (array, i, memset, 1, __memset_generic))
+diff --git a/sysdeps/aarch64/multiarch/memset.c b/sysdeps/aarch64/multiarch/memset.c
+index f6194e4a93..872f39f00f 100644
+--- a/sysdeps/aarch64/multiarch/memset.c
++++ b/sysdeps/aarch64/multiarch/memset.c
+@@ -36,6 +36,7 @@ extern __typeof (__redirect_memset) __memset_a64fx attribute_hidden;
+ extern __typeof (__redirect_memset) __memset_generic attribute_hidden;
+ extern __typeof (__redirect_memset) __memset_mops attribute_hidden;
+ extern __typeof (__redirect_memset) __memset_oryon1 attribute_hidden;
++extern __typeof (__redirect_memset) __memset_sve_zva64 attribute_hidden;
+ 
+ static inline __typeof (__redirect_memset) *
+ select_memset_ifunc (void)
+@@ -49,6 +50,9 @@ select_memset_ifunc (void)
+     {
+       if (IS_A64FX (midr) && zva_size == 256)
+ 	return __memset_a64fx;
++
++      if (prefer_sve_ifuncs && zva_size == 64)
++	return __memset_sve_zva64;
+     }
+ 
+   if (IS_ORYON1 (midr) && zva_size == 64)
+diff --git a/sysdeps/aarch64/multiarch/memset_sve_zva64.S b/sysdeps/aarch64/multiarch/memset_sve_zva64.S
+new file mode 100644
+index 0000000000..7fb40fdd9e
+--- /dev/null
++++ b/sysdeps/aarch64/multiarch/memset_sve_zva64.S
+@@ -0,0 +1,123 @@
++/* Optimized memset for SVE.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library.  If not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <sysdep.h>
++
++/* Assumptions:
++ *
++ * ARMv8-a, AArch64, Advanced SIMD, SVE, unaligned accesses.
++ * ZVA size is 64.
++ */
++
++#if HAVE_AARCH64_SVE_ASM
++
++.arch armv8.2-a+sve
++
++#define dstin	x0
++#define val	x1
++#define valw	w1
++#define count	x2
++#define dst	x3
++#define dstend	x4
++#define zva_val	x5
++#define vlen	x5
++#define off	x3
++#define dstend2 x5
++
++ENTRY (__memset_sve_zva64)
++	dup	v0.16B, valw
++	cmp	count, 16
++	b.lo	L(set_16)
++
++	add	dstend, dstin, count
++	cmp	count, 64
++	b.hs	L(set_128)
++
++	/* Set 16..63 bytes.  */
++	mov	off, 16
++	and	off, off, count, lsr 1
++	sub	dstend2, dstend, off
++	str	q0, [dstin]
++	str	q0, [dstin, off]
++	str	q0, [dstend2, -16]
++	str	q0, [dstend, -16]
++	ret
++
++	.p2align 4
++L(set_16):
++	whilelo p0.b, xzr, count
++	st1b	z0.b, p0, [dstin]
++	ret
++
++	.p2align 4
++L(set_128):
++	bic	dst, dstin, 15
++	cmp	count, 128
++	b.hi	L(set_long)
++	stp	q0, q0, [dstin]
++	stp	q0, q0, [dstin, 32]
++	stp	q0, q0, [dstend, -64]
++	stp	q0, q0, [dstend, -32]
++	ret
++
++	.p2align 4
++L(set_long):
++	cmp	count, 256
++	b.lo	L(no_zva)
++	tst	valw, 255
++	b.ne	L(no_zva)
++
++	str	q0, [dstin]
++	str	q0, [dst, 16]
++	bic	dst, dstin, 31
++	stp	q0, q0, [dst, 32]
++	bic	dst, dstin, 63
++	sub	count, dstend, dst	/* Count is now 64 too large.  */
++	sub	count, count, 128	/* Adjust count and bias for loop.  */
++
++	sub	x8, dstend, 1		/* Write last bytes before ZVA loop.  */
++	bic	x8, x8, 15
++	stp	q0, q0, [x8, -48]
++	str	q0, [x8, -16]
++	str	q0, [dstend, -16]
++
++	.p2align 4
++L(zva64_loop):
++	add	dst, dst, 64
++	dc	zva, dst
++	subs	count, count, 64
++	b.hi	L(zva64_loop)
++	ret
++
++L(no_zva):
++	str	q0, [dstin]
++	sub	count, dstend, dst	/* Count is 16 too large.  */
++	sub	count, count, 64 + 16	/* Adjust count and bias for loop.  */
++L(no_zva_loop):
++	stp	q0, q0, [dst, 16]
++	stp	q0, q0, [dst, 48]
++	add	dst, dst, 64
++	subs	count, count, 64
++	b.hi	L(no_zva_loop)
++	stp	q0, q0, [dstend, -64]
++	stp	q0, q0, [dstend, -32]
++	ret
++
++END (__memset_sve_zva64)
++#endif
+diff --git a/sysdeps/ieee754/dbl-64/math_config.h b/sysdeps/ieee754/dbl-64/math_config.h
+index 299a2ff8c1..3382e385f9 100644
+--- a/sysdeps/ieee754/dbl-64/math_config.h
++++ b/sysdeps/ieee754/dbl-64/math_config.h
+@@ -195,16 +195,18 @@ check_uflow (double x)
+ extern const struct exp_data
+ {
+   double invln2N;
+-  double shift;
+   double negln2hiN;
+   double negln2loN;
+   double poly[4]; /* Last four coefficients.  */
++  double shift;
++
+   double exp2_shift;
+   double exp2_poly[EXP2_POLY_ORDER];
+-  double invlog10_2N;
++
+   double neglog10_2hiN;
+   double neglog10_2loN;
+   double exp10_poly[5];
++  double invlog10_2N;
+   uint64_t tab[2*(1 << EXP_TABLE_BITS)];
+ } __exp_data attribute_hidden;
+ 
 diff --git a/sysdeps/ieee754/dbl-64/s_fma.c b/sysdeps/ieee754/dbl-64/s_fma.c
 index 20f617b996..42351c6b34 100644
 --- a/sysdeps/ieee754/dbl-64/s_fma.c
@@ -1958,6 +2687,146 @@ index a30892f080..dcc3e0883b 100644
  #endif
    return lazy;
  }
+diff --git a/sysdeps/unix/sysv/linux/aarch64/Makefile b/sysdeps/unix/sysv/linux/aarch64/Makefile
+index 1fdad67fae..0839f0b08c 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/Makefile
++++ b/sysdeps/unix/sysv/linux/aarch64/Makefile
+@@ -3,7 +3,134 @@ sysdep_headers += sys/elf.h
+ tests += \
+   tst-aarch64-pkey \
+   # tests
+-endif
++
++ifneq (no,$(findstring no,$(have-cc-gcs) $(have-test-cc-gcs) $(have-ld-gcs)))
++
++gcs-tests-dynamic = \
++  tst-gcs-disabled \
++  tst-gcs-dlopen-disabled \
++  tst-gcs-dlopen-enforced \
++  tst-gcs-dlopen-optional-off \
++  tst-gcs-dlopen-optional-on \
++  tst-gcs-dlopen-override \
++  tst-gcs-enforced \
++  tst-gcs-enforced-abort \
++  tst-gcs-noreturn \
++  tst-gcs-optional-off \
++  tst-gcs-optional-on \
++  tst-gcs-override \
++  tst-gcs-shared-disabled \
++  tst-gcs-shared-enforced-abort \
++  tst-gcs-shared-optional \
++  tst-gcs-shared-override \
++  # gcs-tests-dynamic
++
++gcs-tests-static = \
++  tst-gcs-disabled-static \
++  tst-gcs-enforced-static \
++  tst-gcs-enforced-static-abort \
++  tst-gcs-optional-static-off \
++  tst-gcs-optional-static-on \
++  tst-gcs-override-static \
++  # gcs-tests-static
++
++tests += \
++  $(gcs-tests-dynamic) \
++  $(gcs-tests-static) \
++  # tests
++
++tests-static += \
++  $(gcs-tests-static) \
++  # tests-static
++
++define run-gcs-abort-test
++  $(test-wrapper-env) $(run-program-env) \
++  $(tst-gcs-$*-abort-ENV) $(host-test-program-cmd)
++endef
++
++$(objpfx)tst-gcs-%-abort.out: $(..)sysdeps/unix/sysv/linux/aarch64/tst-gcs-abort.sh \
++	$(objpfx)tst-gcs-%-abort
++	$(SHELL) $< $(common-objpfx) $(test-name) '$(run-gcs-abort-test)'; \
++	$(evaluate-test)
++
++LDFLAGS-tst-gcs-disabled += -Wl,-z gcs=always
++LDFLAGS-tst-gcs-enforced += -Wl,-z gcs=always
++LDFLAGS-tst-gcs-enforced-abort += -Wl,-z gcs=never
++LDFLAGS-tst-gcs-optional-on += -Wl,-z gcs=always
++LDFLAGS-tst-gcs-optional-off += -Wl,-z gcs=never
++LDFLAGS-tst-gcs-override += -Wl,-z gcs=never
++
++LDFLAGS-tst-gcs-disabled-static += -Wl,-z gcs=always
++LDFLAGS-tst-gcs-enforced-static += -Wl,-z gcs=always
++LDFLAGS-tst-gcs-enforced-static-abort += -Wl,-z gcs=never
++LDFLAGS-tst-gcs-optional-static-on += -Wl,-z gcs=always
++LDFLAGS-tst-gcs-optional-static-off += -Wl,-z gcs=never
++LDFLAGS-tst-gcs-override-static += -Wl,-z gcs=never
++
++tst-gcs-disabled-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=0
++tst-gcs-enforced-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=1
++tst-gcs-enforced-abort-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=1
++tst-gcs-optional-on-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=2
++tst-gcs-optional-off-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=2
++tst-gcs-override-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=3
++
++tst-gcs-disabled-static-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=0
++tst-gcs-enforced-static-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=1
++tst-gcs-enforced-static-abort-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=1
++tst-gcs-optional-static-on-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=2
++tst-gcs-optional-static-off-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=2
++tst-gcs-override-static-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=3
++
++# force one of the dependencies to be unmarked
++LDFLAGS-tst-gcs-mod2.so += -Wl,-z gcs=never
++
++LDFLAGS-tst-gcs-shared-disabled = -Wl,-z gcs=always
++LDFLAGS-tst-gcs-shared-enforced-abort = -Wl,-z gcs=always
++LDFLAGS-tst-gcs-shared-optional = -Wl,-z gcs=always
++LDFLAGS-tst-gcs-shared-override = -Wl,-z gcs=always
++
++modules-names += \
++  tst-gcs-mod1 \
++  tst-gcs-mod2 \
++  tst-gcs-mod3 \
++  # modules-names
++
++$(objpfx)tst-gcs-shared-disabled: $(objpfx)tst-gcs-mod1.so $(objpfx)tst-gcs-mod3.so
++$(objpfx)tst-gcs-shared-enforced-abort: $(objpfx)tst-gcs-mod1.so $(objpfx)tst-gcs-mod3.so
++$(objpfx)tst-gcs-shared-optional: $(objpfx)tst-gcs-mod1.so $(objpfx)tst-gcs-mod3.so
++$(objpfx)tst-gcs-shared-override: $(objpfx)tst-gcs-mod1.so $(objpfx)tst-gcs-mod3.so
++$(objpfx)tst-gcs-mod1.so: $(objpfx)tst-gcs-mod2.so
++
++tst-gcs-shared-disabled-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=0
++tst-gcs-shared-enforced-abort-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=1
++tst-gcs-shared-optional-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=2
++tst-gcs-shared-override-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=3
++
++LDFLAGS-tst-gcs-dlopen-disabled = -Wl,-z gcs=always
++LDFLAGS-tst-gcs-dlopen-enforced = -Wl,-z gcs=always
++LDFLAGS-tst-gcs-dlopen-optional-on = -Wl,-z gcs=always
++LDFLAGS-tst-gcs-dlopen-optional-off = -Wl,-z gcs=never
++LDFLAGS-tst-gcs-dlopen-override = -Wl,-z gcs=always
++
++tst-gcs-dlopen-disabled-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=0
++tst-gcs-dlopen-enforced-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=1
++tst-gcs-dlopen-optional-on-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=2
++tst-gcs-dlopen-optional-off-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=2
++tst-gcs-dlopen-override-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=3
++
++$(objpfx)tst-gcs-dlopen-disabled.out: $(objpfx)tst-gcs-mod2.so
++$(objpfx)tst-gcs-dlopen-enforced.out: $(objpfx)tst-gcs-mod2.so
++$(objpfx)tst-gcs-dlopen-optional-on.out: $(objpfx)tst-gcs-mod2.so
++$(objpfx)tst-gcs-dlopen-optional-off.out: $(objpfx)tst-gcs-mod2.so
++$(objpfx)tst-gcs-dlopen-override.out: $(objpfx)tst-gcs-mod2.so
++
++LDFLAGS-tst-gcs-noreturn = -Wl,-z gcs=always
++
++tst-gcs-noreturn-ENV = GLIBC_TUNABLES=glibc.cpu.aarch64_gcs=0
++
++endif # ifeq ($(have-test-cc-gcs),yes)
++
++endif # ifeq ($(subdir),misc)
+ 
+ ifeq ($(subdir),stdlib)
+ gen-as-const-headers += ucontext_i.sym
 diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-aarch64-pkey.c b/sysdeps/unix/sysv/linux/aarch64/tst-aarch64-pkey.c
 index 3ff33ef72a..c884efc3b4 100644
 --- a/sysdeps/unix/sysv/linux/aarch64/tst-aarch64-pkey.c
@@ -1973,6 +2842,629 @@ index 3ff33ef72a..c884efc3b4 100644
        FAIL_EXIT1 ("pkey_alloc: %m");
      }
  
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-abort.sh b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-abort.sh
+new file mode 100644
+index 0000000000..9e2be2d5c5
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-abort.sh
+@@ -0,0 +1,39 @@
++#!/bin/sh
++# Test wrapper for AArch64 tests for GCS that are expected to abort.
++# Copyright (C) 2025 Free Software Foundation, Inc.
++# This file is part of the GNU C Library.
++
++# The GNU C Library is free software; you can redistribute it and/or
++# modify it under the terms of the GNU Lesser General Public
++# License as published by the Free Software Foundation; either
++# version 2.1 of the License, or (at your option) any later version.
++
++# The GNU C Library is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++# Lesser General Public License for more details.
++
++# You should have received a copy of the GNU Lesser General Public
++# License along with the GNU C Library; if not, see
++# <https://www.gnu.org/licenses/>.
++
++objpfx=$1; shift
++tstname=$1; shift
++tstrun=$1; shift
++
++logfile=$objpfx/$tstname.out
++
++rm -vf $logfile
++touch $logfile
++
++${tstrun} 2>> $logfile >> $logfile; status=$?
++
++if test $status -eq 127 \
++  && grep -q -w "not GCS compatible" "$logfile" ; then
++  exit 0
++elif test $status -eq 77; then
++  exit 77
++else
++  echo "unexpected test output or exit status $status"
++  exit 1
++fi
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-disabled-static.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-disabled-static.c
+new file mode 100644
+index 0000000000..c71d68cb86
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-disabled-static.c
+@@ -0,0 +1 @@
++#include "tst-gcs-disabled.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-disabled.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-disabled.c
+new file mode 100644
+index 0000000000..bd688785bb
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-disabled.c
+@@ -0,0 +1,2 @@
++#define TEST_GCS_EXPECT_ENABLED 0
++#include "tst-gcs-skeleton.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-disabled.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-disabled.c
+new file mode 100644
+index 0000000000..34395280a3
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-disabled.c
+@@ -0,0 +1,3 @@
++#define TEST_GCS_EXPECT_ENABLED 0
++#define TEST_GCS_EXPECT_DLOPEN 1
++#include "tst-gcs-dlopen.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-enforced.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-enforced.c
+new file mode 100644
+index 0000000000..d8489ecd24
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-enforced.c
+@@ -0,0 +1,3 @@
++#define TEST_GCS_EXPECT_ENABLED 1
++#define TEST_GCS_EXPECT_DLOPEN 0
++#include "tst-gcs-dlopen.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-optional-off.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-optional-off.c
+new file mode 100644
+index 0000000000..34395280a3
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-optional-off.c
+@@ -0,0 +1,3 @@
++#define TEST_GCS_EXPECT_ENABLED 0
++#define TEST_GCS_EXPECT_DLOPEN 1
++#include "tst-gcs-dlopen.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-optional-on.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-optional-on.c
+new file mode 100644
+index 0000000000..d8489ecd24
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-optional-on.c
+@@ -0,0 +1,3 @@
++#define TEST_GCS_EXPECT_ENABLED 1
++#define TEST_GCS_EXPECT_DLOPEN 0
++#include "tst-gcs-dlopen.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-override.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-override.c
+new file mode 100644
+index 0000000000..152ffcf207
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen-override.c
+@@ -0,0 +1,3 @@
++#define TEST_GCS_EXPECT_ENABLED 1
++#define TEST_GCS_EXPECT_DLOPEN 1
++#include "tst-gcs-dlopen.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen.c
+new file mode 100644
+index 0000000000..6e0801c63a
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-dlopen.c
+@@ -0,0 +1,62 @@
++/* AArch64 tests for GCS for dlopen use case.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "tst-gcs-helper.h"
++
++#include <dlfcn.h>
++#include <string.h>
++
++static int
++do_test (void)
++{
++  /* Check if GCS could possible by enabled.  */
++  if (!(getauxval (AT_HWCAP) & HWCAP_GCS))
++    {
++      puts ("kernel or CPU does not support GCS");
++      return EXIT_UNSUPPORTED;
++    }
++  /* The tst-gcs-mod2.so test library does not have GCS marking.  */
++  void *h = dlopen ("tst-gcs-mod2.so", RTLD_NOW);
++  const char *err = dlerror ();
++
++#if TEST_GCS_EXPECT_DLOPEN
++  TEST_VERIFY (h != NULL);
++#else
++  TEST_VERIFY (h == NULL);
++  /* Only accept expected GCS-related errors.  */
++  TEST_VERIFY (strstr (err, "not GCS compatible") != NULL);
++#endif
++
++#if TEST_GCS_EXPECT_ENABLED
++  TEST_VERIFY (__check_gcs_status ());
++#else
++  TEST_VERIFY (!__check_gcs_status ());
++#endif
++
++  if (h == NULL)
++    printf ("dlopen error: %s\n", err);
++  else
++    {
++      puts ("library loaded normally");
++      dlclose (h);
++    }
++
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced-abort.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced-abort.c
+new file mode 100644
+index 0000000000..608318f26d
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced-abort.c
+@@ -0,0 +1,2 @@
++#define TEST_GCS_EXPECT_ENABLED 1
++#include "tst-gcs-skeleton.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced-static-abort.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced-static-abort.c
+new file mode 100644
+index 0000000000..c20a999f6b
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced-static-abort.c
+@@ -0,0 +1 @@
++#include "tst-gcs-enforced-abort.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced-static.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced-static.c
+new file mode 100644
+index 0000000000..bb39dada55
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced-static.c
+@@ -0,0 +1 @@
++#include "tst-gcs-enforced.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced.c
+new file mode 100644
+index 0000000000..608318f26d
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-enforced.c
+@@ -0,0 +1,2 @@
++#define TEST_GCS_EXPECT_ENABLED 1
++#include "tst-gcs-skeleton.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-helper.h b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-helper.h
+new file mode 100644
+index 0000000000..d8a586d2d8
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-helper.h
+@@ -0,0 +1,39 @@
++/* AArch64 tests for GCS.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#ifndef TST_GCS_HELPER_H
++#define TST_GCS_HELPER_H
++
++#include <support/check.h>
++#include <support/support.h>
++#include <support/test-driver.h>
++
++#include <stdio.h>
++#include <sys/auxv.h>
++
++static bool __check_gcs_status (void)
++{
++  register unsigned long x16 asm ("x16");
++  asm volatile (
++    "mov	x16, #1 /* _CHKFEAT_GCS */\n"
++    "hint	40 /* CHKFEAT_X16 */\n"
++    : "=r" (x16));
++  return x16 ^ 1;
++}
++
++#endif // POINTER_GUARD_H
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-mod1.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-mod1.c
+new file mode 100644
+index 0000000000..931ff81797
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-mod1.c
+@@ -0,0 +1,27 @@
++/* DSO for testing GCS.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <stdio.h>
++
++int fun2 (void); // tst-gcs-mod2.c
++
++int fun1 (void)
++{
++  puts ("called function fun1");
++  return fun2 ();
++}
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-mod2.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-mod2.c
+new file mode 100644
+index 0000000000..f9370eb8ff
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-mod2.c
+@@ -0,0 +1,25 @@
++/* DSO for testing GCS.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <stdio.h>
++
++int fun2 (void)
++{
++  puts ("called function fun2");
++  return 0;
++}
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-mod3.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-mod3.c
+new file mode 100644
+index 0000000000..38bb357547
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-mod3.c
+@@ -0,0 +1,25 @@
++/* DSO for testing GCS.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <stdio.h>
++
++int fun3 (void)
++{
++  puts ("called function fun3");
++  return 0;
++}
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-noreturn.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-noreturn.c
+new file mode 100644
+index 0000000000..f55057924f
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-noreturn.c
+@@ -0,0 +1,101 @@
++/* AArch64 test for GCS abort when returning to non-GCS address.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "tst-gcs-helper.h"
++
++#include <sys/prctl.h>
++#include <stdlib.h>
++
++#include <support/xsignal.h>
++
++# ifndef PR_SET_SHADOW_STACK_STATUS
++#  define PR_SET_SHADOW_STACK_STATUS	75
++#  define PR_SHADOW_STACK_ENABLE	(1UL << 0)
++# endif
++
++static void
++run_with_gcs (void)
++{
++  int r = prctl (PR_SET_SHADOW_STACK_STATUS, PR_SHADOW_STACK_ENABLE, 0, 0, 0);
++  /* Syscall should succeed.  */
++  TEST_VERIFY (r == 0);
++  bool gcs_enabled = __check_gcs_status ();
++  /* Now GCS should be enabled.  */
++  TEST_VERIFY (gcs_enabled);
++  printf ("GCS is %s\n", gcs_enabled ? "enabled" : "disabled");
++}
++
++static struct _aarch64_ctx *
++extension (void *p)
++{
++  return p;
++}
++
++#ifndef GCS_MAGIC
++#define GCS_MAGIC 0x47435300
++#endif
++
++static void
++handler (int sig, siginfo_t *si, void *ctx)
++{
++  TEST_VERIFY (sig == SIGSEGV);
++  ucontext_t *uc = ctx;
++  void *p = uc->uc_mcontext.__reserved;
++  if (extension (p)->magic == FPSIMD_MAGIC)
++    p = (char *)p + extension (p)->size;
++  if (extension (p)->magic == GCS_MAGIC)
++    {
++      struct { uint64_t x, gcspr, y, z; } *q = p;
++      printf ("GCS pointer: %016lx\n", q->gcspr);
++      exit (0);
++    }
++  else
++    exit (3);
++}
++
++static int
++do_test (void)
++{
++  /* Check if GCS could possible by enabled.  */
++  if (!(getauxval (AT_HWCAP) & HWCAP_GCS))
++    {
++      puts ("kernel or CPU does not support GCS");
++      return EXIT_UNSUPPORTED;
++    }
++  bool gcs_enabled = __check_gcs_status ();
++  /* This test should be rung with GCS initially disabled.  */
++  TEST_VERIFY (!gcs_enabled);
++
++  /* We can't use EXPECTED_SIGNAL because of cases when
++     this test runs on a system that does not support GCS
++     which is being detected at runtime.  */
++  struct sigaction sigact;
++  sigemptyset (&sigact.sa_mask);
++  sigact.sa_flags = 0;
++  sigact.sa_flags = sigact.sa_flags | SA_SIGINFO;
++  sigact.sa_sigaction = handler;
++  xsigaction (SIGSEGV, &sigact, NULL);
++
++  run_with_gcs ();
++  /* If we reached this point, then something went wrong.
++     Returning from a function that enabled GCS should result in
++     SIGSEGV that we catch with the handler set up above.  */
++  return 2;
++}
++
++#include <support/test-driver.c>
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-off.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-off.c
+new file mode 100644
+index 0000000000..bd688785bb
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-off.c
+@@ -0,0 +1,2 @@
++#define TEST_GCS_EXPECT_ENABLED 0
++#include "tst-gcs-skeleton.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-on.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-on.c
+new file mode 100644
+index 0000000000..608318f26d
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-on.c
+@@ -0,0 +1,2 @@
++#define TEST_GCS_EXPECT_ENABLED 1
++#include "tst-gcs-skeleton.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-static-off.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-static-off.c
+new file mode 100644
+index 0000000000..54e3b9a0d5
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-static-off.c
+@@ -0,0 +1 @@
++#include "tst-gcs-optional-off.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-static-on.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-static-on.c
+new file mode 100644
+index 0000000000..11b884b429
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-optional-static-on.c
+@@ -0,0 +1 @@
++#include "tst-gcs-optional-on.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-override-static.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-override-static.c
+new file mode 100644
+index 0000000000..09055dcdc4
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-override-static.c
+@@ -0,0 +1 @@
++#include "tst-gcs-override.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-override.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-override.c
+new file mode 100644
+index 0000000000..608318f26d
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-override.c
+@@ -0,0 +1,2 @@
++#define TEST_GCS_EXPECT_ENABLED 1
++#include "tst-gcs-skeleton.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-disabled.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-disabled.c
+new file mode 100644
+index 0000000000..8598dc44b5
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-disabled.c
+@@ -0,0 +1,2 @@
++#define TEST_GCS_EXPECT_ENABLED 0
++#include "tst-gcs-shared.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-enforced-abort.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-enforced-abort.c
+new file mode 100644
+index 0000000000..f1333cee9d
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-enforced-abort.c
+@@ -0,0 +1,2 @@
++#define TEST_GCS_EXPECT_ENABLED 1
++#include "tst-gcs-shared.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-optional.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-optional.c
+new file mode 100644
+index 0000000000..8598dc44b5
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-optional.c
+@@ -0,0 +1,2 @@
++#define TEST_GCS_EXPECT_ENABLED 0
++#include "tst-gcs-shared.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-override.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-override.c
+new file mode 100644
+index 0000000000..f1333cee9d
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared-override.c
+@@ -0,0 +1,2 @@
++#define TEST_GCS_EXPECT_ENABLED 1
++#include "tst-gcs-shared.c"
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared.c
+new file mode 100644
+index 0000000000..1192de69fc
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-shared.c
+@@ -0,0 +1,41 @@
++/* AArch64 tests for GCS.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "tst-gcs-helper.h"
++
++int fun1 (void); // tst-gcs-mod1.c
++int fun3 (void); // tst-gcs-mod3.c
++
++static int
++do_test (void)
++{
++  /* Check if GCS could possible by enabled.  */
++  if (!(getauxval (AT_HWCAP) & HWCAP_GCS))
++    {
++      puts ("kernel or CPU does not support GCS");
++      return EXIT_UNSUPPORTED;
++    }
++#if TEST_GCS_EXPECT_ENABLED
++  TEST_VERIFY (__check_gcs_status ());
++#else
++  TEST_VERIFY (!__check_gcs_status ());
++#endif
++  return fun1 () + fun3 ();
++}
++
++#include <support/test-driver.c>
+diff --git a/sysdeps/unix/sysv/linux/aarch64/tst-gcs-skeleton.c b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-skeleton.c
+new file mode 100644
+index 0000000000..feb5e33ebf
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/aarch64/tst-gcs-skeleton.c
+@@ -0,0 +1,43 @@
++/* AArch64 tests for GCS.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "tst-gcs-helper.h"
++
++static int
++do_test (void)
++{
++  /* Check if GCS could possible by enabled.  */
++  if (!(getauxval (AT_HWCAP) & HWCAP_GCS))
++    {
++      puts ("kernel or CPU does not support GCS");
++      return EXIT_UNSUPPORTED;
++    }
++  bool gcs_enabled = __check_gcs_status ();
++  if (gcs_enabled)
++    puts ("GCS enabled");
++  else
++    puts ("GCS not enabled");
++#if TEST_GCS_EXPECT_ENABLED
++  TEST_VERIFY (gcs_enabled);
++#else
++  TEST_VERIFY (!gcs_enabled);
++#endif
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/sysdeps/x86/bits/floatn.h b/sysdeps/x86/bits/floatn.h
 index d197cb10dd..4674165bd7 100644
 --- a/sysdeps/x86/bits/floatn.h
