@@ -22,10 +22,10 @@ index d0108d2caa..aa547a443f 100644
  $(common-objdir):$(subst $(empty) ,:,$(patsubst ../$(subdir),.,$(rpath-dirs:%=$(common-objpfx)%)))
  else  # build-static
 diff --git a/NEWS b/NEWS
-index b11422b060..d819f5d896 100644
+index b11422b060..6912162e01 100644
 --- a/NEWS
 +++ b/NEWS
-@@ -5,6 +5,16 @@ See the end for copying conditions.
+@@ -5,6 +5,19 @@ See the end for copying conditions.
  Please send GNU C library bug reports via <https://sourceware.org/bugzilla/>
  using `glibc' in the "product" field.
  
@@ -38,6 +38,9 @@ index b11422b060..d819f5d896 100644
 +  [32627] math: math: sinhf is not correctly rounded
 +  [32630] math: math: tanf is not correctly rounded for all rounding
 +    modes
++  [32781] Linux: Remove attribute access from sched_getattr
++  [32782] nptl: Race conditions in pthread cancellation causing crash
++  [32786] nptl: PTHREAD_COND_INITIALIZER compatibility with pre-2.41 versions
 +
  Version 2.41
  
@@ -1157,6 +1160,34 @@ index 82621c7954..4be778ad65 100644
  
  tst-stackguard1-ARGS = --command "$(host-test-program-cmd) --child"
  tst-stackguard1-static-ARGS = --command "$(objpfx)tst-stackguard1-static --child"
+diff --git a/nptl/pthread_cancel.c b/nptl/pthread_cancel.c
+index f7ce3ec51b..b838273881 100644
+--- a/nptl/pthread_cancel.c
++++ b/nptl/pthread_cancel.c
+@@ -41,15 +41,17 @@ sigcancel_handler (int sig, siginfo_t *si, void *ctx)
+       || si->si_code != SI_TKILL)
+     return;
+ 
+-  /* Check if asynchronous cancellation mode is set or if interrupted
+-     instruction pointer falls within the cancellable syscall bridge.  For
+-     interruptable syscalls with external side-effects (i.e. partial reads),
+-     the kernel  will set the IP to after __syscall_cancel_arch_end, thus
+-     disabling the cancellation and allowing the process to handle such
++  /* Check if asynchronous cancellation mode is set and cancellation is not
++     already in progress, or if interrupted instruction pointer falls within
++     the cancellable syscall bridge.
++     For interruptable syscalls with external side-effects (i.e. partial
++     reads), the kernel will set the IP to after __syscall_cancel_arch_end,
++     thus disabling the cancellation and allowing the process to handle such
+      conditions.  */
+   struct pthread *self = THREAD_SELF;
+   int oldval = atomic_load_relaxed (&self->cancelhandling);
+-  if (cancel_async_enabled (oldval) || cancellation_pc_check (ctx))
++  if (cancel_enabled_and_canceled_and_async (oldval)
++      || cancellation_pc_check (ctx))
+     __syscall_do_cancel ();
+ }
+ 
 diff --git a/nptl/pthread_getattr_np.c b/nptl/pthread_getattr_np.c
 index e98e2df152..43dd16d59c 100644
 --- a/nptl/pthread_getattr_np.c
@@ -2651,6 +2682,135 @@ index dfe56fc2a0..5ee1d6f35e 100644
  	    {
  	      if (sgn)
  		return -st[j].rh - st[j].rl;
+diff --git a/sysdeps/nptl/bits/thread-shared-types.h b/sysdeps/nptl/bits/thread-shared-types.h
+index 7c24c0a6be..e614c7f3c9 100644
+--- a/sysdeps/nptl/bits/thread-shared-types.h
++++ b/sysdeps/nptl/bits/thread-shared-types.h
+@@ -99,6 +99,8 @@ struct __pthread_cond_s
+   unsigned int __g1_orig_size;
+   unsigned int __wrefs;
+   unsigned int __g_signals[2];
++  unsigned int __unused_initialized_1;
++  unsigned int __unused_initialized_2;
+ };
+ 
+ typedef unsigned int __tss_t;
+diff --git a/sysdeps/nptl/dl-tls_init_tp.c b/sysdeps/nptl/dl-tls_init_tp.c
+index f487bfb66e..8629b5d41b 100644
+--- a/sysdeps/nptl/dl-tls_init_tp.c
++++ b/sysdeps/nptl/dl-tls_init_tp.c
+@@ -23,6 +23,7 @@
+ #include <tls.h>
+ #include <rseq-internal.h>
+ #include <thread_pointer.h>
++#include <dl-symbol-redir-ifunc.h>
+ 
+ #define TUNABLE_NAMESPACE pthread
+ #include <dl-tunables.h>
+diff --git a/sysdeps/nptl/pthread.h b/sysdeps/nptl/pthread.h
+index 050b4ab8d1..9ad36cabe9 100644
+--- a/sysdeps/nptl/pthread.h
++++ b/sysdeps/nptl/pthread.h
+@@ -152,7 +152,7 @@ enum
+ 
+ 
+ /* Conditional variable handling.  */
+-#define PTHREAD_COND_INITIALIZER { { {0}, {0}, {0, 0}, 0, 0, {0, 0} } }
++#define PTHREAD_COND_INITIALIZER { { {0}, {0}, {0, 0}, 0, 0, {0, 0}, 0, 0 } }
+ 
+ 
+ /* Cleanup buffers */
+diff --git a/sysdeps/pthread/Makefile b/sysdeps/pthread/Makefile
+index a123e28a57..2e0ce773a0 100644
+--- a/sysdeps/pthread/Makefile
++++ b/sysdeps/pthread/Makefile
+@@ -106,6 +106,7 @@ tests += \
+   tst-cancel28 \
+   tst-cancel29 \
+   tst-cancel30 \
++  tst-cancel32 \
+   tst-cleanup0 \
+   tst-cleanup1 \
+   tst-cleanup2 \
+diff --git a/sysdeps/pthread/tst-cancel32.c b/sysdeps/pthread/tst-cancel32.c
+new file mode 100644
+index 0000000000..ab550c16bf
+--- /dev/null
++++ b/sysdeps/pthread/tst-cancel32.c
+@@ -0,0 +1,73 @@
++/* Check if pthread_setcanceltype disables asynchronous cancellation
++   once cancellation happens (BZ 32782)
++
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++/* The pthread_setcanceltype is a cancellation entrypoint, and if
++   asynchronous is enabled and the cancellation starts (on the second
++   pthread_setcanceltype call), the asynchronous should not restart
++   the process.  */
++
++#include <support/xthread.h>
++
++#define NITER     1000
++#define NTHREADS     8
++
++static void
++tf_cleanup (void *arg)
++{
++}
++
++static void *
++tf (void *closure)
++{
++  pthread_cleanup_push (tf_cleanup, NULL);
++  for (;;)
++    {
++      /* The only possible failure for pthread_setcanceltype is an
++	 invalid state type.  */
++      pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
++      pthread_setcanceltype (PTHREAD_CANCEL_DEFERRED, NULL);
++    }
++  pthread_cleanup_pop (1);
++
++  return NULL;
++}
++
++static void
++poll_threads (int nthreads)
++{
++  pthread_t thr[nthreads];
++  for (int i = 0; i < nthreads; i++)
++    thr[i] = xpthread_create (NULL, tf, NULL);
++  for (int i = 0; i < nthreads; i++)
++    xpthread_cancel (thr[i]);
++  for (int i = 0; i < nthreads; i++)
++    xpthread_join (thr[i]);
++}
++
++static int
++do_test (void)
++{
++  for (int k = 0; k < NITER; k++)
++    poll_threads (NTHREADS);
++
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/sysdeps/riscv/dl-machine.h b/sysdeps/riscv/dl-machine.h
 index a30892f080..dcc3e0883b 100644
 --- a/sysdeps/riscv/dl-machine.h
@@ -3465,6 +3625,42 @@ index 0000000000..feb5e33ebf
 +}
 +
 +#include <support/test-driver.c>
+diff --git a/sysdeps/unix/sysv/linux/bits/sched.h b/sysdeps/unix/sysv/linux/bits/sched.h
+index 3656e98eda..39b0b3d19c 100644
+--- a/sysdeps/unix/sysv/linux/bits/sched.h
++++ b/sysdeps/unix/sysv/linux/bits/sched.h
+@@ -152,7 +152,7 @@ int sched_setattr (pid_t tid, struct sched_attr *attr, unsigned int flags)
+    store it in *ATTR.  */
+ int sched_getattr (pid_t tid, struct sched_attr *attr, unsigned int size,
+ 		   unsigned int flags)
+-  __THROW __nonnull ((2)) __attr_access ((__write_only__, 2, 3));
++  __THROW __nonnull ((2));
+ 
+ #endif
+ 
+diff --git a/sysdeps/unix/sysv/linux/rseq-internal.h b/sysdeps/unix/sysv/linux/rseq-internal.h
+index f89e784243..d2ab4cb829 100644
+--- a/sysdeps/unix/sysv/linux/rseq-internal.h
++++ b/sysdeps/unix/sysv/linux/rseq-internal.h
+@@ -108,13 +108,12 @@ rseq_register_current_thread (struct pthread *self, bool do_rseq)
+       if (size < RSEQ_AREA_SIZE_INITIAL)
+         size = RSEQ_AREA_SIZE_INITIAL;
+ 
+-      /* Initialize the rseq fields that are read by the kernel on
+-         registration, there is no guarantee that struct pthread is
+-         cleared on all architectures.  */
++      /* Initialize the whole rseq area to zero prior to registration.  */
++      memset (RSEQ_SELF (), 0, size);
++
++      /* Set the cpu_id field to RSEQ_CPU_ID_UNINITIALIZED, this is checked by
++         the kernel at registration when CONFIG_DEBUG_RSEQ is enabled.  */
+       RSEQ_SETMEM (cpu_id, RSEQ_CPU_ID_UNINITIALIZED);
+-      RSEQ_SETMEM (cpu_id_start, 0);
+-      RSEQ_SETMEM (rseq_cs, 0);
+-      RSEQ_SETMEM (flags, 0);
+ 
+       int ret = INTERNAL_SYSCALL_CALL (rseq, RSEQ_SELF (), size, 0, RSEQ_SIG);
+       if (!INTERNAL_SYSCALL_ERROR_P (ret))
 diff --git a/sysdeps/x86/bits/floatn.h b/sysdeps/x86/bits/floatn.h
 index d197cb10dd..4674165bd7 100644
 --- a/sysdeps/x86/bits/floatn.h

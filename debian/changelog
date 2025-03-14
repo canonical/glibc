@@ -1,3 +1,20 @@
+glibc (2.41-5) unstable; urgency=medium
+
+  [ Pedro Ribeiro ]
+  * Update Portuguese translation.  Closes: #1100065.
+
+  [ Bjarni Ingi Gislason ]
+  * debian/local/manpages/gencat.1: editorial fixes.  Closes: #1100190.
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix race condition between pthread_cancel() and pthread_setcanceltype()
+      affecting PARI/GP.  Closes: #1099624.
+  * debian/control.in/libc: add more conflicts against shared libraries with
+    executable stack.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 14 Mar 2025 21:07:20 +0100
+
 glibc (2.41-4) unstable; urgency=medium
 
   [ Aurelien Jarno ]
