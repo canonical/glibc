@@ -1,3 +1,13 @@
+glibc (2.41-6) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/rules.d/build.mk: Fix missing library-path to get just-built
+    libmachuser and libhurduser.
+  * debian/patches/hurd-i386/git-rt-timedwait-realtime.diff: Fix aio_suspend
+    delay.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 14 Mar 2025 23:56:28 +0100
+
 glibc (2.41-5) unstable; urgency=medium
 
   [ Pedro Ribeiro ]

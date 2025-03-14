@@ -211,7 +211,7 @@ build-arch-post-check: $(patsubst %,$(stamp)check_%,$(GLIBC_PASSES))
 # build-dependency makes sure that the correct version is used, as
 # the format might change between upstream versions.
 ifeq ($(DEB_BUILD_ARCH),$(DEB_HOST_ARCH))
-ICONVCONFIG = $(CURDIR)/$(DEB_BUILDDIRLIBC)/elf/ld.so --library-path $(CURDIR)/$(DEB_BUILDDIRLIBC) \
+ICONVCONFIG = $(CURDIR)/$(DEB_BUILDDIRLIBC)/elf/ld.so --library-path $(CURDIR)/$(DEB_BUILDDIRLIBC):$(CURDIR)/$(DEB_BUILDDIRLIBC)/mach:$(CURDIR)/$(DEB_BUILDDIRLIBC)/hurd \
 	      $(CURDIR)/$(DEB_BUILDDIRLIBC)/iconv/iconvconfig
 else
 ICONVCONFIG = /usr/sbin/iconvconfig
@@ -351,7 +351,7 @@ ifeq ($(DEB_BUILD_ARCH),$(DEB_HOST_ARCH))
 LOCALEDEF = I18NPATH=$(CURDIR)/localedata \
 	    GCONV_PATH=$(CURDIR)/$(DEB_BUILDDIRLIBC)/iconvdata \
 	    LC_ALL=C \
-	    $(CURDIR)/$(DEB_BUILDDIRLIBC)/elf/ld.so --library-path $(CURDIR)/$(DEB_BUILDDIRLIBC) \
+	    $(CURDIR)/$(DEB_BUILDDIRLIBC)/elf/ld.so --library-path $(CURDIR)/$(DEB_BUILDDIRLIBC):$(CURDIR)/$(DEB_BUILDDIRLIBC)/mach:$(CURDIR)/$(DEB_BUILDDIRLIBC)/hurd \
 	    $(CURDIR)/$(DEB_BUILDDIRLIBC)/locale/localedef
 else
 LOCALEDEF = I18NPATH=$(CURDIR)/localedata \
