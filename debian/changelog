@@ -1,3 +1,12 @@
+glibc (2.41-1ubuntu2) plucky; urgency=medium
+
+  * Revert:
+    * debian/control.in/*: mirror existing Conflicts: of libc6 multilib packages
+      to libc6-dev multilib packages.  Closes: #1092278.
+    to be able to build cross compilers again.
+
+ -- Matthias Klose <doko@ubuntu.com>  Sat, 15 Mar 2025 06:07:01 +0100
+
 glibc (2.41-1ubuntu1) plucky; urgency=medium
 
   * Merge 2.41-1 from Debian experimental.
