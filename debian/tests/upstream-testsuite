@@ -11,4 +11,9 @@ case "$(dpkg-architecture -qDEB_HOST_ARCH)" in
         ;;
 esac
 
+# Disable user namespace if we're not in a container
+if ! systemd-detect-virt -c; then
+    echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+fi
+
 debian/rules build-arch-post-check

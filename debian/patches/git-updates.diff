@@ -1,4 +1,4 @@
-GIT update of https://sourceware.org/git/glibc.git/release/2.41/master from glibc-2.41
+GIT update of https://sourceware.org/git/glibc.git/release/2.41/master from glibc-2.41 to ce9b765522f014daa0392099dd9ba1f7ddcc511d
 
 diff --git a/ADVISORIES b/ADVISORIES
 new file mode 100644
