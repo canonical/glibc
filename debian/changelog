@@ -1,3 +1,29 @@
+glibc (2.41-7) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-pthread_setcancel.diff: Fix tst-cond32.
+
+  [ Atila KOÇ ]
+  * Update Turkish debconf translation.  Closes: #1101162.
+
+  [ Remus-Gabriel Chelu ]
+  * Update Romanian debconf translation.  Closes: #1101814.
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Build a FMA version of atanh, sinh and tanh functions using IFUNC on
+      amd64.
+    - Fix a crash on amd64 when disabling XSAVEC through the glibc.cpu.hwcaps
+      tunable.
+    - Extend glibc.rtld.execstack tunable to force executable stack.
+    - Detect Intel Arrow Lake, Panther Lake, Clearwater Forest, and Diamond
+      Rapids CPUs.
+    - Handle unknown Intel processors with default tuning.
+  * debhelper.in/libc.NEWS: add an entry to describe the executable stack
+    change and provide workaround.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 13 Apr 2025 21:40:49 +0200
+
 glibc (2.41-6) unstable; urgency=medium
 
   [ Samuel Thibault ]
