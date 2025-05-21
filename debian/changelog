@@ -1,3 +1,10 @@
+glibc (2.41-6ubuntu2) questing; urgency=medium
+
+  * Just a rebuild.
+  * Ignore test results on ppc64el, known issues.
+
+ -- Matthias Klose <doko@ubuntu.com>  Wed, 21 May 2025 21:11:23 +0200
+
 glibc (2.41-6ubuntu1) plucky; urgency=medium
 
   * Merge from Debian unstable
