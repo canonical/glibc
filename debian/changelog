@@ -1,3 +1,12 @@
+glibc (2.31-0ubuntu9.18) focal-security; urgency=medium
+
+  * SECURITY UPDATE: privelege escalation issue
+    - debian/patches/any/CVE-2025-4802.patch: elf: Ignore LD_LIBRARY_PATH
+      and debug env var for setuid for static
+    - CVE-2025-4802
+
+ -- Nishit Majithia <nishit.majithia@canonical.com>  Mon, 26 May 2025 13:39:37 +0530
+
 glibc (2.31-0ubuntu9.17) focal-security; urgency=medium
 
   * SECURITY UPDATE: Buffer overflow in the assert function.
