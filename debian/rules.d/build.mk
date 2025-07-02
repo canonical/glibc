@@ -44,9 +44,6 @@ $(stamp)configure_%: $(stamp)config_sub_guess $(stamp)patch $(KERNEL_HEADER_DIR)
 	echo "MIG = $(call xx,MIG)"               >> $(DEB_BUILDDIR)/configparms
 	echo "BUILD_CC = $(BUILD_CC)"             >> $(DEB_BUILDDIR)/configparms
 	echo "BUILD_CXX = $(BUILD_CXX)"           >> $(DEB_BUILDDIR)/configparms
-	echo "CFLAGS = $(HOST_CFLAGS)"            >> $(DEB_BUILDDIR)/configparms
-	echo "ASFLAGS = $(HOST_CFLAGS)"           >> $(DEB_BUILDDIR)/configparms
-	echo "BUILD_CFLAGS = $(BUILD_CFLAGS)"     >> $(DEB_BUILDDIR)/configparms
 	echo "LDFLAGS = "                         >> $(DEB_BUILDDIR)/configparms
 	echo "BASH := /bin/bash"                  >> $(DEB_BUILDDIR)/configparms
 	echo "KSH := /bin/bash"                   >> $(DEB_BUILDDIR)/configparms
@@ -100,6 +97,9 @@ endif
 		CC="$(call xx,CC) -U_FILE_OFFSET_BITS -U_TIME_BITS" \
 		CXX=$(if $(filter nocheck,$(DEB_BUILD_OPTIONS)),:,"$(call xx,CXX) -U_FILE_OFFSET_BITS -U_TIME_BITS") \
 		MIG="$(call xx,MIG)" \
+		CFLAGS="$(HOST_CFLAGS)" \
+		ASFLAGS="$(HOST_CFLAGS)" \
+		BUILD_CFLAGS="$(BUILD_CFLAGS)" \
 		AUTOCONF=false \
 		MAKEINFO=: \
 		$(CURDIR)/configure \
@@ -112,8 +112,9 @@ endif
 		--enable-fortify-source \
 		--enable-stackguard-randomization \
 		--enable-stack-protector=strong \
-		--with-pkgversion="Debian GLIBC $(DEB_VERSION)" \
-		--with-bugurl="http://www.debian.org/Bugs/" \
+		--with-pkgversion="Ubuntu GLIBC $(DEB_VERSION)" \
+		--with-default-link=no \
+		--with-bugurl="https://bugs.launchpad.net/ubuntu/+source/glibc/+bugs" \
 		--with-timeoutfactor="$(TIMEOUTFACTOR)" \
 		$(if $(filter $(pt_chown),yes),--enable-pt_chown) \
 		$(if $(filter $(threads),no),--disable-nscd) \
@@ -360,20 +361,21 @@ LOCALEDEF = I18NPATH=$(CURDIR)/localedata \
 	    localedef --$(DEB_HOST_ARCH_ENDIAN)-endian
 endif
 
-$(stamp)build_C.utf8: $(stamp)/build_libc
-	$(LOCALEDEF) --quiet -c -f UTF-8 -i C $(CURDIR)/build-tree/C.utf8
-	touch $@
-
 $(stamp)build_locales-all: $(stamp)/build_libc
 	$(MAKE) -C $(DEB_BUILDDIRLIBC) $(NJOBS) \
 		objdir=$(DEB_BUILDDIRLIBC) \
 		install_root=$(CURDIR)/build-tree/locales-all \
 		localedata/install-locale-files LOCALEDEF="$(LOCALEDEF)"
-	# Remove the C.utf8 locale to avoid conflicts with the one in libc-bin
-	rm -fr $(CURDIR)/build-tree/locales-all/usr/lib/locale/C.utf8
-	rdfind -outputname /dev/null -makesymlinks true -removeidentinode false \
+	# Pass the C.utf8 locale files to rdfind first, so that locales with
+	# identical files are linked to the C.utf8 version (which will be part
+	# of the Essential libc-bin).
+	rdfind -outputname /dev/null -makesymlinks true \
+		$(CURDIR)/build-tree/locales-all/usr/lib/locale/C.utf8 \
 		$(CURDIR)/build-tree/locales-all/usr/lib/locale
 	symlinks -r -s -c $(CURDIR)/build-tree/locales-all/usr/lib/locale
+	# Move the C.utf8 locale data to where it will be part of
+	# libc-bin and not locales-all.
+	mv $(CURDIR)/build-tree/locales-all/usr/lib/locale/C.utf8 $(CURDIR)/build-tree/
 	touch $@
 
 $(stamp)source: $(stamp)patch
