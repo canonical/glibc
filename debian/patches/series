@@ -97,3 +97,6 @@ ubuntu/localedata/sd_PK.diff
 ubuntu/localedata/ug_CN@latin.diff
 ubuntu/local-pldd-root.diff
 ubuntu/apparmor/0002-tests-handle-AppArmor-userns-mitigation.patch
+
+any/CVE-2025-5702.patch
+any/CVE-2025-5745.patch
