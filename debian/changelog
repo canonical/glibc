@@ -1,3 +1,13 @@
+glibc (2.39-0ubuntu8.5) noble-security; urgency=medium
+
+  * SECURITY UPDATE: insecure power10 strcmp implementation
+    - debian/patches/any/CVE-2025-5702.patch: remove power10 optimized
+      strcmp.
+    - CVE-2025-5702
+  * Moved other security patches to debian/patches/any.
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Wed, 09 Jul 2025 12:47:47 -0400
+
 glibc (2.39-0ubuntu8.4) noble-security; urgency=medium
 
   * SECURITY UPDATE: Buffer overflow in the assert function.
