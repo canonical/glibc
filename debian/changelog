@@ -1,3 +1,9 @@
+glibc (2.35-0ubuntu3.12) jammy; urgency=medium
+
+  * d/p/lp2089789-*.patch: fix malloc performance regression (LP: #2089789)
+
+ -- Simon Chopin <schopin@ubuntu.com>  Tue, 15 Jul 2025 11:40:00 +0200
+
 glibc (2.35-0ubuntu3.11) jammy-security; urgency=medium
 
   * SECURITY UPDATE: double-free in regcomp function
