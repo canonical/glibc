@@ -1,3 +1,19 @@
+glibc (2.41-10) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/testsuite-xfail-debian.mk: Update xfails.
+  * debian/patches/hurd-i386/local-pthread_once.diff: Pave the way for 2.42.
+
+  [ Helmut Grohne ]
+  * Partially restore init restarting. (Closes: #1108193)
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix sparc32 Fix argument passing to __libc_start_main
+    - Fix error reporting (false negatives) in SGID tests
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 17 Jul 2025 13:21:32 +0200
+
 glibc (2.41-9) unstable; urgency=medium
 
   [ Aurelien Jarno ]
