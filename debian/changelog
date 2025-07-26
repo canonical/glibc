@@ -1,3 +1,12 @@
+glibc (2.41-11) unstable; urgency=medium
+
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix iconv to not create executable files with -o.
+    - Fix double-free after allocation failure in regcomp (GLIBC-SA-2025-0005
+      / CVE-2025-8058).  Closes: #1109803.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 26 Jul 2025 20:29:12 +0200
+
 glibc (2.41-10) unstable; urgency=medium
 
   [ Samuel Thibault ]
