@@ -131,7 +131,7 @@ Package: locales
 Architecture: all
 Section: localization
 Priority: standard
-Depends: libc-bin (>> @DEB_VERSION_UPSTREAM@), libc-l10n (>> @DEB_VERSION_UPSTREAM@), ${misc:Depends}, debconf | debconf-2.0
+Depends: libc-bin (>> @DEB_VERSION_UPSTREAM@), ${misc:Depends}, debconf | debconf-2.0
 Build-Profiles: <!stage1>
 Description: GNU C Library: National Language (locale) data [support]
  Machine-readable data files, shared objects and programs used by the
@@ -148,7 +148,7 @@ Architecture: any
 Section: localization
 Priority: optional
 Multi-Arch: foreign
-Depends: libc-l10n (>> @DEB_VERSION_UPSTREAM@), ${misc:Depends}
+Depends: ${misc:Depends}
 Build-Profiles: <!stage1>
 Description: GNU C Library: Precompiled locale data
  This package contains the precompiled locale data for all supported locales.
