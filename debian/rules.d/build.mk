@@ -44,9 +44,6 @@ $(stamp)configure_%: $(stamp)config_sub_guess $(stamp)patch $(KERNEL_HEADER_DIR)
 	echo "MIG = $(call xx,MIG)"               >> $(DEB_BUILDDIR)/configparms
 	echo "BUILD_CC = $(BUILD_CC)"             >> $(DEB_BUILDDIR)/configparms
 	echo "BUILD_CXX = $(BUILD_CXX)"           >> $(DEB_BUILDDIR)/configparms
-	echo "CFLAGS = $(HOST_CFLAGS)"            >> $(DEB_BUILDDIR)/configparms
-	echo "ASFLAGS = $(HOST_CFLAGS)"           >> $(DEB_BUILDDIR)/configparms
-	echo "BUILD_CFLAGS = $(BUILD_CFLAGS)"     >> $(DEB_BUILDDIR)/configparms
 	echo "LDFLAGS = "                         >> $(DEB_BUILDDIR)/configparms
 	echo "BASH := /bin/bash"                  >> $(DEB_BUILDDIR)/configparms
 	echo "KSH := /bin/bash"                   >> $(DEB_BUILDDIR)/configparms
@@ -100,6 +97,9 @@ endif
 		CC="$(call xx,CC) -U_FILE_OFFSET_BITS -U_TIME_BITS" \
 		CXX=$(if $(filter nocheck,$(DEB_BUILD_OPTIONS)),:,"$(call xx,CXX) -U_FILE_OFFSET_BITS -U_TIME_BITS") \
 		MIG="$(call xx,MIG)" \
+		CFLAGS="$(HOST_CFLAGS)" \
+		ASFLAGS="$(HOST_CFLAGS)" \
+		BUILD_CFLAGS="$(BUILD_CFLAGS)" \
 		AUTOCONF=false \
 		MAKEINFO=: \
 		$(CURDIR)/configure \
@@ -218,7 +218,7 @@ ICONVCONFIG = /usr/sbin/iconvconfig
 endif
 
 $(patsubst %,install_%,$(GLIBC_PASSES)) :: install_% : $(stamp)install_%
-$(stamp)install_%: $(stamp)build_%
+$(stamp)install_%: $(stamp)build_libc $(stamp)build_%
 	@echo Installing $(curpass)
 	rm -rf $(CURDIR)/$(debian-tmp)
 ifneq ($(filter stage1,$(DEB_BUILD_PROFILES)),)

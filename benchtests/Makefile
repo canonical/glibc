@@ -28,16 +28,20 @@ bench-math := \
   acosf \
   acosh \
   acoshf \
+  acospif \
   asin \
   asinf \
   asinh \
   asinhf \
+  asinpif \
   atan \
   atan2 \
   atan2f \
+  atan2pif \
   atanf \
   atanh \
   atanhf \
+  atanpif \
   cbrt \
   cbrtf \
   ceil \
@@ -46,6 +50,7 @@ bench-math := \
   cosf \
   cosh \
   coshf \
+  cospif \
   erf \
   erfc \
   erfcf \
@@ -58,10 +63,12 @@ bench-math := \
   exp2f \
   exp2m1f \
   expf \
+  expl \
   expm1 \
   expm1f \
   floor \
   floorf \
+  fmal \
   fmax \
   fmaxf \
   fmin \
@@ -89,6 +96,7 @@ bench-math := \
   log1pf \
   log2 \
   log2f \
+  log2l \
   log2p1f \
   logb \
   logbf \
@@ -96,10 +104,12 @@ bench-math := \
   lrint \
   lrintf \
   modf \
+  modff \
   nearbyint \
   nearbyintf \
   pow \
   powf \
+  powl \
   rint \
   rintf \
   roundeven \
@@ -110,11 +120,13 @@ bench-math := \
   sinf \
   sinh \
   sinhf \
+  sinpif \
   sqrt \
   tan \
   tanf \
   tanh \
   tanhf \
+  tanpif \
   tgamma \
   tgammaf \
   trunc \
@@ -147,6 +159,11 @@ bench-pthread := \
   pthread_once \
   thread_create \
   # bench-pthread
+
+bench-resolv := \
+  inet_ntop_ipv4 \
+  inet_ntop_ipv6 \
+  # bench-resolv
 
 LDLIBS-bench-pthread-mutex-lock += -lm
 LDLIBS-bench-pthread-mutex-trylock += -lm
@@ -194,6 +211,7 @@ string-benchset := \
   strcpy_chk \
   strcspn \
   strlen \
+  strlen-random \
   strncasecmp \
   strncat \
   strncmp \
@@ -320,8 +338,10 @@ CFLAGS-bench-isfinite.c += $(config-cflags-signaling-nans)
 ifeq (${BENCHSET},)
 bench-malloc := \
   calloc-simple \
+  calloc-tcache \
   calloc-thread \
   malloc-simple \
+  malloc-tcache \
   malloc-thread \
   # bench-malloc
 else
@@ -404,6 +424,7 @@ ifeq (${BENCHSET},)
 bench := \
   $(bench-math) \
   $(bench-pthread) \
+  $(bench-resolv) \
   $(bench-string) \
   # bench
 else
@@ -442,11 +463,14 @@ ifneq ($(strip ${BENCHSET}),)
 VALIDBENCHSETNAMES := \
   bench-math \
   bench-pthread \
+  bench-resolv \
   bench-string \
   calloc-simple \
+  calloc-tcache \
   calloc-thread \
   hash-benchset \
   malloc-simple \
+  malloc-tcache \
   malloc-thread \
   math-benchset \
   stdio-benchset \
@@ -485,8 +509,13 @@ bench-set: $(binaries-benchset)
 bench-malloc: $(binaries-bench-malloc)
 	for run in $^; do \
 	  echo "$${run}"; \
-	  if [[ `basename $${run}` =~ bench-[cm]alloc-thread ]]; then \
+	  if basename $${run} | grep -q "bench-[cm]alloc-thread"; then \
 		for thr in 1 8 16 32; do \
+			echo "Running $${run} $${thr}"; \
+			$(run-bench) $${thr} > $${run}-$${thr}.out; \
+		done;\
+	  elif basename $${run} | grep -q "bench-[cm]alloc-tcache"; then \
+		for thr in 64 512 1024; do \
 			echo "Running $${run} $${thr}"; \
 			$(run-bench) $${thr} > $${run}-$${thr}.out; \
 		done;\

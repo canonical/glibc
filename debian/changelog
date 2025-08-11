@@ -1,3 +1,75 @@
+glibc (2.42-1) experimental; urgency=medium
+
+  [ Aurelien Jarno ]
+  * New upstream release:
+    - debian/copyright: update following upstream changes.
+    - debian/symbols.wildcards: add 2.42.
+    - debian/control.in/main: bump binutils-for-host Build-Depends to >= 2.39.
+    - debian/patches/git-updates.diff: update from upstream stable branch.
+    - debian/patches/hurd-i386/git-proc_reauth.diff: upstreamed.
+    - debian/patches/hurd-i386/git-mig-strncpy.diff: upstreamed.
+    - debian/patches/hurd-i386/git-pthread_sigmask_nothread.diff: upstreamed.
+    - debian/patches/hurd-i386/git-rt-timedwait-realtime.diff: upstreamed.
+    - debian/patches/hurd-i386/git-pthread_setcancel.diff: upstreamed.
+    - debian/patches/hurd-i386/git-dup-refcnt.diff: upstreamed.
+    - debian/patches/hurd-i386/git-xstate.diff: upstreamed.
+    - debian/patches/hurd-i386/git-utime-EINVAL.diff: upstreamed.
+    - debian/patches/hurd-i386/git-xstate-initialized.diff: upstreamed.
+    - debian/patches/hurd-i386/git-signal-fpe-exceptions.diff: upstreamed.
+    - debian/patches/hurd-i386/git-symlink-eexist.diff: upstreamed.
+    - debian/patches/hurd-i386/git-rename.diff: upstreamed.
+    - debian/patches/hurd-i386/local-pthread_once.diff-2.42: renamed and
+      replace debian/patches/hurd-i386/local-pthread_once.diff.
+    - debian/patches/hurd-i386/hurd-i386/local-no_unsupported_ioctls.diff:
+      rebased.
+    - debian/patches/hurd-i386/local-static_pthread_setcancelstate.diff:
+      dropped, obsolete.
+    - debian/patches/any/local-tcsetaddr.diff: rebased.
+  * debian/debhelper.in/libc.preinst: drop support code for upgrading from
+    glibc < 2.34.
+  * debian/debhelper.in/libc.preinst: remove kFreeBSD support code.
+  * debian/debhelper.in/libc.postinst: remove support code to upgrade to
+    trixie.
+  *  Drop support for /etc/locales.alias (Closes: #1095101):
+    - debian/debhelper.in/locales.install: stop installing /etc/locales.alias
+    - debian/debhelper.in/locales.links: remove
+    - debian/local/usr_sbin/locale-gen: stop passing locales.alias in the
+      localedef call.
+    - debian/patches/all/local-alias-et_EE.diff: drop, obsolete.
+    - debian/patches/all/local-ru_RU.diff: drop, obsolete
+  * debian/rules.d/{build.mk,debhelper.mk}: add makefile dependencies to get
+    the package buildable with make --shuffle=reverse.  Closes: #1105334.
+  * debian/rules, debian/rules.d/control.mk: remove temporary libc{6,6.1,0.3}
+    files after the debian/control rule instead of in the clean rule.
+  * debian/rules: drop now useless removal of files from the clean rule.
+  * debian/rules: simplyfing using dpkg mk fragments files.
+  * debian/rules.d/debhelper.mk: merge normal and stage1 debhelper_% targets.
+  * Split-out gconv modules for non-Latin-1 and non-UTF encoding into a
+    separate package (Closes: #1005193):
+    - debian/control.in/main: add libc-gconv-modules-extra.
+    - debian/control.in/libc: recommends libc-gconv-modules-extra.
+    - debian/debhelper.in/libc.install: do not list any gconv file, the list
+      of gconv files is now computed dynamically.
+    - debian/rules.d/debhelper.mk: dynamically compute the list of gconv files
+      based on the gconv configuration files, for both the libc and
+      libc-gconv-modules-extra packages.
+    - debian/rules: Add libc-gconv-modules-extra to the list of arch:any
+      packages to build.
+  * debian/control.in/main, debian/sysdeps/{amd64,arm64,i386,x32}.mk: enable
+    SFrame support for amd64 and arm64 builds.
+
+  [ Samuel Thibault ]
+  * debian/testsuite-xfail-debian.mk: Update xfails.  Closes: #1110125.
+  * debian/patches/hurd-i386/git-random-malloc.diff: Fix /hurd/random startup.
+
+  [ Simon Chopin ]
+  * debian/rules.d/build.mk: use envvars for CFLAGS rather than configparms
+    (LP: #2115734)
+  * debian/rules.d/tarball.mk: document the hash when importing from upstream
+    branch.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 11 Aug 2025 15:23:49 +0200
+
 glibc (2.41-12) unstable; urgency=medium
 
   [ Helmut Grohne ]

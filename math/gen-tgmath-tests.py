@@ -746,6 +746,7 @@ class Tests(object):
         self.add_tests('asinpi', 'r', ['r'])
         self.add_tests('atan2pi', 'r', ['r', 'r'])
         self.add_tests('atanpi', 'r', ['r'])
+        self.add_tests('compoundn', 'r', ['r', 'long long int'])
         self.add_tests('cospi', 'r', ['r'])
         self.add_tests('exp10', 'r', ['r'])
         self.add_tests('exp2m1', 'r', ['r'])
@@ -753,6 +754,10 @@ class Tests(object):
         self.add_tests('log2p1', 'r', ['r'])
         self.add_tests('log10p1', 'r', ['r'])
         self.add_tests('logp1', 'r', ['r'])
+        self.add_tests('pown', 'r', ['r', 'long long int'])
+        self.add_tests('powr', 'r', ['r', 'r'])
+        self.add_tests('rootn', 'r', ['r', 'long long int'])
+        self.add_tests('rsqrt', 'r', ['r'])
         self.add_tests('sinpi', 'r', ['r'])
         self.add_tests('tanpi', 'r', ['r'])
         # C23 functions.

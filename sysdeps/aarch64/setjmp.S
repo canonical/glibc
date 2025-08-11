@@ -27,16 +27,28 @@ ENTRY (setjmp)
 	b	1f
 END (setjmp)
 
-ENTRY (_setjmp)
+ENTRY_ALIGN (_setjmp, 2)
 	mov	x1, #0
 	b	1f
 END (_setjmp)
 libc_hidden_def (_setjmp)
 
-ENTRY (__sigsetjmp)
-	PTR_ARG (0)
-
+ENTRY_ALIGN (__sigsetjmp, 2)
 1:
+
+#if IS_IN(libc)
+	/* Disable ZA state of SME in libc.a and libc.so, but not in ld.so.
+	   The calling convention of __libc_arm_za_disable allows to do
+	   this thus allowing to avoid saving to and reading from stack.
+	   As a result we also don't need to sign the return address and
+	   check it after returning because it is not stored to stack.  */
+	mov	x13, x30
+	cfi_register (x30, x13)
+	bl	__libc_arm_za_disable
+	mov	x30, x13
+	cfi_register (x13, x30)
+#endif
+
 	stp	x19, x20, [x0, #JB_X19<<3]
 	stp	x21, x22, [x0, #JB_X21<<3]
 	stp	x23, x24, [x0, #JB_X23<<3]
@@ -44,7 +56,7 @@ ENTRY (__sigsetjmp)
 	stp	x27, x28, [x0, #JB_X27<<3]
 
 #ifdef PTR_MANGLE
-	PTR_MANGLE (4, 30, 3, 2)
+	PTR_MANGLE (x4, x30, x3)
 	stp	x29,  x4, [x0, #JB_X29<<3]
 #else
 	stp	x29, x30, [x0, #JB_X29<<3]
@@ -67,18 +79,15 @@ ENTRY (__sigsetjmp)
 	str	x2, [x0, #JB_GCSPR]
 L(gcs_done):
 
+	mov	x2, sp
 #ifdef PTR_MANGLE
-	mov	x4, sp
-	PTR_MANGLE (5, 4, 3, 2)
-	str	x5, [x0, #JB_SP<<3]
-#else
-	mov	x2,  sp
-	str	x2,  [x0, #JB_SP<<3]
+	PTR_MANGLE (x2, x2, x3)
 #endif
+	str	x2, [x0, #JB_SP<<3]
 #if IS_IN (rtld)
 	/* In ld.so we never save the signal mask */
 	mov	w0, #0
-	RET
+	ret
 #else
 	b	C_SYMBOL_NAME(__sigjmp_save)
 #endif

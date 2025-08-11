@@ -921,8 +921,7 @@ _dl_notify_new_object (int mode, Lmid_t nsid, struct link_map *l)
       /* Notify the debugger we have added some objects.  We need to
 	 call _dl_debug_initialize in a static program in case dynamic
 	 linking has not been used before.  */
-      r->r_state = RT_ADD;
-      _dl_debug_state ();
+      _dl_debug_change_state (r, RT_ADD);
       LIBC_PROBE (map_start, 2, nsid, r);
     }
   else
@@ -945,7 +944,7 @@ struct link_map *
 _dl_map_object_from_fd (const char *name, const char *origname, int fd,
 			struct filebuf *fbp, char *realname,
 			struct link_map *loader, int l_type, int mode,
-			void **stack_endp, Lmid_t nsid)
+			const void *stack_endp, Lmid_t nsid)
 {
   struct link_map *l = NULL;
   const ElfW(Ehdr) *header;
@@ -965,6 +964,12 @@ _dl_map_object_from_fd (const char *name, const char *origname, int fd,
     {
       assert (nsid == LM_ID_BASE);
       memset (&id, 0, sizeof (id));
+      char *realname_can = _dl_canonicalize (fd);
+      if (realname_can != NULL)
+	{
+	  free (realname);
+	  realname = realname_can;
+	}
     }
   else
     {
@@ -1334,7 +1339,7 @@ cannot enable executable stack as shared object requires");
 
   /* Adjust the address of the TLS initialization image.  */
   if (l->l_tls_initimage != NULL)
-    l->l_tls_initimage = (char *) l->l_tls_initimage + l->l_addr;
+    l->l_tls_initimage = (void*)((uintptr_t)l->l_tls_initimage + l->l_addr);
 
   /* Process program headers again after load segments are mapped in
      case processing requires accessing those segments.  Scan program
@@ -1421,10 +1426,8 @@ cannot enable executable stack as shared object requires");
 
   /* When we profile the SONAME might be needed for something else but
      loading.  Add it right away.  */
-  if (__glibc_unlikely (GLRO(dl_profile) != NULL)
-      && l->l_info[DT_SONAME] != NULL)
-    add_name_to_object (l, ((const char *) D_PTR (l, l_info[DT_STRTAB])
-			    + l->l_info[DT_SONAME]->d_un.d_val));
+  if (__glibc_unlikely (GLRO(dl_profile) != NULL) && l_soname (l) != NULL)
+    add_name_to_object (l, l_soname (l));
 #else
   /* Audit modules only exist when linking is dynamic so ORIGNAME
      cannot be non-NULL.  */
@@ -1434,9 +1437,7 @@ cannot enable executable stack as shared object requires");
   /* If we have newly loaded libc.so, update the namespace
      description.  */
   if (GL(dl_ns)[nsid].libc_map == NULL
-      && l->l_info[DT_SONAME] != NULL
-      && strcmp (((const char *) D_PTR (l, l_info[DT_STRTAB])
-		  + l->l_info[DT_SONAME]->d_un.d_val), LIBC_SO) == 0)
+      && l_soname (l) != NULL && strcmp (l_soname(l), LIBC_SO) == 0)
     GL(dl_ns)[nsid].libc_map = l;
 
   /* _dl_close can only eventually undo the module ID assignment (via
@@ -1887,24 +1888,14 @@ open_path (const char *name, size_t namelen, int mode,
   return -1;
 }
 
-/* Map in the shared object file NAME.  */
-
 struct link_map *
-_dl_map_object (struct link_map *loader, const char *name,
-		int type, int trace_mode, int mode, Lmid_t nsid)
+_dl_lookup_map (Lmid_t nsid, const char *name)
 {
-  int fd;
-  const char *origname = NULL;
-  char *realname;
-  char *name_copy;
-  struct link_map *l;
-  struct filebuf fb;
-
   assert (nsid >= 0);
   assert (nsid < GL(dl_nns));
 
   /* Look for this name among those already loaded.  */
-  for (l = GL(dl_ns)[nsid]._ns_loaded; l; l = l->l_next)
+  for (struct link_map *l = GL(dl_ns)[nsid]._ns_loaded; l; l = l->l_next)
     {
       /* If the requested name matches the soname of a loaded object,
 	 use that object.  Elide this check for names that have not
@@ -1913,25 +1904,34 @@ _dl_map_object (struct link_map *loader, const char *name,
 	continue;
       if (!_dl_name_match_p (name, l))
 	{
-	  const char *soname;
-
-	  if (__glibc_likely (l->l_soname_added)
-	      || l->l_info[DT_SONAME] == NULL)
-	    continue;
-
-	  soname = ((const char *) D_PTR (l, l_info[DT_STRTAB])
-		    + l->l_info[DT_SONAME]->d_un.d_val);
-	  if (strcmp (name, soname) != 0)
+	  if (__glibc_likely (l->l_soname_added) || l_soname (l) == NULL
+	      || strcmp (name, l_soname (l)) != 0)
 	    continue;
 
 	  /* We have a match on a new name -- cache it.  */
-	  add_name_to_object (l, soname);
+	  add_name_to_object (l, l_soname (l));
 	  l->l_soname_added = 1;
 	}
 
       /* We have a match.  */
       return l;
     }
+
+  return NULL;
+}
+
+/* Map in the shared object file NAME.  */
+
+struct link_map *
+_dl_map_new_object (struct link_map *loader, const char *name,
+		    int type, int trace_mode, int mode, Lmid_t nsid)
+{
+  int fd;
+  const char *origname = NULL;
+  char *realname;
+  char *name_copy;
+  struct link_map *l;
+  struct filebuf fb;
 
   /* Display information if we are debugging.  */
   if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_FILES)
@@ -2180,8 +2180,19 @@ _dl_map_object (struct link_map *loader, const char *name,
 
   void *stack_end = __libc_stack_end;
   return _dl_map_object_from_fd (name, origname, fd, &fb, realname, loader,
-				 type, mode, &stack_end, nsid);
+				 type, mode, stack_end, nsid);
 }
+
+struct link_map *
+_dl_map_object (struct link_map *loader, const char *name,
+		int type, int trace_mode, int mode, Lmid_t nsid)
+{
+  struct link_map *l = _dl_lookup_map (nsid, name);
+  if (l != NULL)
+    return l;
+  return _dl_map_new_object (loader, name, type, trace_mode, mode, nsid);
+}
+
 
 struct add_path_state
 {

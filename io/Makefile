@@ -91,7 +91,6 @@ routines := \
   getcwd \
   getdirname \
   getwd \
-  isatty \
   lchmod \
   lchown \
   link \

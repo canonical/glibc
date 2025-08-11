@@ -52,7 +52,7 @@ while read -r locale charset; do
 			input="$USER_LOCALES/$input"
 		fi
 	fi
-	I18NPATH="${I18NPATH}" localedef -i "$input" -c -f "$charset" -A /usr/share/locale/locale.alias "$locale" || :
+	I18NPATH="${I18NPATH}" localedef -i "$input" -c -f "$charset" "$locale" || :
 	echo " done"
 done < "$LOCALEGEN"
 echo "Generation complete."

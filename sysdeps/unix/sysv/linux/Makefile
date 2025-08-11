@@ -151,15 +151,6 @@ sysdep_headers += \
   bits/struct_stat.h \
   bits/struct_stat_time64_helper.h \
   bits/syscall.h \
-  bits/termios-baud.h \
-  bits/termios-c_cc.h \
-  bits/termios-c_cflag.h \
-  bits/termios-c_iflag.h \
-  bits/termios-c_lflag.h \
-  bits/termios-c_oflag.h \
-  bits/termios-misc.h \
-  bits/termios-struct.h \
-  bits/termios-tcflow.h \
   bits/timerfd.h \
   bits/types/struct_msqid64_ds.h \
   bits/types/struct_msqid64_ds_helper.h \
@@ -228,6 +219,7 @@ tests += \
   tst-rlimit-infinity \
   tst-sched-affinity-inheritance \
   tst-sched_setattr \
+  tst-sched_setattr-thread \
   tst-scm_rights \
   tst-sigtimedwait \
   tst-sync_file_range \
@@ -420,6 +412,24 @@ tst-rseq-disable-static-ENV = GLIBC_TUNABLES=glibc.pthread.rseq=0
 
 endif # $(subdir) == misc
 
+ifeq ($(subdir),termios)
+sysdep_headers += \
+  bits/termios-c_cc.h \
+  bits/termios-c_cflag.h \
+  bits/termios-c_iflag.h \
+  bits/termios-c_lflag.h \
+  bits/termios-c_oflag.h \
+  bits/termios-cbaud.h \
+  bits/termios-misc.h \
+  bits/termios-struct.h \
+  bits/termios-tcflow.h \
+  # sysdep_headers
+
+tests += \
+  tst-termios-linux \
+  # tests
+endif
+
 ifeq ($(subdir),time)
 sysdep_headers += \
   bits/timex.h \
@@ -502,12 +512,6 @@ endif # $(subdir) == socket
 ifeq ($(subdir),sunrpc)
 sysdep_headers += \
   nfs/nfs.h \
-  # sysdep_headers
-endif
-
-ifeq ($(subdir),termios)
-sysdep_headers += \
-  termio.h \
   # sysdep_headers
 endif
 
@@ -608,6 +612,7 @@ endif
 ifeq ($(subdir),io)
 sysdep_routines += \
   close_nocancel \
+  close_nocancel_nostatus \
   fallocate \
   fallocate64 \
   fcntl_nocancel \

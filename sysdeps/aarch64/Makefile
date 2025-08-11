@@ -41,14 +41,17 @@ gen-as-const-headers += \
   dl-link.sym \
   rtld-global-offsets.sym
 
-tests-internal += tst-ifunc-arg-1 tst-ifunc-arg-2
+tests-internal += \
+  tst-ifunc-arg-1 \
+  tst-ifunc-arg-2 \
+  tst-ifunc-arg-3 \
+  tst-ifunc-arg-4 \
+  # tests-internal
 
-ifeq (yes,$(aarch64-variant-pcs))
 tests += tst-vpcs
 modules-names += tst-vpcs-mod
 LDFLAGS-tst-vpcs-mod.so = -Wl,-z,lazy
 $(objpfx)tst-vpcs: $(objpfx)tst-vpcs-mod.so
-endif
 endif
 
 ifeq ($(subdir),csu)
@@ -75,7 +78,9 @@ sysdep_routines += \
   __alloc_gcs
 
 tests += \
-  tst-sme-jmp
+  tst-sme-jmp \
+  tst-sme-za-state \
+  # tests
 endif
 
 ifeq ($(subdir),malloc)

@@ -1,5 +1,5 @@
 # configuration options for all flavours
-extra_config_options = --enable-multi-arch --enable-memory-tagging
+extra_config_options = --enable-multi-arch --enable-memory-tagging --enable-sframe
 
 # main library
 libc_mvec = yes

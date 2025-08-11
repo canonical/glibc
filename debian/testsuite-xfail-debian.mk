@@ -431,13 +431,12 @@ test-xfail-tst-audit28 = yes
 test-xfail-tst-execstack-prog-static-tunable = yes
 
 # new in 2.42
-test-xfail-tst-qsort7-mem = yes
-test-xfail-tst-qsortx7-mem = yes
 test-xfail-tst-fclose-devzero = yes
 test-xfail-tst-malloc-tcache-leak-malloc-largetcache = yes
 test-xfail-tst-malloc-too-large-malloc-largetcache = yes
 test-xfail-tst-mallocfork2-malloc-largetcache = yes
 test-xfail-tst-malloc-alternate-path-malloc-largetcache = yes
+test-xfail-tst-sprintf-fortify-rdonly-static = yes
 
 # actually never succeded
 test-xfail-tst-create_format1 = yes
@@ -485,9 +484,6 @@ test-xfail-tst-malloc-too-large = yes
 test-xfail-tst-malloc-too-large-malloc-check = yes
 test-xfail-tst-malloc-too-large-malloc-hugetlb1 = yes
 test-xfail-tst-malloc-too-large-malloc-hugetlb2 = yes
-
-# cmsg bug, fixed in glibc 2.41
-test-xfail-tst-cmsghdr = yes
 
 # missing support
 test-xfail-tst-map-32bit-1a = yes

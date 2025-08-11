@@ -253,7 +253,8 @@ tests := \
   tst-boost \
   tst-chmod \
   tst-cpucount \
-  tst-cpuset \
+  tst-cpuset-dynamic \
+  tst-cpuset-static \
   tst-dir \
   tst-execl1 \
   tst-execl2 \
@@ -303,6 +304,7 @@ tests := \
   tst-posix_spawn-setsid \
   tst-preadwrite \
   tst-preadwrite64 \
+  tst-regcomp-bracket-free \
   tst-regcomp-truncated \
   tst-regex \
   tst-regex2 \
@@ -347,6 +349,7 @@ tests-internal := \
   bug-regex5 \
   bug-regex20 \
   bug-regex33 \
+  tst-libc-message \
   # tests-internal
 
 tests-container := \
@@ -390,6 +393,7 @@ endif
 
 tests-static = \
   tst-exec-static \
+  tst-libc-message \
   tst-spawn-static \
   # tests-static
 

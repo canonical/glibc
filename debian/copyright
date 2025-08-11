@@ -16,8 +16,6 @@ Files:
  sysdeps/powerpc/fpu/s_ceilf.c
  sysdeps/powerpc/fpu/s_floor.c
  sysdeps/powerpc/fpu/s_floorf.c
- sysdeps/powerpc/fpu/s_modf.c
- sysdeps/powerpc/fpu/s_modff.c
  sysdeps/powerpc/fpu/s_nearbyint.c
  sysdeps/powerpc/fpu/s_nearbyintf.c
  sysdeps/powerpc/fpu/s_round.c
@@ -458,10 +456,23 @@ Files:
  sysdeps/ieee754/flt-32/e_gammaf_r.c
  sysdeps/ieee754/flt-32/e_lgammaf_r.c
  sysdeps/ieee754/flt-32/e_log10f.c
+ sysdeps/ieee754/flt-32/e_sincoshf_data.c
+ sysdeps/ieee754/flt-32/e_sincoshf_data.h
  sysdeps/ieee754/flt-32/e_sinhf.c
+ sysdeps/ieee754/flt-32/s_acospif.c
+ sysdeps/ieee754/flt-32/s_asincosf_data.c
+ sysdeps/ieee754/flt-32/s_asincosf_data.h
+ sysdeps/ieee754/flt-32/s_asincoshf_data.c
+ sysdeps/ieee754/flt-32/s_asincoshf_data.h
+ sysdeps/ieee754/flt-32/s_asincospif_data.c
+ sysdeps/ieee754/flt-32/s_asincospif_data.h
  sysdeps/ieee754/flt-32/s_asinhf.c
+ sysdeps/ieee754/flt-32/s_asinpif.c
+ sysdeps/ieee754/flt-32/s_atan2pif.c
  sysdeps/ieee754/flt-32/s_atanf.c
+ sysdeps/ieee754/flt-32/s_atanpif.c
  sysdeps/ieee754/flt-32/s_cbrtf.c
+ sysdeps/ieee754/flt-32/s_cospif.c
  sysdeps/ieee754/flt-32/s_erfcf.c
  sysdeps/ieee754/flt-32/s_erff.c
  sysdeps/ieee754/flt-32/s_exp10m1f.c
@@ -470,9 +481,13 @@ Files:
  sysdeps/ieee754/flt-32/s_log10p1f.c
  sysdeps/ieee754/flt-32/s_log1pf.c
  sysdeps/ieee754/flt-32/s_log2p1f.c
+ sysdeps/ieee754/flt-32/s_sincospif_data.c
+ sysdeps/ieee754/flt-32/s_sincospif_data.h
+ sysdeps/ieee754/flt-32/s_sinpif.c
  sysdeps/ieee754/flt-32/s_tanf.c
  sysdeps/ieee754/flt-32/s_tanhf.c
-Copyright: 2022-2024 Alexei Sibidanov and Paul Zimmermann
+ sysdeps/ieee754/flt-32/s_tanpif.c
+Copyright: 2022-2025 Alexei Sibidanov and Paul Zimmermann
 License: CORE-MATH
 
 Files:

@@ -31,8 +31,6 @@
 #define PF_DIST_L1	(CACHE_LINE_SIZE * 16)	// Prefetch distance L1
 #define vector_length	x9
 
-#if HAVE_AARCH64_SVE_ASM
-
 	.arch armv8.2-a+sve
 
 #define dstin   x0
@@ -50,13 +48,7 @@
 	.endif
 	.endm
 
-
-#undef BTI_C
-#define BTI_C
-
 ENTRY (__memset_a64fx)
-	PTR_ARG (0)
-	SIZE_ARG (2)
 
 	cntb	vector_length
 	dup	z0.b, valw
@@ -172,5 +164,3 @@ L(L2):
 	b	L(last)
 
 END (__memset_a64fx)
-
-#endif /* HAVE_AARCH64_SVE_ASM */

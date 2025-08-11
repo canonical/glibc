@@ -440,6 +440,12 @@ case "$enable_fortify_source" in
 *) AC_MSG_ERROR([Not a valid argument for --enable-fortify-source: "$enable_fortify_source"]);;
 esac
 
+AC_ARG_ENABLE([sframe],
+	      [AS_HELP_STRING([--enable-sframe],
+			      [Enable building with SFrame support @<:@default=no@:>@])],
+	      [use_sframe=$enableval],
+	      [use_sframe=no])
+
 # We keep the original values in `$config_*' and never modify them, so we
 # can write them unchanged into config.make.  Everything else uses
 # $machine, $vendor, and $os, and changes them whenever convenient.
@@ -483,6 +489,9 @@ with_fp_cond=1
 # A preconfigure script may define another name to TLS descriptor variant
 mtls_descriptor=gnu2
 
+# A preconfigure script may define another name to traditional TLS variant
+mtls_traditional=gnu
+
 dnl Let sysdeps/*/preconfigure act here.
 LIBC_PRECONFIGURE([$srcdir], [for sysdeps])
 
@@ -522,7 +531,7 @@ AC_PROG_LN_S
 
 LIBC_PROG_BINUTILS
 
-# Accept binutils 2.25 or newer.
+# Accept binutils 2.39 or newer.
 libc_cv_with_lld=no
 case $($LD --version) in
   "GNU gold"*)
@@ -543,7 +552,7 @@ case $($LD --version) in
   *)
     AC_CHECK_PROG_VER(LD, $LD, --version,
 		    [GNU ld.* \([0-9][0-9]*\.[0-9.]*\)],
-		    [2.1[0-9][0-9]*|2.2[5-9]*|2.[3-9][0-9]*|[3-9].*|[1-9][0-9]*],
+		    [2.[1-9][0-9][0-9]*|2.39*|2.[4-9][0-9]*|[3-9].*|[1-9][0-9]*],
 		    LD=: critic_missing="$critic_missing GNU ld")
     ;;
 esac
@@ -573,9 +582,10 @@ AC_CHECK_PROG_VER(BISON, bison, --version,
   [bison (GNU Bison) \([0-9]*\.[0-9.]*\)],
   [2.7*|[3-9].*|[1-9][0-9]*], critic_missing="$critic_missing bison")
 
+# Require GCC 12.1 to build.
 AC_CACHE_CHECK([if $CC is sufficient to build libc], libc_cv_compiler_ok, [
 AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[]], [[
-#if !defined __GNUC__ || __GNUC__ < 6 || (__GNUC__ == 6 && __GNUC_MINOR__ < 2)
+#if !defined __GNUC__ || __GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 1)
 #error insufficient compiler
 #endif]])],
 	       [libc_cv_compiler_ok=yes],
@@ -1318,6 +1328,10 @@ if test $libc_cv_as_noexecstack = yes; then
 fi
 AC_SUBST(ASFLAGS_config)
 
+LIBC_LINKER_FEATURE([--no-error-execstack], [-Wl,--no-error-execstack],
+		    [libc_cv_no_error_execstack=yes], [libc_cv_no_error_execstack=no])
+AC_SUBST(libc_cv_no_error_execstack)
+
 LIBC_LINKER_FEATURE([-z execstack], [-Wl,-z,execstack],
 		    [libc_cv_z_execstack=yes], [libc_cv_z_execstack=no])
 AC_SUBST(libc_cv_z_execstack)
@@ -1395,6 +1409,16 @@ LIBC_TRY_TEST_CC_COMMAND([for tls descriptor support],
   [libc_cv_test_mtls_descriptor=no])
 LIBC_CONFIG_VAR([have-test-mtls-descriptor],
 		[$libc_cv_test_mtls_descriptor])
+
+dnl Check if TEST_CC support traditional tls.
+LIBC_TRY_TEST_CC_COMMAND([for traditional tls support],
+  [$conftest_code],
+  [-fPIC -mtls-dialect=$mtls_traditional -nostdlib -nostartfiles -shared],
+  libc_cv_test_mtls_traditional,
+  [libc_cv_test_mtls_traditional=$mtls_traditional],
+  [libc_cv_test_mtls_traditional=no])
+LIBC_CONFIG_VAR([have-test-mtls-traditional],
+		[$libc_cv_test_mtls_traditional])
 
 dnl clang emits an warning for a double alias redirection, to warn the
 dnl original symbol is sed even when weak definition overrides it.
@@ -1569,6 +1593,29 @@ LIBC_TRY_CC_AND_TEST_CC_OPTION([for -Wimplicit-fallthrough],
 LIBC_CONFIG_VAR([cc-option-wimplicit-fallthrough],
 		[$libc_cv_cc_wimplicit_fallthrough])
 AC_SUBST(libc_cv_test_cc_wimplicit_fallthrough)
+
+LIBC_TRY_CC_AND_TEST_CC_OPTION([for -Wfree-labels],
+  [-Werror -Wfree-labels],
+  libc_cv_cc_wfree_labels,
+  [libc_cv_cc_wfree_labels=-Wfree-labels],
+  [libc_cv_cc_wfree_labels=],
+  libc_cv_test_cc_wfree_labels,
+  [libc_cv_test_cc_wfree_labels=-Wfree-labels],
+  [libc_cv_test_cc_wfree_labels=])
+LIBC_CONFIG_VAR([cc-option-wfree-labels], [$libc_cv_cc_wfree_labels])
+AC_SUBST(libc_cv_test_cc_wfree_labels)
+
+LIBC_TRY_CC_AND_TEST_CC_OPTION([for -Wmissing-parameter-name],
+  [-Werror -Wmissing-parameter-name],
+  libc_cv_cc_wmissing_parameter_name,
+  [libc_cv_cc_wmissing_parameter_name=-Wmissing-parameter-name],
+  [libc_cv_cc_wmissing_parameter_name=],
+  libc_cv_test_cc_wmissing_parameter_name,
+  [libc_cv_test_cc_wmissing_parameter_name=-Wmissing-parameter-name],
+  [libc_cv_test_cc_wmissing_parameter_name=])
+LIBC_CONFIG_VAR([cc-option-wmissing-parameter-name],
+		[$libc_cv_cc_wmissing_parameter_name])
+AC_SUBST(libc_cv_test_cc_wmissing_parameter_name)
 
 conftest_code="
 void bar (void (*callback) (void));
@@ -1820,6 +1867,17 @@ if test $libc_cv_builtin_trap = yes; then
   AC_DEFINE([HAVE_BUILTIN_TRAP])
 fi
 
+dnl Check if
+AC_CACHE_CHECK([whether the compiler supports __attribute__ ((aligned (65536)))],
+	       libc_cv_aligned_65536, [
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([
+char bss[0xb5dce8] __attribute__ ((aligned (65536)));
+])],
+	       [libc_cv_aligned_65536=yes],
+	       [libc_cv_aligned_65536=no])
+])
+LIBC_CONFIG_VAR([aligned-65536], [$libc_cv_aligned_65536])
+
 dnl C++ feature tests.
 AC_LANG_PUSH([C++])
 
@@ -1992,6 +2050,23 @@ LIBC_LINKER_FEATURE([-Ttext-segment=$libc_cv_pde_load_address],
 		    [libc_cv_load_address_ldflag=])
 LIBC_CONFIG_VAR([load-address-ldflag], [$libc_cv_load_address_ldflag])
 
+# Check if compilers support GCS in branch protection:
+LIBC_TRY_CC_AND_TEST_CC_OPTION([if compiler supports -mbranch-protection=gcs],
+  [-Werror -mbranch-protection=gcs],
+  libc_cv_cc_gcs,
+  [libc_cv_cc_gcs=yes],
+  [libc_cv_cc_gcs=no],
+  libc_cv_test_cc_gcs,
+  [libc_cv_test_cc_gcs=yes],
+  [libc_cv_test_cc_gcs=no])
+LIBC_CONFIG_VAR([have-cc-gcs], [$libc_cv_cc_gcs])
+LIBC_CONFIG_VAR([have-test-cc-gcs], [$libc_cv_test_cc_gcs])
+
+# Check if linker supports GCS marking
+LIBC_LINKER_FEATURE([-z gcs=always], [-Wl,-z,gcs=always],
+		    [libc_cv_ld_gcs=yes], [libc_cv_ld_gcs=no])
+LIBC_CONFIG_VAR([have-ld-gcs], [$libc_cv_ld_gcs])
+
 AC_MSG_CHECKING(if we can build programs as PIE)
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#ifdef PIE_UNSUPPORTED
 # error PIE is not supported
@@ -2029,10 +2104,66 @@ if test "$libc_cv_static_pie" = "yes"; then
 fi
 LIBC_CONFIG_VAR([enable-static-pie], [$libc_cv_static_pie])
 
+# Check if we can link support functionality against libgcc_s.
+# Must not be used for linking installed binaries, to produce the
+# same binaries for bootstrapped and bootstrapping builds (the latter
+# with a GCC that does not build libgcc_s).
+AC_CACHE_CHECK([whether $CC can link against -lgcc_s], libc_cv_have_libgcc_s, [dnl
+  old_LIBS="$LIBS"
+  LIBS="$LIBS -lgcc_s"
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
+		 [libc_cv_have_libgcc_s=yes], [libc_cv_have_libgcc_s=no])
+  LIBS="$old_LIBS"])
+LIBC_CONFIG_VAR([have-libgcc_s], [$libc_cv_have_libgcc_s])
+
 # Support configure.ac under sysdeps.
 AC_SUBST(libc_cv_test_cc_mprefer_vector_width)
 AC_SUBST(test_enable_cet)
 AC_SUBST(libc_cv_test_x86_have_amx_tile)
+
+enable_gsframe=no
+if test $use_sframe = yes; then
+  # SFrame requires to be explicit enabled by the architecture
+  if test -z $libc_cv_support_sframe; then
+    AC_MSG_FAILURE([the architecture doesn't support SFrame])
+  fi
+
+  # SFrame requires binutils 2.45 or higher.
+  libc_cv_sframe_readelf_version=yes
+  AC_CHECK_PROG_VER(READELF, $READELF, --version,
+    [GNU readelf.* \([0-9][0-9]*\.[0-9.]*\)],
+    [2.4[5-9]*|2.[5-9][0-9]*|2.[1-9][0-9][0-9]*|[3-9]*|[1-9][0-9]*],
+    libc_cv_sframe_readelf_version=no)
+  if test $libc_cv_sframe_readelf_version = no; then
+    AC_MSG_FAILURE([binutils too old to enable SFrame])
+  fi
+
+  # Check if the current toolchain supports SFrame
+  AC_CACHE_CHECK([for SFrame support], libc_cv_default_sframe,
+  [dnl
+cat > conftest.c <<EOF
+int test_function(void)
+{
+  return 42;
+}
+EOF
+    libc_cv_default_sframe=no
+    if ${CC} -c conftest.c -o conftest.o -Wa,--gsframe >/dev/null 2>&1 && \
+       # Check if .sframe section is present and if version > 1
+       $READELF --sframe conftest.o | grep "SFRAME_VER" | grep -qv "VERSION_1"; then
+      libc_cv_default_sframe=yes
+    fi
+    rm -f conftest.c conftest.o
+  ])
+
+  if test $libc_cv_default_sframe = no; then
+    AC_MSG_FAILURE([toolchain doesn't support SFrame v2 or higher])
+  fi
+
+  enable_gsframe=yes
+  AC_DEFINE(ENABLE_SFRAME)
+fi
+LIBC_CONFIG_VAR([enable-gsframe], [$enable_gsframe])
 
 # Set the `multidir' variable by grabbing the variable from the compiler.
 # We do it once and save the result in a generated makefile.
