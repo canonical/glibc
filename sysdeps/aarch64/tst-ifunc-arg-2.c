@@ -60,6 +60,20 @@ do_test (void)
   TEST_COMPARE (saved_arg2._size, sizeof (__ifunc_arg_t));
   TEST_COMPARE (saved_arg2._hwcap, getauxval (AT_HWCAP));
   TEST_COMPARE (saved_arg2._hwcap2, getauxval (AT_HWCAP2));
+  TEST_COMPARE (saved_arg2._hwcap3, getauxval (AT_HWCAP3));
+  TEST_COMPARE (saved_arg2._hwcap4, getauxval (AT_HWCAP4));
+
+  const unsigned long *saved_arg2_ptr = (const unsigned long *)&saved_arg2;
+
+  TEST_COMPARE (__ifunc_hwcap (1, saved_arg1, saved_arg2_ptr),
+                getauxval (AT_HWCAP));
+  TEST_COMPARE (__ifunc_hwcap (2, saved_arg1, saved_arg2_ptr),
+                getauxval (AT_HWCAP2));
+  TEST_COMPARE (__ifunc_hwcap (3, saved_arg1, saved_arg2_ptr),
+                getauxval (AT_HWCAP3));
+  TEST_COMPARE (__ifunc_hwcap (4, saved_arg1, saved_arg2_ptr),
+                getauxval (AT_HWCAP4));
+
   return 0;
 }
 

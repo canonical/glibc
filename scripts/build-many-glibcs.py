@@ -742,7 +742,13 @@ class Context(object):
         logsdir = os.path.join(self.logsdir, 'host-libraries')
         self.remove_recreate_dirs(installdir, builddir, logsdir)
         cmdlist = CommandList('host-libraries', self.keep)
-        self.build_host_library(cmdlist, 'gmp')
+        # This CFLAGS setting works around GMP 6.3.0's configure
+        # script being incompatible with compilers defaulting to C23
+        # and should be removed when this script is updated to use a
+        # release of GMP from after that configure test was fixed in
+        # Jan 2025.
+        self.build_host_library(cmdlist, 'gmp',
+                                ['CFLAGS=-Wall -O2 -std=gnu17'])
         self.build_host_library(cmdlist, 'mpfr',
                                 ['--with-gmp=%s' % installdir])
         self.build_host_library(cmdlist, 'mpc',
@@ -827,13 +833,13 @@ class Context(object):
 
     def checkout(self, versions):
         """Check out the desired component versions."""
-        default_versions = {'binutils': 'vcs-2.43',
+        default_versions = {'binutils': 'vcs-2.44',
                             'gcc': 'vcs-14',
                             'glibc': 'vcs-mainline',
                             'gmp': '6.3.0',
-                            'linux': '6.12',
+                            'linux': '6.15',
                             'mpc': '1.3.1',
-                            'mpfr': '4.2.1',
+                            'mpfr': '4.2.2',
                             'mig': 'vcs-mainline',
                             'gnumach': 'vcs-mainline',
                             'hurd': 'vcs-mainline'}

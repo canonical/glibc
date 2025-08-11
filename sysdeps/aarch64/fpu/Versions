@@ -157,4 +157,26 @@ libmvec {
     _ZGVsMxv_tanpi;
     _ZGVsMxv_tanpif;
   }
+  GLIBC_2.42 {
+    _ZGVnN2v_acospi;
+    _ZGVnN2v_acospif;
+    _ZGVnN4v_acospif;
+    _ZGVsMxv_acospi;
+    _ZGVsMxv_acospif;
+    _ZGVnN2v_asinpi;
+    _ZGVnN2v_asinpif;
+    _ZGVnN4v_asinpif;
+    _ZGVsMxv_asinpi;
+    _ZGVsMxv_asinpif;
+    _ZGVnN2v_atanpi;
+    _ZGVnN2v_atanpif;
+    _ZGVnN4v_atanpif;
+    _ZGVsMxv_atanpi;
+    _ZGVsMxv_atanpif;
+    _ZGVnN2vv_atan2pi;
+    _ZGVnN2vv_atan2pif;
+    _ZGVnN4vv_atan2pif;
+    _ZGVsMxvv_atan2pi;
+    _ZGVsMxvv_atan2pif;
+  }
 }

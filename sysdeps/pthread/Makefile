@@ -62,7 +62,6 @@ tests += \
   tst-abstime \
   tst-atfork1 \
   tst-attr1 \
-  tst-backtrace1 \
   tst-bad-schedattr \
   tst-barrier1 \
   tst-barrier2 \
@@ -106,6 +105,7 @@ tests += \
   tst-cancel28 \
   tst-cancel29 \
   tst-cancel30 \
+  tst-cancel32 \
   tst-cleanup0 \
   tst-cleanup1 \
   tst-cleanup2 \
@@ -154,6 +154,7 @@ tests += \
   tst-exit3 \
   tst-flock1 \
   tst-flock2 \
+  tst-fopen-threaded \
   tst-fork1 \
   tst-fork2 \
   tst-fork3 \
@@ -271,6 +272,7 @@ tests += \
   tst-spin4 \
   tst-spin5 \
   tst-stack1 \
+  tst-stack2 \
   tst-stdio1 \
   tst-stdio2 \
   tst-thrd-detach \
@@ -303,7 +305,7 @@ tests-time64 += \
   tst-thrd-sleep-time64 \
   # tests-time64
 
-static-only-routines = pthread_atfork
+static-only-routines += pthread_atfork
 
 # Files which must not be linked with libpthread.
 tests-nolibpthread += \
@@ -366,6 +368,7 @@ modules-names += \
   tst-atfork4mod \
   tst-create1mod \
   tst-fini1mod \
+  tst-stack2-mod \
   tst-tls4moda \
   tst-tls4modb \
   # modules-names
@@ -538,5 +541,13 @@ CFLAGS-tst-unwind-thread.c += -funwind-tables
 LDFLAGS-tst-create1 = -Wl,-export-dynamic
 $(objpfx)tst-create1: $(shared-thread-library)
 $(objpfx)tst-create1.out: $(objpfx)tst-create1mod.so
+
+$(objpfx)tst-stack2.out: $(objpfx)tst-stack2-mod.so
+$(objpfx)tst-stack2-mod.so: $(shared-thread-library)
+LDFLAGS-tst-stack2-mod.so = -Wl,-z,execstack
+ifeq ($(have-no-error-execstack),yes)
+LDFLAGS-tst-stack2-mod.so += -Wl,--no-error-execstack
+endif
+tst-stack2-ENV = GLIBC_TUNABLES=glibc.rtld.execstack=2
 
 endif

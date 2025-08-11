@@ -19,6 +19,10 @@ sysdep_routines += _mcount
 # recursive calls when ENTRY is used.  Just copy the normal static
 # object.
 sysdep_noprof += _mcount
+
+ifeq (yes,$(have-x86-apx))
+CFLAGS-mcount.c += -mno-apxf
+endif
 endif
 
 ifeq ($(subdir),string)
@@ -41,9 +45,6 @@ ifeq ($(subdir),elf)
 CFLAGS-.os += $(if $(filter $(@F),$(patsubst %,%.os,$(all-rtld-routines))),\
 		   -mno-mmx)
 
-sysdep-dl-routines += tlsdesc dl-tlsdesc tls_get_addr
-
-tests += ifuncmain8
 modules-names += ifuncmod8
 
 $(objpfx)ifuncmain8: $(objpfx)ifuncmod8.so
@@ -142,7 +143,6 @@ CFLAGS-tst-avxmod.c += $(AVX-CFLAGS)
 AVX512-CFLAGS = -mavx512f
 CFLAGS-tst-audit10-aux.c += $(AVX512-CFLAGS)
 CFLAGS-tst-auditmod10a.c += $(AVX512-CFLAGS)
-CFLAGS-tst-auditmod10b.c += $(AVX512-CFLAGS)
 CFLAGS-tst-avx512-aux.c += $(AVX512-CFLAGS)
 CFLAGS-tst-avx512mod.c += $(AVX512-CFLAGS)
 
@@ -215,6 +215,24 @@ $(objpfx)tst-plt-rewrite2: $(objpfx)tst-plt-rewritemod2.so
 endif
 
 test-internal-extras += tst-gnu2-tls2mod1
+
+tests-special += $(objpfx)check-rtld.out
+
+$(objpfx)rtld.reloc: $(objpfx)rtld.os
+	@rm -f $@T
+	LC_ALL=C $(READELF) -rW $< > $@T
+	test -s $@T
+	mv -f $@T $@
+common-generated += $(objpfx)rtld.reloc
+
+# Verify that there are no run-time relocations against __ehdr_start nor
+# _end.
+$(objpfx)check-rtld.out: $(objpfx)rtld.reloc
+	LC_ALL=C; \
+	if grep -E "R_X86_64_64.*(__ehdr_start|_end)" $^ > $@; \
+	  then false; else true; fi; \
+	$(evaluate-test)
+generated += check-rtld.out
 endif # $(subdir) == elf
 
 ifeq ($(subdir),csu)

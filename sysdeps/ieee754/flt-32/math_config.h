@@ -84,6 +84,31 @@ roundeven_finite (double x)
 #endif
 }
 
+#ifndef ROUNDEVENF_INTRINSICS
+/* When set, roundevenf_finite will route to the internal roundevenf function.  */
+# define ROUNDEVENF_INTRINSICS 1
+#endif
+
+static inline float
+roundevenf_finite (float x)
+{
+  if (!isfinite (x))
+    __builtin_unreachable ();
+#if ROUNDEVENF_INTRINSICS
+  return roundevenf (x);
+#else
+  float y = roundf (x);
+  if (fabs (x - y) == 0.5)
+    {
+      union { float f; uint32_t i; } u = {y};
+      union { float f; uint32_t i; } v = {y - copysignf (1.0, x)};
+      if (__builtin_ctzl (v.i) > __builtin_ctzl (u.i))
+        y = v.f;
+    }
+  return y;
+#endif
+}
+
 static inline uint32_t
 asuint (float f)
 {
@@ -140,6 +165,7 @@ issignalingf_inline (float x)
 #define BIT_WIDTH       32
 #define MANTISSA_WIDTH  23
 #define EXPONENT_WIDTH  8
+#define EXPONENT_BIAS   127
 #define MANTISSA_MASK   0x007fffff
 #define EXPONENT_MASK   0x7f800000
 #define EXP_MANT_MASK   0x7fffffff
@@ -152,10 +178,22 @@ is_nan (uint32_t x)
   return (x & EXP_MANT_MASK) > EXPONENT_MASK;
 }
 
+static inline bool
+is_inf (uint32_t x)
+{
+  return (x << 1) == (EXPONENT_MASK << 1);
+}
+
 static inline uint32_t
 get_mantissa (uint32_t x)
 {
   return x & MANTISSA_MASK;
+}
+
+static inline int
+get_exponent (uint32_t x)
+{
+  return (int)((x >> MANTISSA_WIDTH & 0xff) - EXPONENT_BIAS);
 }
 
 /* Convert integer number X, unbiased exponent EP, and sign S to double:
@@ -183,6 +221,8 @@ attribute_hidden float __math_uflowf (uint32_t);
 attribute_hidden float __math_may_uflowf (uint32_t);
 attribute_hidden float __math_divzerof (uint32_t);
 attribute_hidden float __math_invalidf (float);
+attribute_hidden int __math_invalidf_i (int);
+attribute_hidden long int __math_invalidf_li (long int);
 attribute_hidden float __math_edomf (float x);
 
 /* Shared between expf, exp2f, exp10f, and powf.  */

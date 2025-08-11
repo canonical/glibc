@@ -18,11 +18,12 @@
    <https://www.gnu.org/licenses/>.  */
 
 #include <unistd.h>
-#include <dl-procinfo.h>
 #include <cpu-features.h>
+#include <ldsodefs.h>
+#include <sys/auxv.h>
 
 #define s390_libc_ifunc_expr_stfle_init()				\
-  const unsigned long long *stfle_bits = features->stfle_bits;
+  const unsigned long long stfle_bits = features->stfle_filtered;
 
 #define s390_libc_ifunc_expr_init()					\
   const struct cpu_features *features = &GLRO(dl_s390_cpu_features);	\

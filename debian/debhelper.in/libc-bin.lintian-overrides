@@ -1,6 +1,12 @@
 # ldconfig must be executable even when the libc is not configured, and
 # thus must be linked statically
-shared-library-lacks-prerequisites [usr/sbin/ldconfig]
+shared-library-lacks-prerequisites [usr/sbin/ldconfig.real]
+
+# ldconfig.real doesn't have a manpage, since it's just ldconfig renamed
+no-manual-page [usr/sbin/ldconfig.real]
+
+# ldconfig is called in the postinst for trigger support
+libc-bin: postinst-has-useless-call-to-ldconfig
 
 # these manpages are provided by the manpages package
 no-manual-page [usr/sbin/ldconfig]

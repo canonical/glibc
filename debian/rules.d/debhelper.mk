@@ -12,6 +12,16 @@ ifeq ($(filter stage1,$(DEB_BUILD_PROFILES)),)
 DH_STRIP_DEBUG_PACKAGE=--dbg-package=$(libc)-dbg
 endif
 
+$(stamp)binaryinst_glibc-source:: $(stamp)source
+$(stamp)binaryinst_libc-bin:: $(stamp)build_C.utf8
+$(stamp)binaryinst_locales-all:: $(stamp)build_locales-all
+
+# The main libc package needs to be built before the packages containing binaries
+# in order for the GLIBC_PRIVATE symbol to be resolved with the correct version
+$(stamp)binaryinst_libc-bin:: $(stamp)binaryinst_$(libc)
+$(stamp)binaryinst_libc-dev-bin:: $(stamp)binaryinst_$(libc)
+$(stamp)binaryinst_nscd:: $(stamp)binaryinst_$(libc)
+
 $(patsubst %,$(stamp)binaryinst_%,$(DEB_ARCH_REGULAR_PACKAGES) $(DEB_INDEP_REGULAR_PACKAGES)):: $(patsubst %,$(stamp)install_%,$(GLIBC_PASSES)) debhelper
 	@echo Running debhelper for $(curpass)
 	dh_testroot
@@ -41,15 +51,30 @@ $(patsubst %,$(stamp)binaryinst_%,$(DEB_ARCH_REGULAR_PACKAGES) $(DEB_INDEP_REGUL
 	dh_link -p$(curpass)
 	dh_bugfiles -p$(curpass)
 
+	if test "$(curpass)" = "libc-bin"; then			\
+	  mv debian/$(curpass)/usr/sbin/ldconfig			\
+	    debian/$(curpass)/usr/sbin/ldconfig.real;		\
+	  install -m755 debian/local/sbin/ldconfig	\
+	    debian/$(curpass)/usr/sbin/ldconfig;			\
+	fi
+
 	# when you want to install extra packages, use extra_pkg_install.
 	$(call xx,extra_pkg_install)
 
 ifeq ($(filter nostrip,$(DEB_BUILD_OPTIONS)),)
 	if test "$(NOSTRIP_$(curpass))" != 1; then					\
 	  if test "$(DEBUG_$(curpass))" = 1; then					\
-	    dh_strip -p$(curpass) $(DH_STRIP_DEBUG_PACKAGE);				\
+	    if test "$(DEB_HOST_ARCH)" = "armhf"; then					\
+	      dh_strip -p$(curpass) -Xld-linux-$(DEB_HOST_ARCH).so $(DH_STRIP_DEBUG_PACKAGE);	\
+	    else									\
+	      dh_strip -p$(curpass) $(DH_STRIP_DEBUG_PACKAGE);	\
+	    fi ;									\
 	  else										\
-	    dh_strip -p$(curpass);							\
+	    if test "$(DEB_HOST_ARCH)" = "armhf"; then					\
+	      dh_strip -p$(curpass) -Xld-linux-$(DEB_HOST_ARCH).so;							\
+	    else									\
+	      dh_strip -p$(curpass);							\
+	    fi ;									\
 	  fi ;										\
 	  for f in $$(find debian/$(curpass) -name \*crt\*.o) ; do			\
 	    $(DEB_HOST_GNU_TYPE)-strip --strip-debug --remove-section=.comment		\
@@ -62,6 +87,9 @@ endif
 	# Keep the setuid on pt_chown (non-Linux only).
 	# Keep the 0700 permissions of /var/cache/ldconfig
 	dh_fixperms -p$(curpass) -Xpt_chown -Xvar/cache/ldconfig
+	if [ $(curpass) = locales ] ; then \
+		chmod +x debian/$(curpass)/usr/share/locales/*-language-pack ; \
+	fi
 	# libc.so prints useful version information when executed.
 	find debian/$(curpass) -type f -regex '.*/libc\.so\.[0-9.]+' -exec chmod a+x '{}' ';'
 	# Use this instead of -X to dh_fixperms so that we can use

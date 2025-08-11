@@ -164,9 +164,6 @@ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
   /* Support sysdeps/powerpc/powerpc64/multiarch/strncmp.c.  */
   IFUNC_IMPL (i, name, strncmp,
 #ifdef __LITTLE_ENDIAN__
-	      IFUNC_IMPL_ADD (array, i, strncmp, hwcap2 & PPC_FEATURE2_ARCH_3_1
-			      && hwcap & PPC_FEATURE_HAS_VSX,
-			      __strncmp_power10)
 	      IFUNC_IMPL_ADD (array, i, strncmp, hwcap2 & PPC_FEATURE2_ARCH_3_00
 			      && hwcap & PPC_FEATURE_HAS_ALTIVEC,
 			      __strncmp_power9)
@@ -229,12 +226,6 @@ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
 
   /* Support sysdeps/powerpc/powerpc64/multiarch/memchr.c.  */
   IFUNC_IMPL (i, name, memchr,
-#ifdef __LITTLE_ENDIAN__
-	      IFUNC_IMPL_ADD (array, i, memchr,
-		              hwcap2 & PPC_FEATURE2_ARCH_3_1
-			      && hwcap & PPC_FEATURE_HAS_VSX,
-			      __memchr_power10)
-#endif
 	      IFUNC_IMPL_ADD (array, i, memchr,
 			      hwcap2 & PPC_FEATURE2_ARCH_2_07
 			      && hwcap & PPC_FEATURE_HAS_ALTIVEC,
@@ -311,18 +302,7 @@ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
 			      hwcap2 & PPC_FEATURE2_ARCH_2_07
 			       && hwcap & PPC_FEATURE_HAS_ALTIVEC,
 			      __strncasecmp_power8)
-	      IFUNC_IMPL_ADD (array, i, strncasecmp,
-			      hwcap & PPC_FEATURE_ARCH_2_06,
-			      __strncasecmp_power7)
 	      IFUNC_IMPL_ADD (array, i, strncasecmp, 1, __strncasecmp_ppc))
-
-  /* Support sysdeps/powerpc/powerpc64/multiarch/strncase_l.c.  */
-  IFUNC_IMPL (i, name, strncasecmp_l,
-	      IFUNC_IMPL_ADD (array, i, strncasecmp_l,
-			      hwcap & PPC_FEATURE_ARCH_2_06,
-			      __strncasecmp_l_power7)
-	      IFUNC_IMPL_ADD (array, i, strncasecmp_l, 1,
-			      __strncasecmp_l_ppc))
 
   /* Support sysdeps/powerpc/powerpc64/multiarch/strrchr.c.  */
   IFUNC_IMPL (i, name, strrchr,
@@ -386,10 +366,6 @@ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
   /* Support sysdeps/powerpc/powerpc64/multiarch/strcmp.c.  */
   IFUNC_IMPL (i, name, strcmp,
 #ifdef __LITTLE_ENDIAN__
-	      IFUNC_IMPL_ADD (array, i, strcmp,
-			      (hwcap2 & PPC_FEATURE2_ARCH_3_1)
-			      && (hwcap & PPC_FEATURE_HAS_VSX),
-			      __strcmp_power10)
 	      IFUNC_IMPL_ADD (array, i, strcmp,
 			      hwcap2 & PPC_FEATURE2_ARCH_3_00
 			      && hwcap & PPC_FEATURE_HAS_ALTIVEC,

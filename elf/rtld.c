@@ -35,7 +35,6 @@
 #include <unsecvars.h>
 #include <dl-cache.h>
 #include <dl-osinfo.h>
-#include <dl-procinfo.h>
 #include <dl-prop.h>
 #include <dl-vdso.h>
 #include <dl-vdso-setup.h>
@@ -428,7 +427,6 @@ static ElfW(Addr) _dl_start_final (void *arg,
 
 /* These are defined magically by the linker.  */
 extern const ElfW(Ehdr) __ehdr_start attribute_hidden;
-extern char _etext[] attribute_hidden;
 extern char _end[] attribute_hidden;
 
 
@@ -459,6 +457,7 @@ _dl_start_final (void *arg, struct dl_start_final_info *info)
   /* Do not use an initializer for these members because it would
      interfere with __rtld_static_init.  */
   GLRO (dl_find_object) = &_dl_find_object;
+  GLRO (dl_readonly_area) = &_dl_readonly_area;
 
   /* If it hasn't happen yet record the startup time.  */
   rtld_timer_start (&start_time);
@@ -477,8 +476,10 @@ _dl_start_final (void *arg, struct dl_start_final_info *info)
 #endif
   _dl_setup_hash (&_dl_rtld_map);
   _dl_rtld_map.l_real = &_dl_rtld_map;
-  _dl_rtld_map.l_map_start = (ElfW(Addr)) &__ehdr_start;
-  _dl_rtld_map.l_map_end = (ElfW(Addr)) _end;
+  _dl_rtld_map.l_map_start
+    = (ElfW(Addr)) DL_ADDRESS_WITHOUT_RELOC (&__ehdr_start);
+  _dl_rtld_map.l_map_end
+    = (ElfW(Addr)) DL_ADDRESS_WITHOUT_RELOC (_end);
   /* Copy the TLS related data if necessary.  */
 #ifndef DONT_USE_BOOTSTRAP_MAP
 # if NO_TLS_OFFSET != 0
@@ -1055,13 +1056,9 @@ static void
 rtld_chain_load (struct link_map *main_map, char *argv0)
 {
   /* The dynamic loader run against itself.  */
-  const char *rtld_soname
-    = ((const char *) D_PTR (&_dl_rtld_map, l_info[DT_STRTAB])
-       + _dl_rtld_map.l_info[DT_SONAME]->d_un.d_val);
-  if (main_map->l_info[DT_SONAME] != NULL
-      && strcmp (rtld_soname,
-		 ((const char *) D_PTR (main_map, l_info[DT_STRTAB])
-		  + main_map->l_info[DT_SONAME]->d_un.d_val)) == 0)
+  const char *rtld_soname = l_soname (&_dl_rtld_map);
+  if (l_soname (main_map) != NULL
+      && strcmp (rtld_soname, l_soname (main_map)) == 0)
     _dl_fatal_printf ("%s: loader cannot load itself\n", rtld_soname);
 
   /* With DT_NEEDED dependencies, the executable is dynamically
@@ -1626,26 +1623,26 @@ dl_main (const ElfW(Phdr) *phdr,
 
   bool has_interp = rtld_setup_main_map (main_map);
 
-  if ((__glibc_unlikely (GL(dl_stack_flags)) & PF_X)
-      && TUNABLE_GET (glibc, rtld, execstack, int32_t, NULL) == 0)
-    _dl_fatal_printf ("Fatal glibc error: executable stack is not allowed\n");
+  /* Handle this after PT_GNU_STACK parse, because it updates dl_stack_flags
+     if required.  */
+  _dl_handle_execstack_tunable ();
 
   /* If the current libname is different from the SONAME, add the
      latter as well.  */
-  if (_dl_rtld_map.l_info[DT_SONAME] != NULL
-      && strcmp (_dl_rtld_map.l_libname->name,
-		 (const char *) D_PTR (&_dl_rtld_map, l_info[DT_STRTAB])
-		 + _dl_rtld_map.l_info[DT_SONAME]->d_un.d_val) != 0)
-    {
-      static struct libname_list newname;
-      newname.name = ((char *) D_PTR (&_dl_rtld_map, l_info[DT_STRTAB])
-		      + _dl_rtld_map.l_info[DT_SONAME]->d_un.d_ptr);
-      newname.next = NULL;
-      newname.dont_free = 1;
+  {
+    const char *soname = l_soname (&_dl_rtld_map);
+    if (soname != NULL
+	&& strcmp (_dl_rtld_map.l_libname->name, soname) != 0)
+      {
+	static struct libname_list newname;
+	newname.name = soname;
+	newname.next = NULL;
+	newname.dont_free = 1;
 
-      assert (_dl_rtld_map.l_libname->next == NULL);
-      _dl_rtld_map.l_libname->next = &newname;
-    }
+	assert (_dl_rtld_map.l_libname->next == NULL);
+	_dl_rtld_map.l_libname->next = &newname;
+      }
+  }
   /* The ld.so must be relocated since otherwise loading audit modules
      will fail since they reuse the very same ld.so.  */
   assert (_dl_rtld_map.l_relocated);
@@ -1658,10 +1655,8 @@ dl_main (const ElfW(Phdr) *phdr,
       /* If the main map is libc.so, update the base namespace to
 	 refer to this map.  If libc.so is loaded later, this happens
 	 in _dl_map_object_from_fd.  */
-      if (main_map->l_info[DT_SONAME] != NULL
-	  && (strcmp (((const char *) D_PTR (main_map, l_info[DT_STRTAB])
-		      + main_map->l_info[DT_SONAME]->d_un.d_val), LIBC_SO)
-	      == 0))
+      if (l_soname (main_map) != NULL
+	  && strcmp (l_soname (main_map), LIBC_SO) == 0)
 	GL(dl_ns)[LM_ID_BASE].libc_map = main_map;
 
       /* Set up our cache of pointers into the hash table.  */
@@ -1783,8 +1778,7 @@ dl_main (const ElfW(Phdr) *phdr,
   elf_setup_debug_entry (main_map, r);
 
   /* We start adding objects.  */
-  r->r_state = RT_ADD;
-  _dl_debug_state ();
+  _dl_debug_change_state (r, RT_ADD);
   LIBC_PROBE (init_start, 2, LM_ID_BASE, r);
 
   /* Auditing checkpoint: we are ready to signal that the initial map
@@ -2319,6 +2313,9 @@ dl_main (const ElfW(Phdr) *phdr,
 
       __rtld_mutex_init ();
       __rtld_malloc_init_real (main_map);
+
+      /* Update copy-relocated _r_debug if necessary.  */
+      _dl_debug_post_relocate (main_map);
     }
 
   /* All ld.so initialization is complete.  Apply RELRO.  */
@@ -2339,8 +2336,7 @@ dl_main (const ElfW(Phdr) *phdr,
   /* Notify the debugger all new objects are now ready to go.  We must re-get
      the address since by now the variable might be in another object.  */
   r = _dl_debug_update (LM_ID_BASE);
-  r->r_state = RT_CONSISTENT;
-  _dl_debug_state ();
+  _dl_debug_change_state (r, RT_CONSISTENT);
   LIBC_PROBE (init_complete, 2, LM_ID_BASE, r);
 
   /* Auditing checkpoint: we have added all objects.  */
