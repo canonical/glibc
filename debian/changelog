@@ -1,3 +1,12 @@
+glibc (2.36-9+deb12u13) bookworm; urgency=medium
+
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix error reporting (false negatives) in SGID tests
+    - Fix double-free after allocation failure in regcomp (GLIBC-SA-2025-0005
+      / CVE-2025-8058).  Closes: #1109803.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 25 Aug 2025 21:11:05 +0200
+
 glibc (2.36-9+deb12u12) bookworm; urgency=medium
 
   * d/p/local-revert-aarch64-use-prefer_sve_ifuncs-for-sve-memset.diff: revert

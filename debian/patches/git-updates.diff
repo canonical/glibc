@@ -85,10 +85,10 @@ index d1e139d03c..09c0cf8357 100644
  else	   					# -s
  verbose	:=
 diff --git a/NEWS b/NEWS
-index f61e521fc8..5efe374819 100644
+index f61e521fc8..60ac79f4e6 100644
 --- a/NEWS
 +++ b/NEWS
-@@ -5,6 +5,116 @@ See the end for copying conditions.
+@@ -5,6 +5,117 @@ See the end for copying conditions.
  Please send GNU C library bug reports via <https://sourceware.org/bugzilla/>
  using `glibc' in the "product" field.
  
@@ -201,6 +201,7 @@ index f61e521fc8..5efe374819 100644
 +  [32470] x86: Avoid integer truncation with large cache sizes
 +  [32582] Fix underallocation of abort_msg_s struct (CVE-2025-0395)
 +  [32987] elf: Fix subprocess status handling for tst-dlopen-sgid
++  [33185] Fix double-free after allocation failure in regcomp
 +
  Version 2.36
  
@@ -2089,10 +2090,10 @@ index 0000000000..5eb79eef48
 +/* Opening this object should not succeed.  */
 diff --git a/elf/tst-dlopen-sgid.c b/elf/tst-dlopen-sgid.c
 new file mode 100644
-index 0000000000..5688b79f2e
+index 0000000000..8aec52e19f
 --- /dev/null
 +++ b/elf/tst-dlopen-sgid.c
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,106 @@
 +/* Test case for ignored LD_LIBRARY_PATH in static startug (bug 32976).
 +   Copyright (C) 2025 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -2165,13 +2166,7 @@ index 0000000000..5688b79f2e
 +
 +  free (libdir);
 +
-+  int status = support_capture_subprogram_self_sgid (magic_argument);
-+
-+  if (WEXITSTATUS (status) == EXIT_UNSUPPORTED)
-+    return EXIT_UNSUPPORTED;
-+
-+  if (!WIFEXITED (status))
-+    FAIL_EXIT1 ("Unexpected exit status %d from child process\n", status);
++  support_capture_subprogram_self_sgid (magic_argument);
 +
 +  return 0;
 +}
@@ -2206,7 +2201,7 @@ index 0000000000..5688b79f2e
 +#define PREPARE alternative_main
 +#include <support/test-driver.c>
 diff --git a/elf/tst-env-setuid-tunables.c b/elf/tst-env-setuid-tunables.c
-index 88182b7b25..5e9e4c5756 100644
+index 88182b7b25..bca299bb34 100644
 --- a/elf/tst-env-setuid-tunables.c
 +++ b/elf/tst-env-setuid-tunables.c
 @@ -52,6 +52,8 @@ const char *teststrings[] =
@@ -2247,14 +2242,13 @@ index 88182b7b25..5e9e4c5756 100644
  
    return 1;
  #else
-@@ -117,21 +128,26 @@ do_test (int argc, char **argv)
+@@ -116,32 +127,28 @@ do_test (int argc, char **argv)
+ 
        if (ret != 0)
  	exit (1);
- 
+-
 -      exit (EXIT_SUCCESS);
-+      /* Special return code to make sure that the child executed all the way
-+	 through.  */
-+      exit (42);
++      return 0;
      }
    else
      {
@@ -2271,31 +2265,53 @@ index 88182b7b25..5e9e4c5756 100644
 +	  fflush (stdout);
  	  if (setenv ("GLIBC_TUNABLES", teststrings[i], 1) != 0)
 -	    exit (1);
+-
+-	  int status = support_capture_subprogram_self_sgid (buf);
+-
+-	  /* Bail out early if unsupported.  */
+-	  if (WEXITSTATUS (status) == EXIT_UNSUPPORTED)
+-	    return EXIT_UNSUPPORTED;
 +	    {
 +	      printf ("    [%d] Failed to set GLIBC_TUNABLES: %m", i);
 +	      support_record_failure ();
 +	      continue;
 +	    }
  
- 	  int status = support_capture_subprogram_self_sgid (buf);
- 
-@@ -139,9 +155,14 @@ do_test (int argc, char **argv)
- 	  if (WEXITSTATUS (status) == EXIT_UNSUPPORTED)
- 	    return EXIT_UNSUPPORTED;
- 
 -	  ret |= status;
-+	  if (WEXITSTATUS (status) != 42)
-+	    {
-+	      printf ("    [%d] child failed with status %d\n", i,
-+		      WEXITSTATUS (status));
-+	      support_record_failure ();
-+	    }
++	  support_capture_subprogram_self_sgid (buf);
  	}
 -      return ret;
 +      return 0;
      }
  }
  
+diff --git a/elf/tst-env-setuid.c b/elf/tst-env-setuid.c
+index 53fc52787d..8ed4d48c26 100644
+--- a/elf/tst-env-setuid.c
++++ b/elf/tst-env-setuid.c
+@@ -104,20 +104,14 @@ do_test (int argc, char **argv)
+       if (ret != 0)
+ 	exit (1);
+ 
+-      exit (EXIT_SUCCESS);
++      return 0;
+     }
+   else
+     {
+       if (test_parent () != 0)
+ 	exit (1);
+ 
+-      int status = support_capture_subprogram_self_sgid (SETGID_CHILD);
+-
+-      if (WEXITSTATUS (status) == EXIT_UNSUPPORTED)
+-	return EXIT_UNSUPPORTED;
+-
+-      if (!WIFEXITED (status))
+-	FAIL_EXIT1 ("Unexpected exit status %d from child process\n", status);
++      support_capture_subprogram_self_sgid (SETGID_CHILD);
+ 
+       return 0;
+     }
 diff --git a/elf/tst-ldconfig-p.sh b/elf/tst-ldconfig-p.sh
 new file mode 100644
 index 0000000000..ec937bf4ec
@@ -5941,6 +5957,223 @@ index fdc5bdd65b..bc32bb132a 100644
    };
  
  static struct hostent host_table_2[] = {
+diff --git a/posix/Makefile b/posix/Makefile
+index d1df7c27cb..336bee4a4a 100644
+--- a/posix/Makefile
++++ b/posix/Makefile
+@@ -109,7 +109,7 @@ tests		:= test-errno tstgetopt testfnm runtests runptests \
+ 		   tst-glob-tilde test-ssize-max tst-spawn4 bug-regex37 \
+ 		   bug-regex38 tst-regcomp-truncated tst-spawn-chdir \
+ 		   tst-wordexp-nocmd tst-execveat tst-spawn5 \
+-		   tst-sched_getaffinity tst-spawn6
++		   tst-sched_getaffinity tst-spawn6 tst-regcomp-bracket-free
+ 
+ # Test for the glob symbol version that was replaced in glibc 2.27.
+ ifeq ($(have-GLIBC_2.26)$(build-shared),yesyes)
+diff --git a/posix/regcomp.c b/posix/regcomp.c
+index 84fc1cc82b..7bd0beeafe 100644
+--- a/posix/regcomp.c
++++ b/posix/regcomp.c
+@@ -3383,6 +3383,7 @@ parse_bracket_exp (re_string_t *regexp, re_dfa_t *dfa, re_token_t *token,
+     {
+ #ifdef RE_ENABLE_I18N
+       free_charset (mbcset);
++      mbcset = NULL;
+ #endif
+       /* Build a tree for simple bracket.  */
+       br_token.type = SIMPLE_BRACKET;
+@@ -3398,7 +3399,8 @@ parse_bracket_exp (re_string_t *regexp, re_dfa_t *dfa, re_token_t *token,
+  parse_bracket_exp_free_return:
+   re_free (sbcset);
+ #ifdef RE_ENABLE_I18N
+-  free_charset (mbcset);
++  if (__glibc_likely (mbcset != NULL))
++    free_charset (mbcset);
+ #endif /* RE_ENABLE_I18N */
+   return NULL;
+ }
+diff --git a/posix/tst-regcomp-bracket-free.c b/posix/tst-regcomp-bracket-free.c
+new file mode 100644
+index 0000000000..3c091d8c44
+--- /dev/null
++++ b/posix/tst-regcomp-bracket-free.c
+@@ -0,0 +1,176 @@
++/* Test regcomp bracket parsing with injected allocation failures (bug 33185).
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++/* This test invokes regcomp multiple times, failing one memory
++   allocation in each call.  The function call should fail with
++   REG_ESPACE (or succeed if it can recover from the allocation
++   failure).  Previously, there was double-free bug.  */
++
++#include <errno.h>
++#include <regex.h>
++#include <stdio.h>
++#include <string.h>
++#include <support/check.h>
++#include <support/namespace.h>
++#include <support/support.h>
++
++/* Data structure allocated via MAP_SHARED, so that writes from the
++   subprocess are visible.  */
++struct shared_data
++{
++  /* Number of tracked allocations performed so far.  */
++  volatile unsigned int allocation_count;
++
++  /* If this number is reached, one allocation fails.  */
++  volatile unsigned int failing_allocation;
++
++  /* The subprocess stores the expected name here.  */
++  char name[100];
++};
++
++/* Allocation count in shared mapping.  */
++static struct shared_data *shared;
++
++/* Returns true if a failure should be injected for this allocation.  */
++static bool
++fail_this_allocation (void)
++{
++  if (shared != NULL)
++    {
++      unsigned int count = shared->allocation_count;
++      shared->allocation_count = count + 1;
++      return count == shared->failing_allocation;
++    }
++  else
++    return false;
++}
++
++/* Failure-injecting wrappers for allocation functions used by glibc.  */
++
++void *
++malloc (size_t size)
++{
++  if (fail_this_allocation ())
++    {
++      errno = ENOMEM;
++      return NULL;
++    }
++  extern __typeof (malloc) __libc_malloc;
++  return __libc_malloc (size);
++}
++
++void *
++calloc (size_t a, size_t b)
++{
++  if (fail_this_allocation ())
++    {
++      errno = ENOMEM;
++      return NULL;
++    }
++  extern __typeof (calloc) __libc_calloc;
++  return __libc_calloc (a, b);
++}
++
++void *
++realloc (void *ptr, size_t size)
++{
++  if (fail_this_allocation ())
++    {
++      errno = ENOMEM;
++      return NULL;
++    }
++  extern __typeof (realloc) __libc_realloc;
++  return __libc_realloc (ptr, size);
++}
++
++/* No-op subprocess to verify that support_isolate_in_subprocess does
++   not perform any heap allocations.  */
++static void
++no_op (void *ignored)
++{
++}
++
++/* Perform a regcomp call in a subprocess.  Used to count its
++   allocations.  */
++static void
++initialize (void *regexp1)
++{
++  const char *regexp = regexp1;
++
++  shared->allocation_count = 0;
++
++  regex_t reg;
++  TEST_COMPARE (regcomp (&reg, regexp, 0), 0);
++}
++
++/* Perform regcomp in a subprocess with fault injection.  */
++static void
++test_in_subprocess (void *regexp1)
++{
++  const char *regexp = regexp1;
++  unsigned int inject_at = shared->failing_allocation;
++
++  regex_t reg;
++  int ret = regcomp (&reg, regexp, 0);
++
++  if (ret != 0)
++    {
++      TEST_COMPARE (ret, REG_ESPACE);
++      printf ("info: allocation %u failure results in return value %d,"
++              " error %s (%d)\n",
++              inject_at, ret, strerrorname_np (errno), errno);
++    }
++}
++
++static int
++do_test (void)
++{
++  char regexp[] = "[:alpha:]";
++
++  shared = support_shared_allocate (sizeof (*shared));
++
++  /* Disable fault injection.  */
++  shared->failing_allocation = ~0U;
++
++  support_isolate_in_subprocess (no_op, NULL);
++  TEST_COMPARE (shared->allocation_count, 0);
++
++  support_isolate_in_subprocess (initialize, regexp);
++
++  /* The number of allocations in the successful case, plus some
++     slack.  Once the number of expected allocations is exceeded,
++     injecting further failures does not make a difference.  */
++  unsigned int maximum_allocation_count = shared->allocation_count;
++  printf ("info: successful call performs %u allocations\n",
++          maximum_allocation_count);
++  maximum_allocation_count += 10;
++
++  for (unsigned int inject_at = 0; inject_at <= maximum_allocation_count;
++       ++inject_at)
++    {
++      shared->allocation_count = 0;
++      shared->failing_allocation = inject_at;
++      support_isolate_in_subprocess (test_in_subprocess, regexp);
++    }
++
++  support_shared_free (shared);
++
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/posix/tst-truncate-common.c b/posix/tst-truncate-common.c
 index c8093c5473..39061ce6c5 100644
 --- a/posix/tst-truncate-common.c
@@ -10846,6 +11079,33 @@ index 0000000000..0596b9763b
 +
 +#define TEST_FUNCTION do_test
 +#include <support/test-driver.c>
+diff --git a/stdlib/tst-secure-getenv.c b/stdlib/tst-secure-getenv.c
+index 69719a8acb..ed4728cbba 100644
+--- a/stdlib/tst-secure-getenv.c
++++ b/stdlib/tst-secure-getenv.c
+@@ -57,13 +57,7 @@ do_test (void)
+       exit (1);
+     }
+ 
+-  int status = support_capture_subprogram_self_sgid (MAGIC_ARGUMENT);
+-
+-  if (WEXITSTATUS (status) == EXIT_UNSUPPORTED)
+-    return EXIT_UNSUPPORTED;
+-
+-  if (!WIFEXITED (status))
+-    FAIL_EXIT1 ("Unexpected exit status %d from child process\n", status);
++  support_capture_subprogram_self_sgid (MAGIC_ARGUMENT);
+ 
+   return 0;
+ }
+@@ -82,6 +76,7 @@ alternative_main (int argc, char **argv)
+       if (secure_getenv ("PATH") != NULL)
+ 	FAIL_EXIT (4, "PATH variable not filtered out\n");
+ 
++      support_record_failure_barrier ();
+       exit (EXIT_SUCCESS);
+     }
+ }
 diff --git a/stdlib/tst-setenv-environ.c b/stdlib/tst-setenv-environ.c
 new file mode 100644
 index 0000000000..02fcef96d0
@@ -11111,16 +11371,24 @@ index 9b50eac117..c8c1363b76 100644
  LINKS_DSO_PROGRAM = links-dso-program-c
  else
 diff --git a/support/capture_subprocess.h b/support/capture_subprocess.h
-index e44c965ef3..037b9c220e 100644
+index e44c965ef3..8cae175bfe 100644
 --- a/support/capture_subprocess.h
 +++ b/support/capture_subprocess.h
-@@ -44,8 +44,7 @@ struct support_capture_subprocess support_capture_subprogram
- /* Copy the running program into a setgid binary and run it with CHILD_ID
-    argument.  If execution is successful, return the exit status of the child
-    program, otherwise return a non-zero failure exit code.  */
+@@ -41,11 +41,12 @@ struct support_capture_subprocess support_capture_subprocess
+ struct support_capture_subprocess support_capture_subprogram
+   (const char *file, char *const argv[]);
+ 
+-/* Copy the running program into a setgid binary and run it with CHILD_ID
+-   argument.  If execution is successful, return the exit status of the child
+-   program, otherwise return a non-zero failure exit code.  */
 -int support_capture_subprogram_self_sgid
 -  (char *child_id);
-+int support_capture_subprogram_self_sgid (const char *child_id);
++/* Copy the running program into a setgid binary and run it with
++   CHILD_ID argument.  If the program exits with a non-zero status,
++   exit with that exit status (or status 1 if the program did not exit
++   normally).  If the test cannot be performed, exit with
++   EXIT_UNSUPPORTED.  */
++void support_capture_subprogram_self_sgid (const char *child_id);
  
  /* Deallocate the subprocess data captured by
     support_capture_subprocess.  */
@@ -11323,36 +11591,221 @@ index ca0e5f7ef4..43979f7c3f 100644
    TEST_VERIFY (before.st_dev == after.st_dev);
    TEST_VERIFY (before.st_ino == after.st_ino);
 diff --git a/support/support_capture_subprocess.c b/support/support_capture_subprocess.c
-index a8bcb23d40..1b4aa66ede 100644
+index a8bcb23d40..424d6a910e 100644
 --- a/support/support_capture_subprocess.c
 +++ b/support/support_capture_subprocess.c
-@@ -109,7 +109,7 @@ support_capture_subprogram (const char *file, char *const argv[])
+@@ -21,12 +21,17 @@
+ 
+ #include <errno.h>
+ #include <fcntl.h>
++#include <grp.h>
++#include <scratch_buffer.h>
++#include <stdio_ext.h>
+ #include <stdlib.h>
++#include <string.h>
+ #include <support/check.h>
+ #include <support/xunistd.h>
+ #include <support/xsocket.h>
+ #include <support/xspawn.h>
+ #include <support/support.h>
++#include <support/temp_file.h>
+ #include <support/test-driver.h>
+ 
+ static void
+@@ -108,100 +113,88 @@ support_capture_subprogram (const char *file, char *const argv[])
+ /* Copies the executable into a restricted directory, so that we can
     safely make it SGID with the TARGET group ID.  Then runs the
     executable.  */
- static int
+-static int
 -copy_and_spawn_sgid (char *child_id, gid_t gid)
++static void
 +copy_and_spawn_sgid (const char *child_id, gid_t gid)
  {
-   char *dirname = xasprintf ("%s/tst-tunables-setuid.%jd",
- 			     test_dir, (intmax_t) getpid ());
-@@ -172,7 +172,7 @@ copy_and_spawn_sgid (char *child_id, gid_t gid)
-   ret = 0;
-   infd = outfd = -1;
+-  char *dirname = xasprintf ("%s/tst-tunables-setuid.%jd",
+-			     test_dir, (intmax_t) getpid ());
++  char *dirname = support_create_temp_directory ("tst-glibc-sgid-");
+   char *execname = xasprintf ("%s/bin", dirname);
+-  int infd = -1;
+-  int outfd = -1;
+-  int ret = 1, status = 1;
+-
+-  TEST_VERIFY (mkdir (dirname, 0700) == 0);
+-  if (support_record_failure_is_failed ())
+-    goto err;
++  add_temp_file (execname);
+ 
+-  infd = open ("/proc/self/exe", O_RDONLY);
+-  if (infd < 0)
++  if (access ("/proc/self/exe", R_OK) != 0)
+     FAIL_UNSUPPORTED ("unsupported: Cannot read binary from procfs\n");
+ 
+-  outfd = open (execname, O_WRONLY | O_CREAT | O_EXCL, 0700);
+-  TEST_VERIFY (outfd >= 0);
+-  if (support_record_failure_is_failed ())
+-    goto err;
++  support_copy_file ("/proc/self/exe", execname);
+ 
+-  char buf[4096];
+-  for (;;)
+-    {
+-      ssize_t rdcount = read (infd, buf, sizeof (buf));
+-      TEST_VERIFY (rdcount >= 0);
+-      if (support_record_failure_is_failed ())
+-	goto err;
+-      if (rdcount == 0)
+-	break;
+-      char *p = buf;
+-      char *end = buf + rdcount;
+-      while (p != end)
+-	{
+-	  ssize_t wrcount = write (outfd, buf, end - p);
+-	  if (wrcount == 0)
+-	    errno = ENOSPC;
+-	  TEST_VERIFY (wrcount > 0);
+-	  if (support_record_failure_is_failed ())
+-	    goto err;
+-	  p += wrcount;
+-	}
+-    }
+-  TEST_VERIFY (fchown (outfd, getuid (), gid) == 0);
+-  if (support_record_failure_is_failed ())
+-    goto err;
+-  TEST_VERIFY (fchmod (outfd, 02750) == 0);
+-  if (support_record_failure_is_failed ())
+-    goto err;
+-  TEST_VERIFY (close (outfd) == 0);
+-  if (support_record_failure_is_failed ())
+-    goto err;
+-  TEST_VERIFY (close (infd) == 0);
+-  if (support_record_failure_is_failed ())
+-    goto err;
++  if (chown (execname, getuid (), gid) != 0)
++    FAIL_UNSUPPORTED ("cannot change group of \"%s\" to %jd: %m",
++		      execname, (intmax_t) gid);
++
++  if (chmod (execname, 02750) != 0)
++    FAIL_UNSUPPORTED ("cannot make \"%s\" SGID: %m ", execname);
+ 
+   /* We have the binary, now spawn the subprocess.  Avoid using
+      support_subprogram because we only want the program exit status, not the
+      contents.  */
+-  ret = 0;
+-  infd = outfd = -1;
  
 -  char * const args[] = {execname, child_id, NULL};
 +  char * const args[] = {execname, (char *) child_id, NULL};
++  int status = support_subprogram_wait (args[0], args);
  
-   status = support_subprogram_wait (args[0], args);
+-  status = support_subprogram_wait (args[0], args);
++  free (execname);
++  free (dirname);
  
-@@ -199,7 +199,7 @@ err:
+-err:
+-  if (outfd >= 0)
+-    close (outfd);
+-  if (infd >= 0)
+-    close (infd);
+-  if (execname != NULL)
++  if (WIFEXITED (status))
+     {
+-      unlink (execname);
+-      free (execname);
++      if (WEXITSTATUS (status) == 0)
++	return;
++      else
++	exit (WEXITSTATUS (status));
+     }
+-  if (dirname != NULL)
++  else
++    FAIL_EXIT1 ("subprogram failed with status %d", status);
++}
++
++/* Returns true if a group with NAME has been found, and writes its
++   GID to *TARGET.  */
++static bool
++find_sgid_group (gid_t *target, const char *name)
++{
++  /* Do not use getgrname_r because it does not work in statically
++     linked binaries if the system libc is different.  */
++  FILE *fp = fopen ("/etc/group", "rce");
++  if (fp == NULL)
++    return false;
++  __fsetlocking (fp, FSETLOCKING_BYCALLER);
++
++  bool ok = false;
++  struct scratch_buffer buf;
++  scratch_buffer_init (&buf);
++  while (true)
+     {
+-      rmdir (dirname);
+-      free (dirname);
++      struct group grp;
++      struct group *result = NULL;
++      int status = fgetgrent_r (fp, &grp, buf.data, buf.length, &result);
++      if (status == 0 && result != NULL)
++	{
++	  if (strcmp (result->gr_name, name) == 0)
++	    {
++	      *target = result->gr_gid;
++	      ok = true;
++	      break;
++	    }
++	}
++      else if (errno != ERANGE)
++	break;
++      else if (!scratch_buffer_grow (&buf))
++	break;
+     }
+-
+-  if (ret != 0)
+-    FAIL_EXIT1("Failed to make sgid executable for test\n");
+-
+-  return status;
++  scratch_buffer_free (&buf);
++  fclose (fp);
++  return ok;
  }
  
- int
+-int
 -support_capture_subprogram_self_sgid (char *child_id)
++void
 +support_capture_subprogram_self_sgid (const char *child_id)
  {
-   gid_t target = 0;
+-  gid_t target = 0;
    const int count = 64;
+   gid_t groups[count];
+ 
+@@ -213,6 +206,7 @@ support_capture_subprogram_self_sgid (char *child_id)
+ 		     (intmax_t) getuid ());
+ 
+   gid_t current = getgid ();
++  gid_t target = current;
+   for (int i = 0; i < ret; ++i)
+     {
+       if (groups[i] != current)
+@@ -222,11 +216,18 @@ support_capture_subprogram_self_sgid (char *child_id)
+ 	}
+     }
+ 
+-  if (target == 0)
+-    FAIL_UNSUPPORTED("Could not find a suitable GID for user %jd\n",
+-		     (intmax_t) getuid ());
++  if (target == current)
++    {
++      /* If running as root, try to find a harmless group for SGID.  */
++      if (getuid () != 0
++	  || (!find_sgid_group (&target, "nogroup")
++	      && !find_sgid_group (&target, "bin")
++	      && !find_sgid_group (&target, "daemon")))
++	FAIL_UNSUPPORTED("Could not find a suitable GID for user %jd\n",
++			 (intmax_t) getuid ());
++    }
+ 
+-  return copy_and_spawn_sgid (child_id, target);
++  copy_and_spawn_sgid (child_id, target);
+ }
+ 
+ void
 diff --git a/support/support_copy_file.c b/support/support_copy_file.c
 index 9a936b37c7..52ed90fae0 100644
 --- a/support/support_copy_file.c
