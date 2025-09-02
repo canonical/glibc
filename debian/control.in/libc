@@ -3,8 +3,8 @@ Architecture: @archs@
 Section: libs
 Priority: optional
 Multi-Arch: same
-Depends: ${shlibs:Depends}, ${libgcc:Depends}
-Recommends: libidn2-0 (>= 2.0.5~), libc-gconv-modules-extra
+Depends: ${shlibs:Depends}, ${libgcc:Depends}, ${libc-gconv-modules-extra:Depends}
+Recommends: libidn2-0 (>= 2.0.5~)
 Suggests: glibc-doc, debconf | debconf-2.0, libc-l10n, locales [!hurd-any], libnss-nis, libnss-nisplus
 Provides: libc6-sparcv9b [sparc sparc64], libc0.3-i686 [hurd-i386], libc6-i686 [i386]
 Conflicts: libc6-i686 [i386], libc6.1-alphaev67 [alpha]

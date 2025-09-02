@@ -272,11 +272,9 @@ endif
 	  conffile="$(debian-tmp)/etc/ld.so.conf.d/$(DEB_HOST_MULTIARCH).conf"; \
 	  echo "# Multiarch support" > $$conffile; \
 	  echo "/usr/local/lib/$(DEB_HOST_MULTIARCH)" >> $$conffile; \
-	  echo "$(call xx,slibdir)" >> $$conffile; \
 	  echo "$(call xx,libdir)" >> $$conffile; \
 	  if [ "$(DEB_HOST_GNU_TYPE)" != "$(DEB_HOST_MULTIARCH)" ]; then \
 	    echo "/usr/local/lib/$(DEB_HOST_GNU_TYPE)" >> $$conffile; \
-	    echo "/lib/$(DEB_HOST_GNU_TYPE)" >> $$conffile; \
 	    echo "/usr/lib/$(DEB_HOST_GNU_TYPE)" >> $$conffile; \
 	  fi; \
 	  mkdir -p $(debian-tmp)/usr/include/$(DEB_HOST_MULTIARCH); \
@@ -300,7 +298,6 @@ ifeq ($(filter stage1,$(DEB_BUILD_PROFILES)),)
 	  mkdir -p $(debian-tmp)/etc/ld.so.conf.d; \
 	  conffile="$(debian-tmp)/etc/ld.so.conf.d/zz_$(curpass)-biarch-compat.conf"; \
 	  echo "# Legacy biarch compatibility support" > $$conffile; \
-	  echo "$(call xx,slibdir)" >> $$conffile; \
 	  echo "$(call xx,libdir)" >> $$conffile; \
 	  ;; \
 	esac

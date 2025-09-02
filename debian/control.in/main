@@ -82,7 +82,7 @@ Architecture: any
 Section: libs
 Priority: optional
 Multi-Arch: foreign
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends}
 Breaks: libc6 (<< 2.42-1) [!alpha !hurd-any], libc6.1 (<< 2.42-1) [alpha], libc0.3 (<< 2.42-1) [hurd-any]
 Replaces: libc6 (<< 2.42-1) [!alpha !hurd-any], libc6.1 (<< 2.42-1) [alpha], libc0.3 (<< 2.42-1) [hurd-any]
 Build-Profiles: <!stage1>
