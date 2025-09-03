@@ -74,3 +74,13 @@ constraints, either on the first upload of a new upstream version or the second
 upload post FF). It's a basic iteration: you remove everything, build the
 package in a PPA, trigger its autopkgtests, and re-add the matching xfails.
 Rince and repeat until both the build and the autopkgtest succeed.
+
+# Packages needing rebuild
+
+To identify which packages have a hard dependency on specific glibc version, I use something like this:
+
+grep-dctrl -s Source:Package -F Depends 'libc6 (<<' /var/lib/apt/lists/fr.archive.ubuntu.com_ubuntu_dists_plucky_*_binary-amd64_Packages
+
+Note there might be some false positives in there, e.g. steam-utils.
+
+The usual suspect list is dante, libnss-db, wcc, zzuf
