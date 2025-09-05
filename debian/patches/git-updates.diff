@@ -1,4 +1,4 @@
-GIT update of https://sourceware.org/git/glibc.git/release/2.42/master from glibc-2.42 to c5476b7907d01207ede6bf57b26cef151b601f35
+GIT update of https://sourceware.org/git/glibc.git/release/2.42/master from glibc-2.42 to e34453cd6a8c592c325756ff3c7ac0afd3975cb4
 
 diff --git a/ADVISORIES b/ADVISORIES
 new file mode 100644
@@ -9,10 +9,10 @@ index 0000000000..d4e33f2df3
 +For the GNU C Library Security Advisories, see the git master branch:
 +https://sourceware.org/git/?p=glibc.git;a=tree;f=advisories;hb=HEAD
 diff --git a/NEWS b/NEWS
-index f0b0e924a4..1d04bdfef8 100644
+index f0b0e924a4..69aa600c6d 100644
 --- a/NEWS
 +++ b/NEWS
-@@ -5,6 +5,14 @@ See the end for copying conditions.
+@@ -5,6 +5,15 @@ See the end for copying conditions.
  Please send GNU C library bug reports via <https://sourceware.org/bugzilla/>
  using `glibc' in the "product" field.
  
@@ -22,6 +22,7 @@ index f0b0e924a4..1d04bdfef8 100644
 +
 +  [31943] _dl_find_object can fail if ld.so contains gaps between load segments
 +  [32994] stdlib: resolve a double lock init issue after fork
++  [33234] Use TLS initial-exec model for __libc_tsd_CTYPE_* thread variables
 +  [33245] nptl: nptl: error in internal cancellation syscall handling
 +
  Version 2.42
@@ -611,6 +612,25 @@ index b8f8a829ca..0000000000
 -  scripts/process-advisories.sh news
 -
 -and copy the content into the NEWS file.
+diff --git a/ctype/ctype-info.c b/ctype/ctype-info.c
+index b7d3422726..fb5acf9419 100644
+--- a/ctype/ctype-info.c
++++ b/ctype/ctype-info.c
+@@ -24,11 +24,11 @@
+    __ctype_init before user code runs, but this does not happen for
+    threads in secondary namespaces.  With the initializers, secondary
+    namespaces at least get locale data from the C locale.  */
+-__thread const uint16_t * __libc_tsd_CTYPE_B
++__thread const uint16_t * __libc_tsd_CTYPE_B attribute_tls_model_ie
+   = (const uint16_t *) _nl_C_LC_CTYPE_class + 128;
+-__thread const int32_t * __libc_tsd_CTYPE_TOLOWER
++__thread const int32_t * __libc_tsd_CTYPE_TOLOWER attribute_tls_model_ie
+   = (const int32_t *) _nl_C_LC_CTYPE_tolower + 128;
+-__thread const int32_t * __libc_tsd_CTYPE_TOUPPER
++__thread const int32_t * __libc_tsd_CTYPE_TOUPPER attribute_tls_model_ie
+   = (const int32_t *) _nl_C_LC_CTYPE_toupper + 128;
+ 
+ 
 diff --git a/elf/Makefile b/elf/Makefile
 index 48aa0b57e5..3a5596e2bb 100644
 --- a/elf/Makefile
@@ -1171,6 +1191,113 @@ index 6738221a54..cc476ebcfd 100644
  			  __glibc_objsize (__dst),
  			  __af, __src, __dst);
  };
+diff --git a/malloc/malloc.c b/malloc/malloc.c
+index 5ca390cc22..5f3e701fd1 100644
+--- a/malloc/malloc.c
++++ b/malloc/malloc.c
+@@ -230,6 +230,9 @@
+ /* For uintptr_t.  */
+ #include <stdint.h>
+ 
++/* For stdc_count_ones.  */
++#include <stdbit.h>
++
+ /* For va_arg, va_start, va_end.  */
+ #include <stdarg.h>
+ 
+@@ -294,9 +297,9 @@
+ # define TCACHE_SMALL_BINS		64
+ # define TCACHE_LARGE_BINS		12 /* Up to 4M chunks */
+ # define TCACHE_MAX_BINS	(TCACHE_SMALL_BINS + TCACHE_LARGE_BINS)
+-# define MAX_TCACHE_SMALL_SIZE	tidx2usize (TCACHE_SMALL_BINS-1)
++# define MAX_TCACHE_SMALL_SIZE	tidx2csize (TCACHE_SMALL_BINS-1)
+ 
+-/* Only used to pre-fill the tunables.  */
++# define tidx2csize(idx)	(((size_t) idx) * MALLOC_ALIGNMENT + MINSIZE)
+ # define tidx2usize(idx)	(((size_t) idx) * MALLOC_ALIGNMENT + MINSIZE - SIZE_SZ)
+ 
+ /* When "x" is from chunksize().  */
+@@ -1932,7 +1935,7 @@ static struct malloc_par mp_ =
+   ,
+   .tcache_count = TCACHE_FILL_COUNT,
+   .tcache_small_bins = TCACHE_SMALL_BINS,
+-  .tcache_max_bytes = MAX_TCACHE_SMALL_SIZE,
++  .tcache_max_bytes = MAX_TCACHE_SMALL_SIZE + 1,
+   .tcache_unsorted_limit = 0 /* No limit.  */
+ #endif
+ };
+@@ -3152,6 +3155,19 @@ tcache_key_initialize (void)
+   if (__getrandom_nocancel_nostatus_direct (&tcache_key, sizeof(tcache_key),
+ 					    GRND_NONBLOCK)
+       != sizeof (tcache_key))
++    tcache_key = 0;
++
++  /* We need tcache_key to be non-zero (otherwise tcache_double_free_verify's
++     clearing of e->key would go unnoticed and it would loop getting called
++     through __libc_free), and we want tcache_key not to be a
++     commonly-occurring value in memory, so ensure a minimum amount of one and
++     zero bits.  */
++  int minimum_bits = __WORDSIZE / 4;
++  int maximum_bits = __WORDSIZE - minimum_bits;
++
++  while (labs ((intptr_t) tcache_key) <= 0x1000000
++      || stdc_count_ones (tcache_key) < minimum_bits
++      || stdc_count_ones (tcache_key) > maximum_bits)
+     {
+       tcache_key = random_bits ();
+ #if __WORDSIZE == 64
+@@ -3208,11 +3224,10 @@ tcache_get_n (size_t tc_idx, tcache_entry **ep, bool mangled)
+   if (__glibc_unlikely (misaligned_mem (e)))
+     malloc_printerr ("malloc(): unaligned tcache chunk detected");
+ 
+-  void *ne = e == NULL ? NULL : REVEAL_PTR (e->next);
+   if (!mangled)
+-    *ep = ne;
++    *ep = REVEAL_PTR (e->next);
+   else
+-    *ep = PROTECT_PTR (ep, ne);
++    *ep = PROTECT_PTR (ep, REVEAL_PTR (e->next));
+ 
+   ++(tcache->num_slots[tc_idx]);
+   e->key = 0;
+@@ -3229,7 +3244,7 @@ tcache_put (mchunkptr chunk, size_t tc_idx)
+ static __always_inline void *
+ tcache_get (size_t tc_idx)
+ {
+-  return tcache_get_n (tc_idx, & tcache->entries[tc_idx], false);
++  return tcache_get_n (tc_idx, &tcache->entries[tc_idx], false);
+ }
+ 
+ static __always_inline tcache_entry **
+@@ -5587,15 +5602,13 @@ do_set_arena_max (size_t value)
+ static __always_inline int
+ do_set_tcache_max (size_t value)
+ {
++  if (value > PTRDIFF_MAX)
++    return 0;
++
+   size_t nb = request2size (value);
+   size_t tc_idx = csize2tidx (nb);
+ 
+-  /* To check that value is not too big and request2size does not return an
+-     overflown value.  */
+-  if (value > nb)
+-    return 0;
+-
+-  if (nb > MAX_TCACHE_SMALL_SIZE)
++  if (tc_idx >= TCACHE_SMALL_BINS)
+     tc_idx = large_csize2tidx (nb);
+ 
+   LIBC_PROBE (memory_tunable_tcache_max_bytes, 2, value, mp_.tcache_max_bytes);
+@@ -5604,7 +5617,7 @@ do_set_tcache_max (size_t value)
+     {
+       if (tc_idx < TCACHE_SMALL_BINS)
+ 	mp_.tcache_small_bins = tc_idx + 1;
+-      mp_.tcache_max_bytes = nb;
++      mp_.tcache_max_bytes = nb + 1;
+       return 1;
+     }
+ 
 diff --git a/nptl/cancellation.c b/nptl/cancellation.c
 index 156e63dcf0..bed0383a23 100644
 --- a/nptl/cancellation.c
@@ -1263,6 +1390,78 @@ index be00dde3a7..8bf9a33ea2 100644
        _exit (0);
      }
    xclose (result.stdout_pipe[1]);
+diff --git a/sysdeps/aarch64/fpu/powf_sve.c b/sysdeps/aarch64/fpu/powf_sve.c
+index 7046990aa1..65e9bd29d9 100644
+--- a/sysdeps/aarch64/fpu/powf_sve.c
++++ b/sysdeps/aarch64/fpu/powf_sve.c
+@@ -223,15 +223,15 @@ sv_powf_core (const svbool_t pg, svuint32_t i, svuint32_t iz, svint32_t k,
+   const svbool_t ptrue = svptrue_b64 ();
+ 
+   /* Unpack and promote input vectors (pg, y, z, i, k and sign_bias) into two
+-   * in order to perform core computation in double precision.  */
++     in order to perform core computation in double precision.  */
+   const svbool_t pg_lo = svunpklo (pg);
+   const svbool_t pg_hi = svunpkhi (pg);
+-  svfloat64_t y_lo
+-      = svcvt_f64_x (pg, svreinterpret_f32 (svunpklo (svreinterpret_u32 (y))));
+-  svfloat64_t y_hi
+-      = svcvt_f64_x (pg, svreinterpret_f32 (svunpkhi (svreinterpret_u32 (y))));
+-  svfloat64_t z_lo = svcvt_f64_x (pg, svreinterpret_f32 (svunpklo (iz)));
+-  svfloat64_t z_hi = svcvt_f64_x (pg, svreinterpret_f32 (svunpkhi (iz)));
++  svfloat64_t y_lo = svcvt_f64_x (
++      ptrue, svreinterpret_f32 (svunpklo (svreinterpret_u32 (y))));
++  svfloat64_t y_hi = svcvt_f64_x (
++      ptrue, svreinterpret_f32 (svunpkhi (svreinterpret_u32 (y))));
++  svfloat64_t z_lo = svcvt_f64_x (ptrue, svreinterpret_f32 (svunpklo (iz)));
++  svfloat64_t z_hi = svcvt_f64_x (ptrue, svreinterpret_f32 (svunpkhi (iz)));
+   svuint64_t i_lo = svunpklo (i);
+   svuint64_t i_hi = svunpkhi (i);
+   svint64_t k_lo = svunpklo (k);
+@@ -312,7 +312,7 @@ svfloat32_t SV_NAME_F2 (pow) (svfloat32_t x, svfloat32_t y, const svbool_t pg)
+ 			 (23 - V_POWF_EXP2_TABLE_BITS));
+ 
+   /* Compute core in extended precision and return intermediate ylogx results
+-   * to handle cases of underflow and underflow in exp.  */
++     to handle cases of underflow and overflow in exp.  */
+   svfloat32_t ylogx;
+   svfloat32_t ret
+       = sv_powf_core (yint_or_xpos, i, iz, k, y, sign_bias, &ylogx, d);
+diff --git a/sysdeps/i386/Makefile b/sysdeps/i386/Makefile
+index ee6470d78e..c0c017b899 100644
+--- a/sysdeps/i386/Makefile
++++ b/sysdeps/i386/Makefile
+@@ -60,6 +60,15 @@ $(objpfx)tst-ld-sse-use.out: ../sysdeps/i386/tst-ld-sse-use.sh $(objpfx)ld.so
+ 	@echo "Checking ld.so for SSE register use.  This will take a few seconds..."
+ 	$(BASH) $< $(objpfx) '$(NM)' '$(OBJDUMP)' '$(READELF)' > $@; \
+ 	$(evaluate-test)
++
++tests-special += $(objpfx)check-gnu-tls.out
++
++$(objpfx)check-gnu-tls.out: $(common-objpfx)libc.so
++	LC_ALL=C $(READELF) -V -W $< \
++		| sed -ne '/.gnu.version_d/, /.gnu.version_r/ p' \
++		| grep GLIBC_ABI_GNU_TLS > $@; \
++	$(evaluate-test)
++generated += check-gnu-tls.out
+ else
+ CFLAGS-.os += $(if $(filter rtld-%.os,$(@F)), $(rtld-CFLAGS))
+ endif
+diff --git a/sysdeps/i386/Versions b/sysdeps/i386/Versions
+index 36e23b466a..9c84c8ef04 100644
+--- a/sysdeps/i386/Versions
++++ b/sysdeps/i386/Versions
+@@ -28,6 +28,11 @@ libc {
+   GLIBC_2.13 {
+     __fentry__;
+   }
++  GLIBC_ABI_GNU_TLS {
++    # This symbol is used only for empty version map and will be removed
++    # by scripts/versions.awk.
++    __placeholder_only_for_empty_version_map;
++  }
+ }
+ libm {
+   GLIBC_2.1 {
 diff --git a/sysdeps/pthread/tst-fopen-threaded.c b/sysdeps/pthread/tst-fopen-threaded.c
 index ade58ad19e..c17f1eaa13 100644
 --- a/sysdeps/pthread/tst-fopen-threaded.c
@@ -1321,3 +1520,73 @@ index ade58ad19e..c17f1eaa13 100644
    return 0;
  }
  
+diff --git a/sysdeps/x86/Makefile b/sysdeps/x86/Makefile
+index 4fbd48e1c8..9e1c8cce85 100644
+--- a/sysdeps/x86/Makefile
++++ b/sysdeps/x86/Makefile
+@@ -135,6 +135,15 @@ LDFLAGS-tst-tls23 += -rdynamic
+ tst-tls23-mod.so-no-z-defs = yes
+ 
+ $(objpfx)tst-tls23-mod.so: $(libsupport)
++
++tests-special += $(objpfx)check-gnu2-tls.out
++
++$(objpfx)check-gnu2-tls.out: $(common-objpfx)libc.so
++	LC_ALL=C $(READELF) -V -W $< \
++		| sed -ne '/.gnu.version_d/, /.gnu.version_r/ p' \
++		| grep GLIBC_ABI_GNU2_TLS > $@; \
++	$(evaluate-test)
++generated += check-gnu2-tls.out
+ endif
+ 
+ ifeq ($(subdir),gmon)
+diff --git a/sysdeps/x86/Versions b/sysdeps/x86/Versions
+index 4b10c4b5d7..e8dcfccbe4 100644
+--- a/sysdeps/x86/Versions
++++ b/sysdeps/x86/Versions
+@@ -7,4 +7,9 @@ libc {
+   GLIBC_2.33 {
+     __x86_get_cpuid_feature_leaf;
+   }
++  GLIBC_ABI_GNU2_TLS {
++    # This symbol is used only for empty version map and will be removed
++    # by scripts/versions.awk.
++    __placeholder_only_for_empty_version_map;
++  }
+ }
+diff --git a/sysdeps/x86_64/Makefile b/sysdeps/x86_64/Makefile
+index c3e1065c81..fe9f1cdddb 100644
+--- a/sysdeps/x86_64/Makefile
++++ b/sysdeps/x86_64/Makefile
+@@ -212,6 +212,15 @@ LDFLAGS-tst-plt-rewrite2 = -Wl,-z,now
+ LDFLAGS-tst-plt-rewritemod2.so = -Wl,-z,now,-z,undefs
+ tst-plt-rewrite2-ENV = GLIBC_TUNABLES=glibc.cpu.plt_rewrite=2
+ $(objpfx)tst-plt-rewrite2: $(objpfx)tst-plt-rewritemod2.so
++
++tests-special += $(objpfx)check-dt-x86-64-plt.out
++
++$(objpfx)check-dt-x86-64-plt.out: $(common-objpfx)libc.so
++	LC_ALL=C $(READELF) -V -W $< \
++		| sed -ne '/.gnu.version_d/, /.gnu.version_r/ p' \
++		| grep GLIBC_ABI_DT_X86_64_PLT > $@; \
++	$(evaluate-test)
++generated += check-dt-x86-64-plt.out
+ endif
+ 
+ test-internal-extras += tst-gnu2-tls2mod1
+diff --git a/sysdeps/x86_64/Versions b/sysdeps/x86_64/Versions
+index e94758b236..6a989ad3b3 100644
+--- a/sysdeps/x86_64/Versions
++++ b/sysdeps/x86_64/Versions
+@@ -5,6 +5,11 @@ libc {
+   GLIBC_2.13 {
+     __fentry__;
+   }
++  GLIBC_ABI_DT_X86_64_PLT {
++    # This symbol is used only for empty version map and will be removed
++    # by scripts/versions.awk.
++    __placeholder_only_for_empty_version_map;
++  }
+ }
+ libm {
+   GLIBC_2.1 {

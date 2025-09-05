@@ -1,3 +1,25 @@
+glibc (2.42-0ubuntu2) questing; urgency=medium
+
+  [ Benjamin Drung ]
+  * build: use date --rfc-email for Rust coreutils compat (LP: #2122100)
+
+  [ Simon Poirier ]
+  * Explicitly enable sframe (LP: #2122099)
+  * d/p/git-updates.diff: update from upstream stable branch.
+    - AArch64: Fix SVE powf routine [BZ #33299]
+    - i386: Also add GLIBC_ABI_GNU2_TLS version [BZ #33129]
+    - x86-64: Add GLIBC_ABI_DT_X86_64_PLT [BZ #33212]
+    - x86-64: Add GLIBC_ABI_GNU2_TLS version [BZ #33129]
+    - i386: Add GLIBC_ABI_GNU_TLS version [BZ #33221]
+    - Use TLS initial-exec model for __libc_tsd_CTYPE_* thread variables [BZ #33234]
+    - malloc: Fix checking for small negative values of tcache_key
+    - malloc: Make sure tcache_key is odd enough
+    - malloc: Fix MAX_TCACHE_SMALL_SIZE
+    - malloc: Remove redundant NULL check
+  * d/p/hurd-i386/git-random-malloc.diff: drop useless patch
+
+ -- Simon Poirier <simon.poirier@canonical.com>  Fri, 05 Sep 2025 10:59:45 -0400
+
 glibc (2.42-0ubuntu1) questing; urgency=medium
 
   [ Aurelien Jarno ]

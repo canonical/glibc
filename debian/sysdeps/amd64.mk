@@ -1,5 +1,6 @@
 # configuration options for all flavours
-extra_config_options = --enable-multi-arch --enable-cet
+# Might want to copy any additional flag down to {i386,x32}_extra_config_options
+extra_config_options = --enable-multi-arch --enable-cet --enable-sframe
 CC = $(DEB_HOST_GNU_TYPE)-$(BASE_CC)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 CXX = $(DEB_HOST_GNU_TYPE)-$(BASE_CXX)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 
@@ -20,7 +21,7 @@ i386_CC = $(CC) -m32
 i386_CXX = $(CXX) -m32
 i386_slibdir = /lib32
 i386_libdir = /usr/lib32
-i386_extra_config_options = $(extra_config_options) --enable-cet=no
+i386_extra_config_options = --enable-multi-arch
 
 define libc6-dev-i386_extra_pkg_install
 
@@ -44,6 +45,7 @@ x32_mvec = yes
 x32_rtlddir = /libx32
 x32_slibdir = /libx32
 x32_libdir = /usr/libx32
+x32_extra_config_options = --enable-multi-arch --enable-cet
 
 define libc6-dev-x32_extra_pkg_install
 
