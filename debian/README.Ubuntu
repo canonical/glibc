@@ -84,3 +84,20 @@ grep-dctrl -s Source:Package -F Depends 'libc6 (<<' /var/lib/apt/lists/fr.archiv
 Note there might be some false positives in there, e.g. steam-utils.
 
 The usual suspect list is dante, libnss-db, wcc, zzuf
+
+# Dealing with upstream release branches
+
+Upstream does not publish point releases and expect people to track stable release branches instead.
+We'll *usually* just bundle it up in one big patch and update said patch whenever uploading to devel,
+BUT:
+
+* we can't do that for SRUs, because it's not actually microreleases
+* their backporting policy is... very relaxed. It's apparently not a problem to
+backport entire ASM-optimized routines to older releases.
+
+If you want to update the patch entirely, just use
+`debian/rules update-from-upstream` (assuming you have the upstream repo configured as the `origin` remote).
+
+If you want to be more picky about the patches, someone a slightly
+over-engineered script for this endeavour at debian/main/review. Use at your
+own risks.
