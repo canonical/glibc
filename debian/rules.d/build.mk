@@ -91,7 +91,7 @@ endif
 	    echo "No.  Forcing cross-compile by setting build to $$configure_build."; \
 	  fi; \
 	fi; \
-	echo -n "Build started: " ; date --rfc-2822; \
+	echo -n "Build started: " ; date --rfc-email; \
 	echo "---------------"; \
 	cd $(DEB_BUILDDIR) && \
 		CC="$(call xx,CC) -U_FILE_OFFSET_BITS -U_TIME_BITS" \
@@ -132,7 +132,7 @@ ifneq ($(filter stage1,$(DEB_BUILD_PROFILES)),)
 else
 	$(MAKE) -C $(DEB_BUILDDIR) $(NJOBS)
 	echo "---------------"
-	echo -n "Build ended: " ; date --rfc-2822
+	echo -n "Build ended: " ; date --rfc-email
 endif
 	touch $@
 
