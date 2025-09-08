@@ -1,3 +1,10 @@
+glibc (2.42-0ubuntu3) questing; urgency=medium
+
+  * Fix pthread page guard on linux<6.13 (LP: #2121834)
+    Thanks to Adhemerval Zanella.
+
+ -- Simon Chopin <schopin@ubuntu.com>  Mon, 08 Sep 2025 11:50:33 +0200
+
 glibc (2.42-0ubuntu2) questing; urgency=medium
 
   [ Benjamin Drung ]
