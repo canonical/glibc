@@ -100,3 +100,4 @@ ubuntu/apparmor/0002-tests-handle-AppArmor-userns-mitigation.patch
 
 any/CVE-2025-5702.patch
 any/CVE-2025-5745.patch
+any/CVE-2025-8058.patch
