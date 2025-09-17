@@ -1,3 +1,13 @@
+glibc (2.39-0ubuntu8.6) noble-security; urgency=medium
+
+  * SECURITY UPDATE: double-free in regcomp function
+    - debian/patches/any/CVE-2025-8058.patch: fix double-free after
+      allocation failure in regcomp in posix/Makefile, posix/regcomp.c,
+      posix/tst-regcomp-bracket-free.c.
+    - CVE-2025-8058
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Wed, 17 Sep 2025 10:55:42 -0400
+
 glibc (2.39-0ubuntu8.5) noble-security; urgency=medium
 
   * SECURITY UPDATE: insecure power10 strcmp implementation
