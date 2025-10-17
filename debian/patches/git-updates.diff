@@ -1,18 +1,18 @@
-GIT update of https://sourceware.org/git/glibc.git/release/2.42/master from glibc-2.42 to e87844ec42b77363a499ea4da6c4a6ab85eba310
+GIT update of https://sourceware.org/git/glibc.git/release/2.42/master from glibc-2.42 to ab8c1b5d62d7be2c3c23f535bea3d7fff19c53ae
 
 diff --git a/ADVISORIES b/ADVISORIES
 new file mode 100644
-index 0000000000..d4e33f2df3
+index 00000000000..d4e33f2df3d
 --- /dev/null
 +++ b/ADVISORIES
 @@ -0,0 +1,2 @@
 +For the GNU C Library Security Advisories, see the git master branch:
 +https://sourceware.org/git/?p=glibc.git;a=tree;f=advisories;hb=HEAD
 diff --git a/NEWS b/NEWS
-index f0b0e924a4..69aa600c6d 100644
+index f0b0e924a45..ed3c114c7ac 100644
 --- a/NEWS
 +++ b/NEWS
-@@ -5,6 +5,15 @@ See the end for copying conditions.
+@@ -5,6 +5,18 @@ See the end for copying conditions.
  Please send GNU C library bug reports via <https://sourceware.org/bugzilla/>
  using `glibc' in the "product" field.
  
@@ -24,13 +24,16 @@ index f0b0e924a4..69aa600c6d 100644
 +  [32994] stdlib: resolve a double lock init issue after fork
 +  [33234] Use TLS initial-exec model for __libc_tsd_CTYPE_* thread variables
 +  [33245] nptl: nptl: error in internal cancellation syscall handling
++  [33356] nptl: creating thread stack with guardsize 0 can erroneously
++    conclude MADV_GUARD_INSTALL is available
++  [33361] nss: Group merge does not react to ERANGE during merge
 +
  Version 2.42
  
  Major new features:
 diff --git a/advisories/GLIBC-SA-2023-0001 b/advisories/GLIBC-SA-2023-0001
 deleted file mode 100644
-index 3d19c91b6a..0000000000
+index 3d19c91b6a6..00000000000
 --- a/advisories/GLIBC-SA-2023-0001
 +++ /dev/null
 @@ -1,14 +0,0 @@
@@ -50,7 +53,7 @@ index 3d19c91b6a..0000000000
 -Fix-Commit: 07b9521fc6369d000216b96562ff7c0ed32a16c4 (2.37-4)
 diff --git a/advisories/GLIBC-SA-2023-0002 b/advisories/GLIBC-SA-2023-0002
 deleted file mode 100644
-index 5122669a64..0000000000
+index 5122669a645..00000000000
 --- a/advisories/GLIBC-SA-2023-0002
 +++ /dev/null
 @@ -1,15 +0,0 @@
@@ -71,7 +74,7 @@ index 5122669a64..0000000000
 -Fix-Commit: b25508dd774b617f99419bdc3cf2ace4560cd2d6 (2.38-19)
 diff --git a/advisories/GLIBC-SA-2023-0003 b/advisories/GLIBC-SA-2023-0003
 deleted file mode 100644
-index d3aef80348..0000000000
+index d3aef803480..00000000000
 --- a/advisories/GLIBC-SA-2023-0003
 +++ /dev/null
 @@ -1,15 +0,0 @@
@@ -92,7 +95,7 @@ index d3aef80348..0000000000
 -Fix-Commit: 00ae4f10b504bc4564e9f22f00907093f1ab9338 (2.38-20)
 diff --git a/advisories/GLIBC-SA-2023-0004 b/advisories/GLIBC-SA-2023-0004
 deleted file mode 100644
-index 5286a7aa54..0000000000
+index 5286a7aa545..00000000000
 --- a/advisories/GLIBC-SA-2023-0004
 +++ /dev/null
 @@ -1,16 +0,0 @@
@@ -114,7 +117,7 @@ index 5286a7aa54..0000000000
 -Fix-Commit: 750a45a783906a19591fb8ff6b7841470f1f5701 (2.38-27)
 diff --git a/advisories/GLIBC-SA-2023-0005 b/advisories/GLIBC-SA-2023-0005
 deleted file mode 100644
-index cc4eb90b82..0000000000
+index cc4eb90b828..00000000000
 --- a/advisories/GLIBC-SA-2023-0005
 +++ /dev/null
 @@ -1,18 +0,0 @@
@@ -138,7 +141,7 @@ index cc4eb90b82..0000000000
 -Fix-Commit: 5ee59ca371b99984232d7584fe2b1a758b4421d3 (2.38-24)
 diff --git a/advisories/GLIBC-SA-2024-0001 b/advisories/GLIBC-SA-2024-0001
 deleted file mode 100644
-index 28931c75ae..0000000000
+index 28931c75ae0..00000000000
 --- a/advisories/GLIBC-SA-2024-0001
 +++ /dev/null
 @@ -1,15 +0,0 @@
@@ -159,7 +162,7 @@ index 28931c75ae..0000000000
 -Fix-Commit: d1a83b6767f68b3cb5b4b4ea2617254acd040c82 (2.36-126)
 diff --git a/advisories/GLIBC-SA-2024-0002 b/advisories/GLIBC-SA-2024-0002
 deleted file mode 100644
-index 940bfcf2fc..0000000000
+index 940bfcf2fcb..00000000000
 --- a/advisories/GLIBC-SA-2024-0002
 +++ /dev/null
 @@ -1,15 +0,0 @@
@@ -180,7 +183,7 @@ index 940bfcf2fc..0000000000
 -Fix-Commit: 2bc9d7c002bdac38b5c2a3f11b78e309d7765b83 (2.36-127)
 diff --git a/advisories/GLIBC-SA-2024-0003 b/advisories/GLIBC-SA-2024-0003
 deleted file mode 100644
-index b43a5150ab..0000000000
+index b43a5150ab1..00000000000
 --- a/advisories/GLIBC-SA-2024-0003
 +++ /dev/null
 @@ -1,13 +0,0 @@
@@ -199,7 +202,7 @@ index b43a5150ab..0000000000
 -Fix-Commit: b9b7d6a27aa0632f334352fa400771115b3c69b7 (2.36-128)
 diff --git a/advisories/GLIBC-SA-2024-0004 b/advisories/GLIBC-SA-2024-0004
 deleted file mode 100644
-index 08df2b3118..0000000000
+index 08df2b3118f..00000000000
 --- a/advisories/GLIBC-SA-2024-0004
 +++ /dev/null
 @@ -1,28 +0,0 @@
@@ -233,7 +236,7 @@ index 08df2b3118..0000000000
 -Reported-By: Charles Fol
 diff --git a/advisories/GLIBC-SA-2024-0005 b/advisories/GLIBC-SA-2024-0005
 deleted file mode 100644
-index a59596610a..0000000000
+index a59596610a0..00000000000
 --- a/advisories/GLIBC-SA-2024-0005
 +++ /dev/null
 @@ -1,22 +0,0 @@
@@ -261,7 +264,7 @@ index a59596610a..0000000000
 -Fix-Commit: 87801a8fd06db1d654eea3e4f7626ff476a9bdaa (2.40)
 diff --git a/advisories/GLIBC-SA-2024-0006 b/advisories/GLIBC-SA-2024-0006
 deleted file mode 100644
-index d44148d3d9..0000000000
+index d44148d3d97..00000000000
 --- a/advisories/GLIBC-SA-2024-0006
 +++ /dev/null
 @@ -1,32 +0,0 @@
@@ -299,7 +302,7 @@ index d44148d3d9..0000000000
 -Fix-Commit: 304ce5fe466c4762b21b36c26926a4657b59b53e (2.31-156)
 diff --git a/advisories/GLIBC-SA-2024-0007 b/advisories/GLIBC-SA-2024-0007
 deleted file mode 100644
-index b6928fa27a..0000000000
+index b6928fa27a6..00000000000
 --- a/advisories/GLIBC-SA-2024-0007
 +++ /dev/null
 @@ -1,28 +0,0 @@
@@ -333,7 +336,7 @@ index b6928fa27a..0000000000
 -Fix-Commit: bbf5a58ccb55679217f94de706164d15372fbbc0 (2.31-158)
 diff --git a/advisories/GLIBC-SA-2024-0008 b/advisories/GLIBC-SA-2024-0008
 deleted file mode 100644
-index d93e2a6f0b..0000000000
+index d93e2a6f0bf..00000000000
 --- a/advisories/GLIBC-SA-2024-0008
 +++ /dev/null
 @@ -1,26 +0,0 @@
@@ -365,7 +368,7 @@ index d93e2a6f0b..0000000000
 -Fix-Commit: bbf5a58ccb55679217f94de706164d15372fbbc0 (2.31-158)
 diff --git a/advisories/GLIBC-SA-2025-0001 b/advisories/GLIBC-SA-2025-0001
 deleted file mode 100644
-index b053d32e91..0000000000
+index b053d32e91b..00000000000
 --- a/advisories/GLIBC-SA-2025-0001
 +++ /dev/null
 @@ -1,40 +0,0 @@
@@ -411,7 +414,7 @@ index b053d32e91..0000000000
 -Reported-By: Qualys Security Advisory
 diff --git a/advisories/GLIBC-SA-2025-0002 b/advisories/GLIBC-SA-2025-0002
 deleted file mode 100644
-index 161da13dd4..0000000000
+index 161da13dd46..00000000000
 --- a/advisories/GLIBC-SA-2025-0002
 +++ /dev/null
 @@ -1,23 +0,0 @@
@@ -440,7 +443,7 @@ index 161da13dd4..0000000000
 -Fix-Commit: 35018c0fd20eac9ceaf60060fed2745b3177359d (2.34-517)
 diff --git a/advisories/GLIBC-SA-2025-0003 b/advisories/GLIBC-SA-2025-0003
 deleted file mode 100644
-index 2adeb3ce00..0000000000
+index 2adeb3ce006..00000000000
 --- a/advisories/GLIBC-SA-2025-0003
 +++ /dev/null
 @@ -1,30 +0,0 @@
@@ -476,7 +479,7 @@ index 2adeb3ce00..0000000000
 -Fix-Commit: 06a70769fd0b2e1f2a3085ad50ab620282bd77b3 (2.39-209)
 diff --git a/advisories/GLIBC-SA-2025-0004 b/advisories/GLIBC-SA-2025-0004
 deleted file mode 100644
-index 9409ca27c4..0000000000
+index 9409ca27c40..00000000000
 --- a/advisories/GLIBC-SA-2025-0004
 +++ /dev/null
 @@ -1,29 +0,0 @@
@@ -511,7 +514,7 @@ index 9409ca27c4..0000000000
 -Fix-Commit: 42a5a940c974d02540c8da26d6374c744d148cb9 (2.40-136)
 diff --git a/advisories/GLIBC-SA-2025-0005 b/advisories/GLIBC-SA-2025-0005
 deleted file mode 100644
-index 8bcccc59a5..0000000000
+index 8bcccc59a54..00000000000
 --- a/advisories/GLIBC-SA-2025-0005
 +++ /dev/null
 @@ -1,14 +0,0 @@
@@ -531,7 +534,7 @@ index 8bcccc59a5..0000000000
 -Fix-Commit: 7ea06e994093fa0bcca0d0ee2c1db271d8d7885d (2.42)
 diff --git a/advisories/README b/advisories/README
 deleted file mode 100644
-index b8f8a829ca..0000000000
+index b8f8a829ca5..00000000000
 --- a/advisories/README
 +++ /dev/null
 @@ -1,77 +0,0 @@
@@ -613,7 +616,7 @@ index b8f8a829ca..0000000000
 -
 -and copy the content into the NEWS file.
 diff --git a/ctype/ctype-info.c b/ctype/ctype-info.c
-index b7d3422726..fb5acf9419 100644
+index b7d3422726f..fb5acf9419d 100644
 --- a/ctype/ctype-info.c
 +++ b/ctype/ctype-info.c
 @@ -24,11 +24,11 @@
@@ -632,7 +635,7 @@ index b7d3422726..fb5acf9419 100644
  
  
 diff --git a/elf/Makefile b/elf/Makefile
-index 48aa0b57e5..3a5596e2bb 100644
+index 48aa0b57e5b..3a5596e2bbc 100644
 --- a/elf/Makefile
 +++ b/elf/Makefile
 @@ -543,6 +543,8 @@ tests-internal += \
@@ -656,7 +659,7 @@ index 48aa0b57e5..3a5596e2bb 100644
    tst-dlopen-self-container \
    tst-dlopen-tlsmodid-container \
 diff --git a/elf/dl-find_object.c b/elf/dl-find_object.c
-index 1e76373292..c9f4c1c8d1 100644
+index 1e763732925..c9f4c1c8d11 100644
 --- a/elf/dl-find_object.c
 +++ b/elf/dl-find_object.c
 @@ -465,6 +465,37 @@ _dl_find_object (void *pc1, struct dl_find_object *result)
@@ -762,7 +765,7 @@ index 1e76373292..c9f4c1c8d1 100644
          }
  
 diff --git a/elf/dl-find_object.h b/elf/dl-find_object.h
-index 9aa2439eaa..d9d75c4ad9 100644
+index 9aa2439eaa6..d9d75c4ad9d 100644
 --- a/elf/dl-find_object.h
 +++ b/elf/dl-find_object.h
 @@ -94,7 +94,7 @@ _dl_find_object_to_external (struct dl_find_object_internal *internal,
@@ -788,7 +791,7 @@ index 9aa2439eaa..d9d75c4ad9 100644
  
  /* Called by the dynamic linker to set up the data structures for the
 diff --git a/elf/rtld.c b/elf/rtld.c
-index 493f9696ea..ef4d96c053 100644
+index 493f9696ea6..ef4d96c053f 100644
 --- a/elf/rtld.c
 +++ b/elf/rtld.c
 @@ -1239,6 +1239,60 @@ rtld_setup_main_map (struct link_map *main_map)
@@ -888,7 +891,7 @@ index 493f9696ea..ef4d96c053 100644
    /* Add the dynamic linker to the TLS list if it also uses TLS.  */
    if (_dl_rtld_map.l_tls_blocksize != 0)
 diff --git a/elf/tst-env-setuid.c b/elf/tst-env-setuid.c
-index 7209acd616..ff3eda7f91 100644
+index 7209acd6160..ff3eda7f91d 100644
 --- a/elf/tst-env-setuid.c
 +++ b/elf/tst-env-setuid.c
 @@ -40,6 +40,8 @@ static char SETGID_CHILD[] = "setgid-child";
@@ -951,7 +954,7 @@ index 7209acd616..ff3eda7f91 100644
        return 0;
 diff --git a/elf/tst-link-map-contiguous-ldso.c b/elf/tst-link-map-contiguous-ldso.c
 new file mode 100644
-index 0000000000..04de808bb2
+index 00000000000..04de808bb23
 --- /dev/null
 +++ b/elf/tst-link-map-contiguous-ldso.c
 @@ -0,0 +1,98 @@
@@ -1055,7 +1058,7 @@ index 0000000000..04de808bb2
 +#include <support/test-driver.c>
 diff --git a/elf/tst-link-map-contiguous-libc.c b/elf/tst-link-map-contiguous-libc.c
 new file mode 100644
-index 0000000000..eb5728c765
+index 00000000000..eb5728c765a
 --- /dev/null
 +++ b/elf/tst-link-map-contiguous-libc.c
 @@ -0,0 +1,57 @@
@@ -1118,7 +1121,7 @@ index 0000000000..eb5728c765
 +#include <support/test-driver.c>
 diff --git a/elf/tst-link-map-contiguous-main.c b/elf/tst-link-map-contiguous-main.c
 new file mode 100644
-index 0000000000..2d1a054f0f
+index 00000000000..2d1a054f0fb
 --- /dev/null
 +++ b/elf/tst-link-map-contiguous-main.c
 @@ -0,0 +1,45 @@
@@ -1168,7 +1171,7 @@ index 0000000000..2d1a054f0f
 +}
 +#include <support/test-driver.c>
 diff --git a/inet/bits/inet-fortified.h b/inet/bits/inet-fortified.h
-index 6738221a54..cc476ebcfd 100644
+index 6738221a543..cc476ebcfde 100644
 --- a/inet/bits/inet-fortified.h
 +++ b/inet/bits/inet-fortified.h
 @@ -45,15 +45,15 @@ __NTH (inet_pton (int __af,
@@ -1191,8 +1194,27 @@ index 6738221a54..cc476ebcfd 100644
  			  __glibc_objsize (__dst),
  			  __af, __src, __dst);
  };
+diff --git a/libio/stdio.h b/libio/stdio.h
+index d042b366183..e0e70945fab 100644
+--- a/libio/stdio.h
++++ b/libio/stdio.h
+@@ -168,11 +168,11 @@ extern int renameat (int __oldfd, const char *__old, int __newfd,
+ #ifdef __USE_GNU
+ /* Flags for renameat2.  */
+ # define RENAME_NOREPLACE (1 << 0)
+-# define AT_RENAME_NOREPLACE RENAME_NOREPLACE
++# define AT_RENAME_NOREPLACE 0x0001
+ # define RENAME_EXCHANGE (1 << 1)
+-# define AT_RENAME_EXCHANGE RENAME_EXCHANGE
++# define AT_RENAME_EXCHANGE 0x0002
+ # define RENAME_WHITEOUT (1 << 2)
+-# define AT_RENAME_WHITEOUT RENAME_WHITEOUT
++# define AT_RENAME_WHITEOUT 0x0004
+ 
+ /* Rename file OLD relative to OLDFD to NEW relative to NEWFD, with
+    additional flags.  */
 diff --git a/malloc/malloc.c b/malloc/malloc.c
-index 5ca390cc22..5f3e701fd1 100644
+index 5ca390cc225..5f3e701fd13 100644
 --- a/malloc/malloc.c
 +++ b/malloc/malloc.c
 @@ -230,6 +230,9 @@
@@ -1298,8 +1320,49 @@ index 5ca390cc22..5f3e701fd1 100644
        return 1;
      }
  
+diff --git a/nptl/allocatestack.c b/nptl/allocatestack.c
+index 800ca89720d..fb8a60a21d0 100644
+--- a/nptl/allocatestack.c
++++ b/nptl/allocatestack.c
+@@ -240,7 +240,7 @@ setup_stack_prot (char *mem, size_t size, struct pthread *pd,
+ /* Update the guard area of the thread stack MEM of size SIZE with the new
+    GUARDISZE.  It uses the method defined by PD stack_mode.  */
+ static inline bool
+-adjust_stack_prot (char *mem, size_t size, const struct pthread *pd,
++adjust_stack_prot (char *mem, size_t size, struct pthread *pd,
+ 		   size_t guardsize, size_t pagesize_m1)
+ {
+   /* The required guard area is larger than the current one.  For
+@@ -258,11 +258,23 @@ adjust_stack_prot (char *mem, size_t size, const struct pthread *pd,
+      so use the new guard placement with the new size.  */
+   if (guardsize > pd->guardsize)
+     {
++      /* There was no need to previously setup a guard page, so we need
++	 to check whether the kernel supports guard advise.  */
+       char *guard = guard_position (mem, size, guardsize, pd, pagesize_m1);
+-      if (pd->stack_mode == ALLOCATE_GUARD_MADV_GUARD)
+-	return __madvise (guard, guardsize, MADV_GUARD_INSTALL) == 0;
+-      else if (pd->stack_mode == ALLOCATE_GUARD_PROT_NONE)
+-	return __mprotect (guard, guardsize, PROT_NONE) == 0;
++      if (atomic_load_relaxed (&allocate_stack_mode)
++	  == ALLOCATE_GUARD_MADV_GUARD)
++	{
++	  if (__madvise (guard, guardsize, MADV_GUARD_INSTALL) == 0)
++	    {
++	      pd->stack_mode = ALLOCATE_GUARD_MADV_GUARD;
++	      return true;
++	    }
++	  atomic_store_relaxed (&allocate_stack_mode,
++				ALLOCATE_GUARD_PROT_NONE);
++	}
++
++      pd->stack_mode = ALLOCATE_GUARD_PROT_NONE;
++      return __mprotect (guard, guardsize, PROT_NONE) == 0;
+     }
+   /* The current guard area is larger than the required one.  For
+      _STACK_GROWS_DOWN is means change the guard as:
 diff --git a/nptl/cancellation.c b/nptl/cancellation.c
-index 156e63dcf0..bed0383a23 100644
+index 156e63dcf0d..bed0383a23f 100644
 --- a/nptl/cancellation.c
 +++ b/nptl/cancellation.c
 @@ -72,8 +72,8 @@ __syscall_cancel (__syscall_arg_t a1, __syscall_arg_t a2,
@@ -1313,8 +1376,190 @@ index 156e63dcf0..bed0383a23 100644
    return __glibc_unlikely (INTERNAL_SYSCALL_ERROR_P (r))
  	 ? SYSCALL_ERROR_LABEL (INTERNAL_SYSCALL_ERRNO (r))
  	 : r;
+diff --git a/nptl/tst-guard1.c b/nptl/tst-guard1.c
+index e3e06df0fc9..1c73d3fc931 100644
+--- a/nptl/tst-guard1.c
++++ b/nptl/tst-guard1.c
+@@ -21,6 +21,7 @@
+ #include <setjmp.h>
+ #include <stackinfo.h>
+ #include <stdio.h>
++#include <support/capture_subprocess.h>
+ #include <support/check.h>
+ #include <support/test-driver.h>
+ #include <support/xsignal.h>
+@@ -202,7 +203,7 @@ tf (void *closure)
+ 
+ /* Test 1: caller provided stack without guard.  */
+ static void
+-do_test1 (void)
++do_test1 (void *closure)
+ {
+   pthread_attr_t attr;
+   xpthread_attr_init (&attr);
+@@ -227,7 +228,7 @@ do_test1 (void)
+ 
+ /* Test 2: same as 1., but with a guard area.  */
+ static void
+-do_test2 (void)
++do_test2 (void *closure)
+ {
+   pthread_attr_t attr;
+   xpthread_attr_init (&attr);
+@@ -250,18 +251,9 @@ do_test2 (void)
+   xmunmap (stack, stacksize);
+ }
+ 
+-/* Test 3: pthread_create with default values.  */
++/* Test 3: pthread_create without a guard area.  */
+ static void
+-do_test3 (void)
+-{
+-  pthread_t t = xpthread_create (NULL, tf, NULL);
+-  void *status = xpthread_join (t);
+-  TEST_VERIFY (status == 0);
+-}
+-
+-/* Test 4: pthread_create without a guard area.  */
+-static void
+-do_test4 (void)
++do_test3 (void *closure)
+ {
+   pthread_attr_t attr;
+   xpthread_attr_init (&attr);
+@@ -277,9 +269,18 @@ do_test4 (void)
+   xpthread_attr_destroy (&attr);
+ }
+ 
++/* Test 4: pthread_create with default values.  */
++static void
++do_test4 (void *closure)
++{
++  pthread_t t = xpthread_create (NULL, tf, NULL);
++  void *status = xpthread_join (t);
++  TEST_VERIFY (status == 0);
++}
++
+ /* Test 5: pthread_create with non default stack and guard size value.  */
+ static void
+-do_test5 (void)
++do_test5 (void *closure)
+ {
+   pthread_attr_t attr;
+   xpthread_attr_init (&attr);
+@@ -299,7 +300,7 @@ do_test5 (void)
+    test 3, but with a larger guard area.  The pthread_create will need to
+    increase the guard area.  */
+ static void
+-do_test6 (void)
++do_test6 (void *closure)
+ {
+   pthread_attr_t attr;
+   xpthread_attr_init (&attr);
+@@ -320,7 +321,7 @@ do_test6 (void)
+    pthread_create should use the cached stack from previous tests, but it
+    would require to reduce the guard area.  */
+ static void
+-do_test7 (void)
++do_test7 (void *closure)
+ {
+   pthread_t t = xpthread_create (NULL, tf, NULL);
+   void *status = xpthread_join (t);
+@@ -346,21 +347,40 @@ do_test (void)
+ 
+   static const struct {
+     const char *descr;
+-    void (*test)(void);
++    void (*test) (void *);
+   } tests[] = {
+     { "user provided stack without guard", do_test1 },
+     { "user provided stack with guard",    do_test2 },
+-    { "default attribute",                 do_test3 },
+-    { "default attribute without guard",   do_test4 },
++    /* N.B: do_test3 should be before do_test4 to check if a new thread
++       that uses the thread stack previously allocated without a guard
++       page correctly sets up the guard pages even on a kernel without
++       MADV_GUARD_INSTALL support (BZ 33356).  */
++    { "default attribute without guard",   do_test3 },
++    { "default attribute",                 do_test4 },
++    /* Also checks if the guard is correctly removed from the cache thread
++       stack.  */
++    { "default attribute without guard",   do_test3 },
+     { "non default stack and guard sizes", do_test5 },
+     { "reused stack with larger guard",    do_test6 },
+     { "reused stack with smaller guard",   do_test7 },
+   };
+ 
++  /* Run each test with a clean state.  */
++  for (int i = 0; i < array_length (tests); i++)
++    {
++      printf ("debug: fork: test%01d: %s\n", i, tests[i].descr);
++      struct support_capture_subprocess result =
++	support_capture_subprocess (tests[i].test, NULL);
++      support_capture_subprocess_check (&result, tests[i].descr, 0,
++					sc_allow_none);
++      support_capture_subprocess_free (&result);
++    }
++
++  /* And now run the same tests along with the thread stack cache.  */
+   for (int i = 0; i < array_length (tests); i++)
+     {
+       printf ("debug: test%01d: %s\n", i, tests[i].descr);
+-      tests[i].test();
++      tests[i].test ( NULL);
+     }
+ 
+   return 0;
+diff --git a/nss/getXXbyYY_r.c b/nss/getXXbyYY_r.c
+index eae6c3480ef..2b0735fb6a8 100644
+--- a/nss/getXXbyYY_r.c
++++ b/nss/getXXbyYY_r.c
+@@ -157,19 +157,15 @@ __merge_einval (LOOKUP_TYPE *a,
+ 
+ #define CHECK_MERGE(err, status)		\
+   ({						\
+-    do						\
++    if (err)					\
+       {						\
+-	if (err)				\
+-	  {					\
+-	    __set_errno (err);			\
+-	    if (err == ERANGE)			\
+-	      status = NSS_STATUS_TRYAGAIN;	\
+-	    else				\
+-	      status = NSS_STATUS_UNAVAIL;	\
+-	    break;				\
+-	  }					\
++	__set_errno (err);			\
++	if (err == ERANGE)			\
++	  status = NSS_STATUS_TRYAGAIN;		\
++	else					\
++	  status = NSS_STATUS_UNAVAIL;		\
++	break;					\
+       }						\
+-    while (0);					\
+   })
+ 
+ /* Type of the lookup function we need here.  */
+diff --git a/stdio-common/tst-renameat2.c b/stdio-common/tst-renameat2.c
+index 12aa0f8b0f8..6213e1376d5 100644
+--- a/stdio-common/tst-renameat2.c
++++ b/stdio-common/tst-renameat2.c
+@@ -28,6 +28,12 @@
+ #include <support/xunistd.h>
+ #include <unistd.h>
+ 
++/* These constants are defined with different token sequences,
++   matching the Linux definitions, to avoid preprocessor warnings.  */
++_Static_assert (RENAME_NOREPLACE == AT_RENAME_NOREPLACE, "RENAME_NOREPLACE");
++_Static_assert (RENAME_EXCHANGE == AT_RENAME_EXCHANGE, "RENAME_EXCHANGE");
++_Static_assert (RENAME_WHITEOUT == AT_RENAME_WHITEOUT, "RENAME_WHITEOUT");
++
+ /* Directory with the temporary files.  */
+ static char *directory;
+ static int directory_fd;
 diff --git a/stdlib/abort.c b/stdlib/abort.c
-index caa9e6dc04..904244a2fb 100644
+index caa9e6dc049..904244a2fb5 100644
 --- a/stdlib/abort.c
 +++ b/stdlib/abort.c
 @@ -19,6 +19,7 @@
@@ -1338,7 +1583,7 @@ index caa9e6dc04..904244a2fb 100644
  
  void
 diff --git a/support/support_capture_subprocess.c b/support/support_capture_subprocess.c
-index b4e4bf9502..c89e65b534 100644
+index b4e4bf95026..c89e65b5349 100644
 --- a/support/support_capture_subprocess.c
 +++ b/support/support_capture_subprocess.c
 @@ -133,6 +133,27 @@ copy_and_spawn_sgid (const char *child_id, gid_t gid)
@@ -1370,7 +1615,7 @@ index b4e4bf9502..c89e65b534 100644
       support_subprogram because we only want the program exit status, not the
       contents.  */
 diff --git a/support/support_subprocess.c b/support/support_subprocess.c
-index be00dde3a7..8bf9a33ea2 100644
+index be00dde3a71..8bf9a33ea28 100644
 --- a/support/support_subprocess.c
 +++ b/support/support_subprocess.c
 @@ -25,6 +25,7 @@
@@ -1390,8 +1635,44 @@ index be00dde3a7..8bf9a33ea2 100644
        _exit (0);
      }
    xclose (result.stdout_pipe[1]);
+diff --git a/sysdeps/aarch64/fpu/powf_sve.c b/sysdeps/aarch64/fpu/powf_sve.c
+index 7046990aa11..65e9bd29d9b 100644
+--- a/sysdeps/aarch64/fpu/powf_sve.c
++++ b/sysdeps/aarch64/fpu/powf_sve.c
+@@ -223,15 +223,15 @@ sv_powf_core (const svbool_t pg, svuint32_t i, svuint32_t iz, svint32_t k,
+   const svbool_t ptrue = svptrue_b64 ();
+ 
+   /* Unpack and promote input vectors (pg, y, z, i, k and sign_bias) into two
+-   * in order to perform core computation in double precision.  */
++     in order to perform core computation in double precision.  */
+   const svbool_t pg_lo = svunpklo (pg);
+   const svbool_t pg_hi = svunpkhi (pg);
+-  svfloat64_t y_lo
+-      = svcvt_f64_x (pg, svreinterpret_f32 (svunpklo (svreinterpret_u32 (y))));
+-  svfloat64_t y_hi
+-      = svcvt_f64_x (pg, svreinterpret_f32 (svunpkhi (svreinterpret_u32 (y))));
+-  svfloat64_t z_lo = svcvt_f64_x (pg, svreinterpret_f32 (svunpklo (iz)));
+-  svfloat64_t z_hi = svcvt_f64_x (pg, svreinterpret_f32 (svunpkhi (iz)));
++  svfloat64_t y_lo = svcvt_f64_x (
++      ptrue, svreinterpret_f32 (svunpklo (svreinterpret_u32 (y))));
++  svfloat64_t y_hi = svcvt_f64_x (
++      ptrue, svreinterpret_f32 (svunpkhi (svreinterpret_u32 (y))));
++  svfloat64_t z_lo = svcvt_f64_x (ptrue, svreinterpret_f32 (svunpklo (iz)));
++  svfloat64_t z_hi = svcvt_f64_x (ptrue, svreinterpret_f32 (svunpkhi (iz)));
+   svuint64_t i_lo = svunpklo (i);
+   svuint64_t i_hi = svunpkhi (i);
+   svint64_t k_lo = svunpklo (k);
+@@ -312,7 +312,7 @@ svfloat32_t SV_NAME_F2 (pow) (svfloat32_t x, svfloat32_t y, const svbool_t pg)
+ 			 (23 - V_POWF_EXP2_TABLE_BITS));
+ 
+   /* Compute core in extended precision and return intermediate ylogx results
+-   * to handle cases of underflow and underflow in exp.  */
++     to handle cases of underflow and overflow in exp.  */
+   svfloat32_t ylogx;
+   svfloat32_t ret
+       = sv_powf_core (yint_or_xpos, i, iz, k, y, sign_bias, &ylogx, d);
 diff --git a/sysdeps/i386/Makefile b/sysdeps/i386/Makefile
-index ee6470d78e..c0c017b899 100644
+index ee6470d78e8..c0c017b899e 100644
 --- a/sysdeps/i386/Makefile
 +++ b/sysdeps/i386/Makefile
 @@ -60,6 +60,15 @@ $(objpfx)tst-ld-sse-use.out: ../sysdeps/i386/tst-ld-sse-use.sh $(objpfx)ld.so
@@ -1411,7 +1692,7 @@ index ee6470d78e..c0c017b899 100644
  CFLAGS-.os += $(if $(filter rtld-%.os,$(@F)), $(rtld-CFLAGS))
  endif
 diff --git a/sysdeps/i386/Versions b/sysdeps/i386/Versions
-index 36e23b466a..9c84c8ef04 100644
+index 36e23b466a6..9c84c8ef049 100644
 --- a/sysdeps/i386/Versions
 +++ b/sysdeps/i386/Versions
 @@ -28,6 +28,11 @@ libc {
@@ -1427,7 +1708,7 @@ index 36e23b466a..9c84c8ef04 100644
  libm {
    GLIBC_2.1 {
 diff --git a/sysdeps/pthread/tst-fopen-threaded.c b/sysdeps/pthread/tst-fopen-threaded.c
-index ade58ad19e..c17f1eaa13 100644
+index ade58ad19eb..c17f1eaa132 100644
 --- a/sysdeps/pthread/tst-fopen-threaded.c
 +++ b/sysdeps/pthread/tst-fopen-threaded.c
 @@ -34,11 +34,13 @@
@@ -1485,7 +1766,7 @@ index ade58ad19e..c17f1eaa13 100644
  }
  
 diff --git a/sysdeps/x86/Makefile b/sysdeps/x86/Makefile
-index 4fbd48e1c8..9e1c8cce85 100644
+index 4fbd48e1c82..9e1c8cce85c 100644
 --- a/sysdeps/x86/Makefile
 +++ b/sysdeps/x86/Makefile
 @@ -135,6 +135,15 @@ LDFLAGS-tst-tls23 += -rdynamic
@@ -1505,7 +1786,7 @@ index 4fbd48e1c8..9e1c8cce85 100644
  
  ifeq ($(subdir),gmon)
 diff --git a/sysdeps/x86/Versions b/sysdeps/x86/Versions
-index 4b10c4b5d7..e8dcfccbe4 100644
+index 4b10c4b5d72..e8dcfccbe4d 100644
 --- a/sysdeps/x86/Versions
 +++ b/sysdeps/x86/Versions
 @@ -7,4 +7,9 @@ libc {
@@ -1518,8 +1799,57 @@ index 4b10c4b5d7..e8dcfccbe4 100644
 +    __placeholder_only_for_empty_version_map;
 +  }
  }
+diff --git a/sysdeps/x86/cpu-features.c b/sysdeps/x86/cpu-features.c
+index b7d15061352..b67ef541dd6 100644
+--- a/sysdeps/x86/cpu-features.c
++++ b/sysdeps/x86/cpu-features.c
+@@ -543,6 +543,8 @@ enum intel_microarch
+   INTEL_BIGCORE_PANTHERLAKE,
+   INTEL_BIGCORE_GRANITERAPIDS,
+   INTEL_BIGCORE_DIAMONDRAPIDS,
++  INTEL_BIGCORE_WILDCATLAKE,
++  INTEL_BIGCORE_NOVALAKE,
+ 
+   /* Mixed (bigcore + atom SOC).  */
+   INTEL_MIXED_LAKEFIELD,
+@@ -702,6 +704,8 @@ intel_get_fam6_microarch (unsigned int model,
+       return INTEL_BIGCORE_ARROWLAKE;
+     case 0xCC:
+       return INTEL_BIGCORE_PANTHERLAKE;
++    case 0xD5:
++      return INTEL_BIGCORE_WILDCATLAKE;
+     case 0xAD:
+     case 0xAE:
+       return INTEL_BIGCORE_GRANITERAPIDS;
+@@ -818,6 +822,17 @@ disable_tsx:
+ 	      break;
+ 	    }
+ 	}
++      else if (family == 18)
++	switch (model)
++	  {
++	  case 0x01:
++	  case 0x03:
++	    microarch = INTEL_BIGCORE_NOVALAKE;
++	    break;
++
++	  default:
++	    break;
++	  }
+       else if (family == 19)
+ 	switch (model)
+ 	  {
+@@ -934,6 +949,8 @@ disable_tsx:
+ 	case INTEL_BIGCORE_LUNARLAKE:
+ 	case INTEL_BIGCORE_ARROWLAKE:
+ 	case INTEL_BIGCORE_PANTHERLAKE:
++	case INTEL_BIGCORE_WILDCATLAKE:
++	case INTEL_BIGCORE_NOVALAKE:
+ 	case INTEL_BIGCORE_SAPPHIRERAPIDS:
+ 	case INTEL_BIGCORE_EMERALDRAPIDS:
+ 	case INTEL_BIGCORE_GRANITERAPIDS:
 diff --git a/sysdeps/x86_64/Makefile b/sysdeps/x86_64/Makefile
-index c3e1065c81..fe9f1cdddb 100644
+index c3e1065c81b..fe9f1cdddba 100644
 --- a/sysdeps/x86_64/Makefile
 +++ b/sysdeps/x86_64/Makefile
 @@ -212,6 +212,15 @@ LDFLAGS-tst-plt-rewrite2 = -Wl,-z,now
@@ -1539,7 +1869,7 @@ index c3e1065c81..fe9f1cdddb 100644
  
  test-internal-extras += tst-gnu2-tls2mod1
 diff --git a/sysdeps/x86_64/Versions b/sysdeps/x86_64/Versions
-index e94758b236..6a989ad3b3 100644
+index e94758b2364..6a989ad3b37 100644
 --- a/sysdeps/x86_64/Versions
 +++ b/sysdeps/x86_64/Versions
 @@ -5,6 +5,11 @@ libc {
