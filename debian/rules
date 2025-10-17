@@ -64,7 +64,7 @@ define unsetenv
   unexport $(1)
   $(1) =
 endef
-$(foreach v, CPPFLAGS CFLAGS CXXFLAGS LDFLAGS, $(if $(filter environment,$(origin $(v))),$(eval $(call unsetenv, $(v)))))
+$(foreach v, CPPFLAGS CFLAGS CXXFLAGS LDFLAGS ELF_PACKAGE_METADATA, $(if $(filter environment,$(origin $(v))),$(eval $(call unsetenv, $(v)))))
 
 # export debhelper substitution variables
 export $(build-tree)
