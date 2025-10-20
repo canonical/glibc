@@ -1,3 +1,18 @@
+glibc (2.42-2ubuntu1) resolute; urgency=medium
+
+  [ Simon Chopin ]
+  * Disable ELF metadata because it creeps into everything (LP: #2109333)
+
+  [ Simon Poirier ]
+  * Merge Debian glibc 2.42 branch. Dropped changes, superseded:
+    - Fix pthread page guard on linux<6.13
+    - Revert dropping the ldconfig wrapper, as we still have a lot of packages
+      that don't ship a trigger but instead call in postinst. (LP: #2127856)
+    - Explicitly enable sframe
+  * d/p/git-updates.diff: Update from upstream stable branch.
+
+ -- Simon Poirier <simon.poirier@canonical.com>  Mon, 20 Oct 2025 12:03:47 +0200
+
 glibc (2.42-2) experimental; urgency=medium
 
   [ Samuel Thibault ]
