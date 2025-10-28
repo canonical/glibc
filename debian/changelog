@@ -1,3 +1,10 @@
+glibc (2.42-2ubuntu2) resolute; urgency=medium
+
+  *  Fix gconv regression on i386 due to modules being multi-arch foreign
+     while containing arch-specific solibs.
+
+ -- Simon Poirier <simon.poirier@canonical.com>  Tue, 28 Oct 2025 18:33:33 -0400
+
 glibc (2.42-2ubuntu1) resolute; urgency=medium
 
   [ Simon Chopin ]
