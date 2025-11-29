@@ -44,6 +44,14 @@ hurd-i386/tg-libc_rwlock_recursive.diff
 hurd-i386/local-no_unsupported_ioctls.diff
 hurd-i386/local-stack_chk_guard.diff
 
+# committed for 2.43
+hurd-i386/git-sigreturn-SEGV.diff
+hurd-i386/git-rlimit-as.diff
+hurd-i386/git-run-iconv-test.sh.diff
+hurd-i386/git-elf-ordering.diff
+hurd-i386/git-rename.diff
+hurd-i386/git-signal-SSE-MMX.diff
+
 i386/local-biarch.diff
 i386/unsubmitted-quiet-ldconfig.diff
 i386/local-setcontext-revert-eax-ecx-edx.patch
@@ -76,3 +84,5 @@ any/local-ldconfig-ignore-ld.so.diff
 any/local-bootstrap-headers.diff
 any/local-test-install.diff
 any/local-cross.patch
+any/git-ldd-set-u.diff
+any/git-linux-termios.diff

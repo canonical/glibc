@@ -24,8 +24,3 @@ variables:
 build:
   extends: .build-package
   timeout: 3h
-
-build arm64:
-  extends: .build-package-arm64
-  rules:
-    - if: $CI_PROJECT_ROOT_NAMESPACE  == "glibc-team"

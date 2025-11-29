@@ -1,3 +1,28 @@
+glibc (2.42-3) experimental; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/patches/any/git-ldd-set-u.diff: backport fix to allow using
+    set -u on ldd.  Closes: #1114824.
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+  * debian/patches/any/git-linux-termios.diff: backport fix for termios
+    regression with non-standard baud rate.
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-sigreturn-SEGV.diff: catch SIGSEGV on
+    returning from signal handler.
+  * debian/patches/hurd-i386/git-rlimit-as.diff: Support RLIMIT_AS.
+  * debian/patches/hurd-i386/local-aux-pagesz.diff: Fix getauxval(AT_PAGESZ).
+  * debian/patches/hurd-i386/git-run-iconv-test.sh.diff: Fix running iconv
+    tests.
+  * debian/patches/hurd-i386/git-elf-ordering.diff: Fix running ELF ordering
+    tests.
+  * debian/patches/hurd-i386/git-rename.diff: Fix renaming directories with
+    trailing slahes.
+  * debian/patches/hurd-i386/git-signal-SSE-MMX.diff: Fix signals thrashing
+    SSE&MMX state.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 29 Nov 2025 19:36:10 +0100
+
 glibc (2.42-2) experimental; urgency=medium
 
   [ Samuel Thibault ]

@@ -1,4 +1,4 @@
-GIT update of https://sourceware.org/git/glibc.git/release/2.42/master from glibc-2.42 to e87844ec42b77363a499ea4da6c4a6ab85eba310
+GIT update of https://sourceware.org/git/glibc.git/release/2.42/master from glibc-2.42 to 8aaf4b732d7650c2db3beb4dc8bb70eab5b022c3
 
 diff --git a/ADVISORIES b/ADVISORIES
 new file mode 100644
@@ -9,10 +9,10 @@ index 0000000000..d4e33f2df3
 +For the GNU C Library Security Advisories, see the git master branch:
 +https://sourceware.org/git/?p=glibc.git;a=tree;f=advisories;hb=HEAD
 diff --git a/NEWS b/NEWS
-index f0b0e924a4..69aa600c6d 100644
+index f0b0e924a4..ed3c114c7a 100644
 --- a/NEWS
 +++ b/NEWS
-@@ -5,6 +5,15 @@ See the end for copying conditions.
+@@ -5,6 +5,18 @@ See the end for copying conditions.
  Please send GNU C library bug reports via <https://sourceware.org/bugzilla/>
  using `glibc' in the "product" field.
  
@@ -24,6 +24,9 @@ index f0b0e924a4..69aa600c6d 100644
 +  [32994] stdlib: resolve a double lock init issue after fork
 +  [33234] Use TLS initial-exec model for __libc_tsd_CTYPE_* thread variables
 +  [33245] nptl: nptl: error in internal cancellation syscall handling
++  [33356] nptl: creating thread stack with guardsize 0 can erroneously
++    conclude MADV_GUARD_INSTALL is available
++  [33361] nss: Group merge does not react to ERANGE during merge
 +
  Version 2.42
  
@@ -1191,6 +1194,25 @@ index 6738221a54..cc476ebcfd 100644
  			  __glibc_objsize (__dst),
  			  __af, __src, __dst);
  };
+diff --git a/libio/stdio.h b/libio/stdio.h
+index d042b36618..e0e70945fa 100644
+--- a/libio/stdio.h
++++ b/libio/stdio.h
+@@ -168,11 +168,11 @@ extern int renameat (int __oldfd, const char *__old, int __newfd,
+ #ifdef __USE_GNU
+ /* Flags for renameat2.  */
+ # define RENAME_NOREPLACE (1 << 0)
+-# define AT_RENAME_NOREPLACE RENAME_NOREPLACE
++# define AT_RENAME_NOREPLACE 0x0001
+ # define RENAME_EXCHANGE (1 << 1)
+-# define AT_RENAME_EXCHANGE RENAME_EXCHANGE
++# define AT_RENAME_EXCHANGE 0x0002
+ # define RENAME_WHITEOUT (1 << 2)
+-# define AT_RENAME_WHITEOUT RENAME_WHITEOUT
++# define AT_RENAME_WHITEOUT 0x0004
+ 
+ /* Rename file OLD relative to OLDFD to NEW relative to NEWFD, with
+    additional flags.  */
 diff --git a/malloc/malloc.c b/malloc/malloc.c
 index 5ca390cc22..5f3e701fd1 100644
 --- a/malloc/malloc.c
@@ -1298,6 +1320,47 @@ index 5ca390cc22..5f3e701fd1 100644
        return 1;
      }
  
+diff --git a/nptl/allocatestack.c b/nptl/allocatestack.c
+index 800ca89720..fb8a60a21d 100644
+--- a/nptl/allocatestack.c
++++ b/nptl/allocatestack.c
+@@ -240,7 +240,7 @@ setup_stack_prot (char *mem, size_t size, struct pthread *pd,
+ /* Update the guard area of the thread stack MEM of size SIZE with the new
+    GUARDISZE.  It uses the method defined by PD stack_mode.  */
+ static inline bool
+-adjust_stack_prot (char *mem, size_t size, const struct pthread *pd,
++adjust_stack_prot (char *mem, size_t size, struct pthread *pd,
+ 		   size_t guardsize, size_t pagesize_m1)
+ {
+   /* The required guard area is larger than the current one.  For
+@@ -258,11 +258,23 @@ adjust_stack_prot (char *mem, size_t size, const struct pthread *pd,
+      so use the new guard placement with the new size.  */
+   if (guardsize > pd->guardsize)
+     {
++      /* There was no need to previously setup a guard page, so we need
++	 to check whether the kernel supports guard advise.  */
+       char *guard = guard_position (mem, size, guardsize, pd, pagesize_m1);
+-      if (pd->stack_mode == ALLOCATE_GUARD_MADV_GUARD)
+-	return __madvise (guard, guardsize, MADV_GUARD_INSTALL) == 0;
+-      else if (pd->stack_mode == ALLOCATE_GUARD_PROT_NONE)
+-	return __mprotect (guard, guardsize, PROT_NONE) == 0;
++      if (atomic_load_relaxed (&allocate_stack_mode)
++	  == ALLOCATE_GUARD_MADV_GUARD)
++	{
++	  if (__madvise (guard, guardsize, MADV_GUARD_INSTALL) == 0)
++	    {
++	      pd->stack_mode = ALLOCATE_GUARD_MADV_GUARD;
++	      return true;
++	    }
++	  atomic_store_relaxed (&allocate_stack_mode,
++				ALLOCATE_GUARD_PROT_NONE);
++	}
++
++      pd->stack_mode = ALLOCATE_GUARD_PROT_NONE;
++      return __mprotect (guard, guardsize, PROT_NONE) == 0;
+     }
+   /* The current guard area is larger than the required one.  For
+      _STACK_GROWS_DOWN is means change the guard as:
 diff --git a/nptl/cancellation.c b/nptl/cancellation.c
 index 156e63dcf0..bed0383a23 100644
 --- a/nptl/cancellation.c
@@ -1313,6 +1376,188 @@ index 156e63dcf0..bed0383a23 100644
    return __glibc_unlikely (INTERNAL_SYSCALL_ERROR_P (r))
  	 ? SYSCALL_ERROR_LABEL (INTERNAL_SYSCALL_ERRNO (r))
  	 : r;
+diff --git a/nptl/tst-guard1.c b/nptl/tst-guard1.c
+index e3e06df0fc..1c73d3fc93 100644
+--- a/nptl/tst-guard1.c
++++ b/nptl/tst-guard1.c
+@@ -21,6 +21,7 @@
+ #include <setjmp.h>
+ #include <stackinfo.h>
+ #include <stdio.h>
++#include <support/capture_subprocess.h>
+ #include <support/check.h>
+ #include <support/test-driver.h>
+ #include <support/xsignal.h>
+@@ -202,7 +203,7 @@ tf (void *closure)
+ 
+ /* Test 1: caller provided stack without guard.  */
+ static void
+-do_test1 (void)
++do_test1 (void *closure)
+ {
+   pthread_attr_t attr;
+   xpthread_attr_init (&attr);
+@@ -227,7 +228,7 @@ do_test1 (void)
+ 
+ /* Test 2: same as 1., but with a guard area.  */
+ static void
+-do_test2 (void)
++do_test2 (void *closure)
+ {
+   pthread_attr_t attr;
+   xpthread_attr_init (&attr);
+@@ -250,18 +251,9 @@ do_test2 (void)
+   xmunmap (stack, stacksize);
+ }
+ 
+-/* Test 3: pthread_create with default values.  */
++/* Test 3: pthread_create without a guard area.  */
+ static void
+-do_test3 (void)
+-{
+-  pthread_t t = xpthread_create (NULL, tf, NULL);
+-  void *status = xpthread_join (t);
+-  TEST_VERIFY (status == 0);
+-}
+-
+-/* Test 4: pthread_create without a guard area.  */
+-static void
+-do_test4 (void)
++do_test3 (void *closure)
+ {
+   pthread_attr_t attr;
+   xpthread_attr_init (&attr);
+@@ -277,9 +269,18 @@ do_test4 (void)
+   xpthread_attr_destroy (&attr);
+ }
+ 
++/* Test 4: pthread_create with default values.  */
++static void
++do_test4 (void *closure)
++{
++  pthread_t t = xpthread_create (NULL, tf, NULL);
++  void *status = xpthread_join (t);
++  TEST_VERIFY (status == 0);
++}
++
+ /* Test 5: pthread_create with non default stack and guard size value.  */
+ static void
+-do_test5 (void)
++do_test5 (void *closure)
+ {
+   pthread_attr_t attr;
+   xpthread_attr_init (&attr);
+@@ -299,7 +300,7 @@ do_test5 (void)
+    test 3, but with a larger guard area.  The pthread_create will need to
+    increase the guard area.  */
+ static void
+-do_test6 (void)
++do_test6 (void *closure)
+ {
+   pthread_attr_t attr;
+   xpthread_attr_init (&attr);
+@@ -320,7 +321,7 @@ do_test6 (void)
+    pthread_create should use the cached stack from previous tests, but it
+    would require to reduce the guard area.  */
+ static void
+-do_test7 (void)
++do_test7 (void *closure)
+ {
+   pthread_t t = xpthread_create (NULL, tf, NULL);
+   void *status = xpthread_join (t);
+@@ -346,21 +347,40 @@ do_test (void)
+ 
+   static const struct {
+     const char *descr;
+-    void (*test)(void);
++    void (*test) (void *);
+   } tests[] = {
+     { "user provided stack without guard", do_test1 },
+     { "user provided stack with guard",    do_test2 },
+-    { "default attribute",                 do_test3 },
+-    { "default attribute without guard",   do_test4 },
++    /* N.B: do_test3 should be before do_test4 to check if a new thread
++       that uses the thread stack previously allocated without a guard
++       page correctly sets up the guard pages even on a kernel without
++       MADV_GUARD_INSTALL support (BZ 33356).  */
++    { "default attribute without guard",   do_test3 },
++    { "default attribute",                 do_test4 },
++    /* Also checks if the guard is correctly removed from the cache thread
++       stack.  */
++    { "default attribute without guard",   do_test3 },
+     { "non default stack and guard sizes", do_test5 },
+     { "reused stack with larger guard",    do_test6 },
+     { "reused stack with smaller guard",   do_test7 },
+   };
+ 
++  /* Run each test with a clean state.  */
++  for (int i = 0; i < array_length (tests); i++)
++    {
++      printf ("debug: fork: test%01d: %s\n", i, tests[i].descr);
++      struct support_capture_subprocess result =
++	support_capture_subprocess (tests[i].test, NULL);
++      support_capture_subprocess_check (&result, tests[i].descr, 0,
++					sc_allow_none);
++      support_capture_subprocess_free (&result);
++    }
++
++  /* And now run the same tests along with the thread stack cache.  */
+   for (int i = 0; i < array_length (tests); i++)
+     {
+       printf ("debug: test%01d: %s\n", i, tests[i].descr);
+-      tests[i].test();
++      tests[i].test ( NULL);
+     }
+ 
+   return 0;
+diff --git a/nss/getXXbyYY_r.c b/nss/getXXbyYY_r.c
+index eae6c3480e..2b0735fb6a 100644
+--- a/nss/getXXbyYY_r.c
++++ b/nss/getXXbyYY_r.c
+@@ -157,19 +157,15 @@ __merge_einval (LOOKUP_TYPE *a,
+ 
+ #define CHECK_MERGE(err, status)		\
+   ({						\
+-    do						\
++    if (err)					\
+       {						\
+-	if (err)				\
+-	  {					\
+-	    __set_errno (err);			\
+-	    if (err == ERANGE)			\
+-	      status = NSS_STATUS_TRYAGAIN;	\
+-	    else				\
+-	      status = NSS_STATUS_UNAVAIL;	\
+-	    break;				\
+-	  }					\
++	__set_errno (err);			\
++	if (err == ERANGE)			\
++	  status = NSS_STATUS_TRYAGAIN;		\
++	else					\
++	  status = NSS_STATUS_UNAVAIL;		\
++	break;					\
+       }						\
+-    while (0);					\
+   })
+ 
+ /* Type of the lookup function we need here.  */
+diff --git a/stdio-common/tst-renameat2.c b/stdio-common/tst-renameat2.c
+index 12aa0f8b0f..6213e1376d 100644
+--- a/stdio-common/tst-renameat2.c
++++ b/stdio-common/tst-renameat2.c
+@@ -28,6 +28,12 @@
+ #include <support/xunistd.h>
+ #include <unistd.h>
+ 
++/* These constants are defined with different token sequences,
++   matching the Linux definitions, to avoid preprocessor warnings.  */
++_Static_assert (RENAME_NOREPLACE == AT_RENAME_NOREPLACE, "RENAME_NOREPLACE");
++_Static_assert (RENAME_EXCHANGE == AT_RENAME_EXCHANGE, "RENAME_EXCHANGE");
++_Static_assert (RENAME_WHITEOUT == AT_RENAME_WHITEOUT, "RENAME_WHITEOUT");
++
+ /* Directory with the temporary files.  */
+ static char *directory;
+ static int directory_fd;
 diff --git a/stdlib/abort.c b/stdlib/abort.c
 index caa9e6dc04..904244a2fb 100644
 --- a/stdlib/abort.c
@@ -1390,6 +1635,1277 @@ index be00dde3a7..8bf9a33ea2 100644
        _exit (0);
      }
    xclose (result.stdout_pipe[1]);
+diff --git a/sysdeps/aarch64/Makefile b/sysdeps/aarch64/Makefile
+index bb97d31355..9479fb9679 100644
+--- a/sysdeps/aarch64/Makefile
++++ b/sysdeps/aarch64/Makefile
+@@ -79,8 +79,18 @@ sysdep_routines += \
+ 
+ tests += \
+   tst-sme-jmp \
++  tst-sme-signal \
+   tst-sme-za-state \
+   # tests
++tests-internal += \
++  tst-sme-clone \
++  tst-sme-clone3 \
++  tst-sme-fork \
++  tst-sme-vfork \
++  # tests-internal
++
++$(objpfx)tst-sme-clone3: $(objpfx)clone3.o $(objpfx)__arm_za_disable.o
++
+ endif
+ 
+ ifeq ($(subdir),malloc)
+diff --git a/sysdeps/aarch64/__longjmp.S b/sysdeps/aarch64/__longjmp.S
+index 70ac02c44b..53b42e1bdc 100644
+--- a/sysdeps/aarch64/__longjmp.S
++++ b/sysdeps/aarch64/__longjmp.S
+@@ -26,16 +26,8 @@
+ ENTRY (__longjmp)
+ 
+ #if IS_IN(libc)
+-	/* Disable ZA state of SME in libc.a and libc.so, but not in ld.so.
+-	   The calling convention of __libc_arm_za_disable allows to do
+-	   this thus allowing to avoid saving to and reading from stack.
+-	   As a result we also don't need to sign the return address and
+-	   check it after returning because it is not stored to stack.  */
+-	mov	x13, x30
+-	cfi_register (x30, x13)
+-	bl	__libc_arm_za_disable
+-	mov	x30, x13
+-	cfi_register (x13, x30)
++	/* Disable ZA state of SME in libc.a and libc.so, but not in ld.so.  */
++	CALL_LIBC_ARM_ZA_DISABLE
+ #endif
+ 
+ 	cfi_def_cfa (x0, 0)
+diff --git a/sysdeps/aarch64/fpu/pow_sve.c b/sysdeps/aarch64/fpu/pow_sve.c
+index b8c1b39dca..becf1a8410 100644
+--- a/sysdeps/aarch64/fpu/pow_sve.c
++++ b/sysdeps/aarch64/fpu/pow_sve.c
+@@ -31,8 +31,8 @@
+    The SVE algorithm drops the tail in the exp computation at the price of
+    a lower accuracy, slightly above 1ULP.
+    The SVE algorithm also drops the special treatement of small (< 2^-65) and
+-   large (> 2^63) finite values of |y|, as they only affect non-round to nearest
+-   modes.
++   large (> 2^63) finite values of |y|, as they only affect non-round to
++   nearest modes.
+ 
+    Maximum measured error is 1.04 ULPs:
+    SV_NAME_D2 (pow) (0x1.3d2d45bc848acp+63, -0x1.a48a38b40cd43p-12)
+@@ -156,42 +156,22 @@ sv_zeroinfnan (svbool_t pg, svuint64_t i)
+    a double.  (int32_t)KI is the k used in the argument reduction and exponent
+    adjustment of scale, positive k here means the result may overflow and
+    negative k means the result may underflow.  */
+-static inline double
+-specialcase (double tmp, uint64_t sbits, uint64_t ki)
+-{
+-  double scale;
+-  if ((ki & 0x80000000) == 0)
+-    {
+-      /* k > 0, the exponent of scale might have overflowed by <= 460.  */
+-      sbits -= 1009ull << 52;
+-      scale = asdouble (sbits);
+-      return 0x1p1009 * (scale + scale * tmp);
+-    }
+-  /* k < 0, need special care in the subnormal range.  */
+-  sbits += 1022ull << 52;
+-  /* Note: sbits is signed scale.  */
+-  scale = asdouble (sbits);
+-  double y = scale + scale * tmp;
+-  return 0x1p-1022 * y;
+-}
+-
+-/* Scalar fallback for special cases of SVE pow's exp.  */
+ static inline svfloat64_t
+-sv_call_specialcase (svfloat64_t x1, svuint64_t u1, svuint64_t u2,
+-		     svfloat64_t y, svbool_t cmp)
++specialcase (svfloat64_t tmp, svuint64_t sbits, svuint64_t ki, svbool_t cmp)
+ {
+-  svbool_t p = svpfirst (cmp, svpfalse ());
+-  while (svptest_any (cmp, p))
+-    {
+-      double sx1 = svclastb (p, 0, x1);
+-      uint64_t su1 = svclastb (p, 0, u1);
+-      uint64_t su2 = svclastb (p, 0, u2);
+-      double elem = specialcase (sx1, su1, su2);
+-      svfloat64_t y2 = sv_f64 (elem);
+-      y = svsel (p, y2, y);
+-      p = svpnext_b64 (cmp, p);
+-    }
+-  return y;
++  svbool_t p_pos = svcmpge_n_f64 (cmp, svreinterpret_f64_u64 (ki), 0.0);
++
++  /* Scale up or down depending on sign of k.  */
++  svint64_t offset
++      = svsel_s64 (p_pos, sv_s64 (1009ull << 52), sv_s64 (-1022ull << 52));
++  svfloat64_t factor
++      = svsel_f64 (p_pos, sv_f64 (0x1p1009), sv_f64 (0x1p-1022));
++
++  svuint64_t offset_sbits
++      = svsub_u64_x (cmp, sbits, svreinterpret_u64_s64 (offset));
++  svfloat64_t scale = svreinterpret_f64_u64 (offset_sbits);
++  svfloat64_t res = svmad_f64_x (cmp, scale, tmp, scale);
++  return svmul_f64_x (cmp, res, factor);
+ }
+ 
+ /* Compute y+TAIL = log(x) where the rounded result is y and TAIL has about
+@@ -214,8 +194,8 @@ sv_log_inline (svbool_t pg, svuint64_t ix, svfloat64_t *tail,
+ 
+   /* log(x) = k*Ln2 + log(c) + log1p(z/c-1).  */
+   /* SVE lookup requires 3 separate lookup tables, as opposed to scalar version
+-     that uses array of structures. We also do the lookup earlier in the code to
+-     make sure it finishes as early as possible.  */
++     that uses array of structures. We also do the lookup earlier in the code
++     to make sure it finishes as early as possible.  */
+   svfloat64_t invc = svld1_gather_index (pg, __v_pow_log_data.invc, i);
+   svfloat64_t logc = svld1_gather_index (pg, __v_pow_log_data.logc, i);
+   svfloat64_t logctail = svld1_gather_index (pg, __v_pow_log_data.logctail, i);
+@@ -325,14 +305,14 @@ sv_exp_inline (svbool_t pg, svfloat64_t x, svfloat64_t xtail,
+       svbool_t oflow = svcmpge (pg, abstop, HugeExp);
+       oflow = svand_z (pg, uoflow, svbic_z (pg, oflow, uflow));
+ 
+-      /* For large |x| values (512 < |x| < 1024) scale * (1 + TMP) can overflow
+-    or underflow.  */
++      /* Handle underflow and overlow in scale.
++	 For large |x| values (512 < |x| < 1024), scale * (1 + TMP) can
++	 overflow or underflow.  */
+       svbool_t special = svbic_z (pg, uoflow, svorr_z (pg, uflow, oflow));
++      if (__glibc_unlikely (svptest_any (pg, special)))
++	z = svsel (special, specialcase (tmp, sbits, ki, special), z);
+ 
+-      /* Update result with special and large cases.  */
+-      z = sv_call_specialcase (tmp, sbits, ki, z, special);
+-
+-      /* Handle underflow and overflow.  */
++      /* Handle underflow and overflow in exp.  */
+       svbool_t x_is_neg = svcmplt (pg, x, 0);
+       svuint64_t sign_mask
+ 	  = svlsl_x (pg, sign_bias, 52 - V_POW_EXP_TABLE_BITS);
+@@ -353,7 +333,7 @@ sv_exp_inline (svbool_t pg, svfloat64_t x, svfloat64_t xtail,
+ }
+ 
+ static inline double
+-pow_sc (double x, double y)
++pow_specialcase (double x, double y)
+ {
+   uint64_t ix = asuint64 (x);
+   uint64_t iy = asuint64 (y);
+@@ -382,6 +362,14 @@ pow_sc (double x, double y)
+   return x;
+ }
+ 
++/* Scalar fallback for special case routines with custom signature.  */
++static svfloat64_t NOINLINE
++sv_pow_specialcase (svfloat64_t x1, svfloat64_t x2, svfloat64_t y,
++		    svbool_t cmp)
++{
++  return sv_call2_f64 (pow_specialcase, x1, x2, y, cmp);
++}
++
+ svfloat64_t SV_NAME_D2 (pow) (svfloat64_t x, svfloat64_t y, const svbool_t pg)
+ {
+   const struct data *d = ptr_barrier (&data);
+@@ -444,7 +432,7 @@ svfloat64_t SV_NAME_D2 (pow) (svfloat64_t x, svfloat64_t y, const svbool_t pg)
+ 
+   /* Cases of zero/inf/nan x or y.  */
+   if (__glibc_unlikely (svptest_any (svptrue_b64 (), special)))
+-    vz = sv_call2_f64 (pow_sc, x, y, vz, special);
++    vz = sv_pow_specialcase (x, y, vz, special);
+ 
+   return vz;
+ }
+diff --git a/sysdeps/aarch64/fpu/powf_sve.c b/sysdeps/aarch64/fpu/powf_sve.c
+index 7046990aa1..76f54b3522 100644
+--- a/sysdeps/aarch64/fpu/powf_sve.c
++++ b/sysdeps/aarch64/fpu/powf_sve.c
+@@ -116,11 +116,10 @@ zeroinfnan (uint32_t ix)
+    preamble of scalar powf except that we do not update ix and sign_bias. This
+    is done in the preamble of the SVE powf.  */
+ static inline float
+-powf_specialcase (float x, float y, float z)
++powf_specialcase (float x, float y)
+ {
+   uint32_t ix = asuint (x);
+   uint32_t iy = asuint (y);
+-  /* Either (x < 0x1p-126 or inf or nan) or (y is 0 or inf or nan).  */
+   if (__glibc_unlikely (zeroinfnan (iy)))
+     {
+       if (2 * iy == 0)
+@@ -142,32 +141,15 @@ powf_specialcase (float x, float y, float z)
+ 	x2 = -x2;
+       return iy & 0x80000000 ? 1 / x2 : x2;
+     }
+-  /* We need a return here in case x<0 and y is integer, but all other tests
+-   need to be run.  */
+-  return z;
++  /* Return x for convenience, but make sure result is never used.  */
++  return x;
+ }
+ 
+ /* Scalar fallback for special case routines with custom signature.  */
+ static svfloat32_t NOINLINE
+-sv_call_powf_sc (svfloat32_t x1, svfloat32_t x2, svfloat32_t y)
++sv_call_powf_sc (svfloat32_t x1, svfloat32_t x2, svfloat32_t y, svbool_t cmp)
+ {
+-  /* Special cases of x or y: zero, inf and nan.  */
+-  svbool_t xspecial = sv_zeroinfnan (svptrue_b32 (), svreinterpret_u32 (x1));
+-  svbool_t yspecial = sv_zeroinfnan (svptrue_b32 (), svreinterpret_u32 (x2));
+-  svbool_t cmp = svorr_z (svptrue_b32 (), xspecial, yspecial);
+-
+-  svbool_t p = svpfirst (cmp, svpfalse ());
+-  while (svptest_any (cmp, p))
+-    {
+-      float sx1 = svclastb (p, 0, x1);
+-      float sx2 = svclastb (p, 0, x2);
+-      float elem = svclastb (p, 0, y);
+-      elem = powf_specialcase (sx1, sx2, elem);
+-      svfloat32_t y2 = sv_f32 (elem);
+-      y = svsel (p, y2, y);
+-      p = svpnext_b32 (cmp, p);
+-    }
+-  return y;
++  return sv_call2_f32 (powf_specialcase, x1, x2, y, cmp);
+ }
+ 
+ /* Compute core for half of the lanes in double precision.  */
+@@ -223,15 +205,15 @@ sv_powf_core (const svbool_t pg, svuint32_t i, svuint32_t iz, svint32_t k,
+   const svbool_t ptrue = svptrue_b64 ();
+ 
+   /* Unpack and promote input vectors (pg, y, z, i, k and sign_bias) into two
+-   * in order to perform core computation in double precision.  */
++     in order to perform core computation in double precision.  */
+   const svbool_t pg_lo = svunpklo (pg);
+   const svbool_t pg_hi = svunpkhi (pg);
+-  svfloat64_t y_lo
+-      = svcvt_f64_x (pg, svreinterpret_f32 (svunpklo (svreinterpret_u32 (y))));
+-  svfloat64_t y_hi
+-      = svcvt_f64_x (pg, svreinterpret_f32 (svunpkhi (svreinterpret_u32 (y))));
+-  svfloat64_t z_lo = svcvt_f64_x (pg, svreinterpret_f32 (svunpklo (iz)));
+-  svfloat64_t z_hi = svcvt_f64_x (pg, svreinterpret_f32 (svunpkhi (iz)));
++  svfloat64_t y_lo = svcvt_f64_x (
++      ptrue, svreinterpret_f32 (svunpklo (svreinterpret_u32 (y))));
++  svfloat64_t y_hi = svcvt_f64_x (
++      ptrue, svreinterpret_f32 (svunpkhi (svreinterpret_u32 (y))));
++  svfloat64_t z_lo = svcvt_f64_x (ptrue, svreinterpret_f32 (svunpklo (iz)));
++  svfloat64_t z_hi = svcvt_f64_x (ptrue, svreinterpret_f32 (svunpkhi (iz)));
+   svuint64_t i_lo = svunpklo (i);
+   svuint64_t i_hi = svunpkhi (i);
+   svint64_t k_lo = svunpklo (k);
+@@ -312,7 +294,7 @@ svfloat32_t SV_NAME_F2 (pow) (svfloat32_t x, svfloat32_t y, const svbool_t pg)
+ 			 (23 - V_POWF_EXP2_TABLE_BITS));
+ 
+   /* Compute core in extended precision and return intermediate ylogx results
+-   * to handle cases of underflow and underflow in exp.  */
++     to handle cases of underflow and overflow in exp.  */
+   svfloat32_t ylogx;
+   svfloat32_t ret
+       = sv_powf_core (yint_or_xpos, i, iz, k, y, sign_bias, &ylogx, d);
+@@ -330,7 +312,7 @@ svfloat32_t SV_NAME_F2 (pow) (svfloat32_t x, svfloat32_t y, const svbool_t pg)
+   ret = svsel (yint_or_xpos, ret, sv_f32 (__builtin_nanf ("")));
+ 
+   if (__glibc_unlikely (svptest_any (cmp, cmp)))
+-    return sv_call_powf_sc (x, y, ret);
++    return sv_call_powf_sc (x, y, ret, cmp);
+ 
+   return ret;
+ }
+diff --git a/sysdeps/aarch64/fpu/sinh_advsimd.c b/sysdeps/aarch64/fpu/sinh_advsimd.c
+index 0d6a4856f8..b6b60262c6 100644
+--- a/sysdeps/aarch64/fpu/sinh_advsimd.c
++++ b/sysdeps/aarch64/fpu/sinh_advsimd.c
+@@ -24,36 +24,26 @@ static const struct data
+ {
+   struct v_expm1_data d;
+   uint64x2_t halff;
+-#if WANT_SIMD_EXCEPT
+-  uint64x2_t tiny_bound, thresh;
+-#else
+   float64x2_t large_bound;
+-#endif
+ } data = {
+   .d = V_EXPM1_DATA,
+   .halff = V2 (0x3fe0000000000000),
+-#if WANT_SIMD_EXCEPT
+-  /* 2^-26, below which sinh(x) rounds to x.  */
+-  .tiny_bound = V2 (0x3e50000000000000),
+-  /* asuint(large_bound) - asuint(tiny_bound).  */
+-  .thresh = V2 (0x0230000000000000),
+-#else
+   /* 2^9. expm1 helper overflows for large input.  */
+   .large_bound = V2 (0x1p+9),
+-#endif
+ };
+ 
+ static float64x2_t NOINLINE VPCS_ATTR
+-special_case (float64x2_t x)
++special_case (float64x2_t x, float64x2_t t, float64x2_t halfsign,
++	      uint64x2_t special)
+ {
+-  return v_call_f64 (sinh, x, x, v_u64 (-1));
++  return v_call_f64 (sinh, x, vmulq_f64 (t, halfsign), special);
+ }
+ 
+ /* Approximation for vector double-precision sinh(x) using expm1.
+    sinh(x) = (exp(x) - exp(-x)) / 2.
+    The greatest observed error is 2.52 ULP:
+-   _ZGVnN2v_sinh(-0x1.a098a2177a2b9p-2) got -0x1.ac2f05bb66fccp-2
+-				       want -0x1.ac2f05bb66fc9p-2.  */
++   _ZGVnN2v_sinh(0x1.9f6ff2ab6fb19p-2) got 0x1.aaed83a3153ccp-2
++				      want 0x1.aaed83a3153c9p-2.  */
+ float64x2_t VPCS_ATTR V_NAME_D1 (sinh) (float64x2_t x)
+ {
+   const struct data *d = ptr_barrier (&data);
+@@ -63,21 +53,16 @@ float64x2_t VPCS_ATTR V_NAME_D1 (sinh) (float64x2_t x)
+   float64x2_t halfsign = vreinterpretq_f64_u64 (
+       vbslq_u64 (v_u64 (0x8000000000000000), ix, d->halff));
+ 
+-#if WANT_SIMD_EXCEPT
+-  uint64x2_t special = vcgeq_u64 (
+-      vsubq_u64 (vreinterpretq_u64_f64 (ax), d->tiny_bound), d->thresh);
+-#else
+   uint64x2_t special = vcageq_f64 (x, d->large_bound);
+-#endif
+-
+-  /* Fall back to scalar variant for all lanes if any of them are special.  */
+-  if (__glibc_unlikely (v_any_u64 (special)))
+-    return special_case (x);
+ 
+   /* Up to the point that expm1 overflows, we can use it to calculate sinh
+      using a slight rearrangement of the definition of sinh. This allows us to
+      retain acceptable accuracy for very small inputs.  */
+   float64x2_t t = expm1_inline (ax, &d->d);
+   t = vaddq_f64 (t, vdivq_f64 (t, vaddq_f64 (t, v_f64 (1.0))));
++
++  if (__glibc_unlikely (v_any_u64 (special)))
++    return special_case (x, t, halfsign, special);
++
+   return vmulq_f64 (t, halfsign);
+ }
+diff --git a/sysdeps/aarch64/fpu/sv_math.h b/sysdeps/aarch64/fpu/sv_math.h
+index 3d576df4cc..65d7f0ff20 100644
+--- a/sysdeps/aarch64/fpu/sv_math.h
++++ b/sysdeps/aarch64/fpu/sv_math.h
+@@ -24,11 +24,29 @@
+ 
+ #include "vecmath_config.h"
+ 
++#if !defined(__ARM_FEATURE_SVE_BITS) || __ARM_FEATURE_SVE_BITS == 0
++/* If not specified by -msve-vector-bits, assume maximum vector length.  */
++# define SVE_VECTOR_BYTES 256
++#else
++# define SVE_VECTOR_BYTES (__ARM_FEATURE_SVE_BITS / 8)
++#endif
++#define SVE_NUM_FLTS (SVE_VECTOR_BYTES / sizeof (float))
++#define SVE_NUM_DBLS (SVE_VECTOR_BYTES / sizeof (double))
++/* Predicate is stored as one bit per byte of VL so requires VL / 64 bytes.  */
++#define SVE_NUM_PG_BYTES (SVE_VECTOR_BYTES / sizeof (uint64_t))
++
+ #define SV_NAME_F1(fun) _ZGVsMxv_##fun##f
+ #define SV_NAME_D1(fun) _ZGVsMxv_##fun
+ #define SV_NAME_F2(fun) _ZGVsMxvv_##fun##f
+ #define SV_NAME_D2(fun) _ZGVsMxvv_##fun
+ 
++static inline void
++svstr_p (uint8_t *dst, svbool_t p)
++{
++  /* Predicate STR does not currently have an intrinsic.  */
++  __asm__("str %0, [%x1]\n" : : "Upa"(p), "r"(dst) : "memory");
++}
++
+ /* Double precision.  */
+ static inline svint64_t
+ sv_s64 (int64_t x)
+@@ -51,33 +69,35 @@ sv_f64 (double x)
+ static inline svfloat64_t
+ sv_call_f64 (double (*f) (double), svfloat64_t x, svfloat64_t y, svbool_t cmp)
+ {
+-  svbool_t p = svpfirst (cmp, svpfalse ());
+-  while (svptest_any (cmp, p))
++  double tmp[SVE_NUM_DBLS];
++  uint8_t pg_bits[SVE_NUM_PG_BYTES];
++  svstr_p (pg_bits, cmp);
++  svst1 (svptrue_b64 (), tmp, svsel (cmp, x, y));
++
++  for (int i = 0; i < svcntd (); i++)
+     {
+-      double elem = svclastb_n_f64 (p, 0, x);
+-      elem = (*f) (elem);
+-      svfloat64_t y2 = svdup_n_f64 (elem);
+-      y = svsel_f64 (p, y2, y);
+-      p = svpnext_b64 (cmp, p);
++      if (pg_bits[i] & 1)
++	tmp[i] = f (tmp[i]);
+     }
+-  return y;
++  return svld1 (svptrue_b64 (), tmp);
+ }
+ 
+ static inline svfloat64_t
+ sv_call2_f64 (double (*f) (double, double), svfloat64_t x1, svfloat64_t x2,
+ 	      svfloat64_t y, svbool_t cmp)
+ {
+-  svbool_t p = svpfirst (cmp, svpfalse ());
+-  while (svptest_any (cmp, p))
++  double tmp1[SVE_NUM_DBLS], tmp2[SVE_NUM_DBLS];
++  uint8_t pg_bits[SVE_NUM_PG_BYTES];
++  svstr_p (pg_bits, cmp);
++  svst1 (svptrue_b64 (), tmp1, svsel (cmp, x1, y));
++  svst1 (cmp, tmp2, x2);
++
++  for (int i = 0; i < svcntd (); i++)
+     {
+-      double elem1 = svclastb_n_f64 (p, 0, x1);
+-      double elem2 = svclastb_n_f64 (p, 0, x2);
+-      double ret = (*f) (elem1, elem2);
+-      svfloat64_t y2 = svdup_n_f64 (ret);
+-      y = svsel_f64 (p, y2, y);
+-      p = svpnext_b64 (cmp, p);
++      if (pg_bits[i] & 1)
++	tmp1[i] = f (tmp1[i], tmp2[i]);
+     }
+-  return y;
++  return svld1 (svptrue_b64 (), tmp1);
+ }
+ 
+ static inline svuint64_t
+@@ -109,33 +129,40 @@ sv_f32 (float x)
+ static inline svfloat32_t
+ sv_call_f32 (float (*f) (float), svfloat32_t x, svfloat32_t y, svbool_t cmp)
+ {
+-  svbool_t p = svpfirst (cmp, svpfalse ());
+-  while (svptest_any (cmp, p))
++  float tmp[SVE_NUM_FLTS];
++  uint8_t pg_bits[SVE_NUM_PG_BYTES];
++  svstr_p (pg_bits, cmp);
++  svst1 (svptrue_b32 (), tmp, svsel (cmp, x, y));
++
++  for (int i = 0; i < svcntd (); i++)
+     {
+-      float elem = svclastb_n_f32 (p, 0, x);
+-      elem = f (elem);
+-      svfloat32_t y2 = svdup_n_f32 (elem);
+-      y = svsel_f32 (p, y2, y);
+-      p = svpnext_b32 (cmp, p);
++      uint8_t p = pg_bits[i];
++      if (p & 1)
++	tmp[i * 2] = f (tmp[i * 2]);
++      if (p & (1 << 4))
++	tmp[i * 2 + 1] = f (tmp[i * 2 + 1]);
+     }
+-  return y;
++  return svld1 (svptrue_b32 (), tmp);
+ }
+ 
+ static inline svfloat32_t
+ sv_call2_f32 (float (*f) (float, float), svfloat32_t x1, svfloat32_t x2,
+ 	      svfloat32_t y, svbool_t cmp)
+ {
+-  svbool_t p = svpfirst (cmp, svpfalse ());
+-  while (svptest_any (cmp, p))
++  float tmp1[SVE_NUM_FLTS], tmp2[SVE_NUM_FLTS];
++  uint8_t pg_bits[SVE_NUM_PG_BYTES];
++  svstr_p (pg_bits, cmp);
++  svst1 (svptrue_b32 (), tmp1, svsel (cmp, x1, y));
++  svst1 (cmp, tmp2, x2);
++
++  for (int i = 0; i < svcntd (); i++)
+     {
+-      float elem1 = svclastb_n_f32 (p, 0, x1);
+-      float elem2 = svclastb_n_f32 (p, 0, x2);
+-      float ret = f (elem1, elem2);
+-      svfloat32_t y2 = svdup_n_f32 (ret);
+-      y = svsel_f32 (p, y2, y);
+-      p = svpnext_b32 (cmp, p);
++      uint8_t p = pg_bits[i];
++      if (p & 1)
++	tmp1[i * 2] = f (tmp1[i * 2], tmp2[i * 2]);
++      if (p & (1 << 4))
++	tmp1[i * 2 + 1] = f (tmp1[i * 2 + 1], tmp2[i * 2 + 1]);
+     }
+-  return y;
++  return svld1 (svptrue_b32 (), tmp1);
+ }
+-
+ #endif
+diff --git a/sysdeps/aarch64/fpu/tan_advsimd.c b/sysdeps/aarch64/fpu/tan_advsimd.c
+index 825c9754b3..d391a003d8 100644
+--- a/sysdeps/aarch64/fpu/tan_advsimd.c
++++ b/sysdeps/aarch64/fpu/tan_advsimd.c
+@@ -25,9 +25,7 @@ static const struct data
+   float64x2_t poly[9];
+   double half_pi[2];
+   float64x2_t two_over_pi, shift;
+-#if !WANT_SIMD_EXCEPT
+   float64x2_t range_val;
+-#endif
+ } data = {
+   /* Coefficients generated using FPMinimax.  */
+   .poly = { V2 (0x1.5555555555556p-2), V2 (0x1.1111111110a63p-3),
+@@ -38,20 +36,17 @@ static const struct data
+   .half_pi = { 0x1.921fb54442d18p0, 0x1.1a62633145c07p-54 },
+   .two_over_pi = V2 (0x1.45f306dc9c883p-1),
+   .shift = V2 (0x1.8p52),
+-#if !WANT_SIMD_EXCEPT
+   .range_val = V2 (0x1p23),
+-#endif
+ };
+ 
+ #define RangeVal 0x4160000000000000  /* asuint64(0x1p23).  */
+ #define TinyBound 0x3e50000000000000 /* asuint64(2^-26).  */
+-#define Thresh 0x310000000000000     /* RangeVal - TinyBound.  */
+ 
+ /* Special cases (fall back to scalar calls).  */
+ static float64x2_t VPCS_ATTR NOINLINE
+-special_case (float64x2_t x)
++special_case (float64x2_t x, float64x2_t n, float64x2_t d, uint64x2_t special)
+ {
+-  return v_call_f64 (tan, x, x, v_u64 (-1));
++  return v_call_f64 (tan, x, vdivq_f64 (n, d), special);
+ }
+ 
+ /* Vector approximation for double-precision tan.
+@@ -65,14 +60,6 @@ float64x2_t VPCS_ATTR V_NAME_D1 (tan) (float64x2_t x)
+      very large inputs. Fall back to scalar routine for all lanes if any are
+      too large, or Inf/NaN. If fenv exceptions are expected, also fall back for
+      tiny input to avoid underflow.  */
+-#if WANT_SIMD_EXCEPT
+-  uint64x2_t iax = vreinterpretq_u64_f64 (vabsq_f64 (x));
+-  /* iax - tiny_bound > range_val - tiny_bound.  */
+-  uint64x2_t special
+-      = vcgtq_u64 (vsubq_u64 (iax, v_u64 (TinyBound)), v_u64 (Thresh));
+-  if (__glibc_unlikely (v_any_u64 (special)))
+-    return special_case (x);
+-#endif
+ 
+   /* q = nearest integer to 2 * x / pi.  */
+   float64x2_t q
+@@ -81,9 +68,8 @@ float64x2_t VPCS_ATTR V_NAME_D1 (tan) (float64x2_t x)
+ 
+   /* Use q to reduce x to r in [-pi/4, pi/4], by:
+      r = x - q * pi/2, in extended precision.  */
+-  float64x2_t r = x;
+   float64x2_t half_pi = vld1q_f64 (dat->half_pi);
+-  r = vfmsq_laneq_f64 (r, q, half_pi, 0);
++  float64x2_t r = vfmsq_laneq_f64 (x, q, half_pi, 0);
+   r = vfmsq_laneq_f64 (r, q, half_pi, 1);
+   /* Further reduce r to [-pi/8, pi/8], to be reconstructed using double angle
+      formula.  */
+@@ -114,12 +100,13 @@ float64x2_t VPCS_ATTR V_NAME_D1 (tan) (float64x2_t x)
+ 
+   uint64x2_t no_recip = vtstq_u64 (vreinterpretq_u64_s64 (qi), v_u64 (1));
+ 
+-#if !WANT_SIMD_EXCEPT
+   uint64x2_t special = vcageq_f64 (x, dat->range_val);
++  float64x2_t swap = vbslq_f64 (no_recip, n, vnegq_f64 (d));
++  d = vbslq_f64 (no_recip, d, n);
++  n = swap;
++
+   if (__glibc_unlikely (v_any_u64 (special)))
+-    return special_case (x);
+-#endif
++    return special_case (x, n, d, special);
+ 
+-  return vdivq_f64 (vbslq_f64 (no_recip, n, vnegq_f64 (d)),
+-		    vbslq_f64 (no_recip, d, n));
++  return vdivq_f64 (n, d);
+ }
+diff --git a/sysdeps/aarch64/fpu/tanpi_sve.c b/sysdeps/aarch64/fpu/tanpi_sve.c
+index 57c643ae29..bfe6828e1f 100644
+--- a/sysdeps/aarch64/fpu/tanpi_sve.c
++++ b/sysdeps/aarch64/fpu/tanpi_sve.c
+@@ -1,6 +1,6 @@
+ /* Double-precision (SVE) tanpi function
+ 
+-   Copyright (C) 2024 Free Software Foundation, Inc.
++   Copyright (C) 2024-2025 Free Software Foundation, Inc.
+    This file is part of the GNU C Library.
+ 
+    The GNU C Library is free software; you can redistribute it and/or
+@@ -58,10 +58,10 @@ svfloat64_t SV_NAME_D1 (tanpi) (svfloat64_t x, const svbool_t pg)
+   svfloat64_t r2 = svmul_x (pg, r, r);
+   svfloat64_t r4 = svmul_x (pg, r2, r2);
+ 
+-  svfloat64_t c_1_3 = svld1rq (pg, &d->c1);
+-  svfloat64_t c_5_7 = svld1rq (pg, &d->c5);
+-  svfloat64_t c_9_11 = svld1rq (pg, &d->c9);
+-  svfloat64_t c_13_14 = svld1rq (pg, &d->c13);
++  svfloat64_t c_1_3 = svld1rq (svptrue_b64 (), &d->c1);
++  svfloat64_t c_5_7 = svld1rq (svptrue_b64 (), &d->c5);
++  svfloat64_t c_9_11 = svld1rq (svptrue_b64 (), &d->c9);
++  svfloat64_t c_13_14 = svld1rq (svptrue_b64 (), &d->c13);
+   svfloat64_t p01 = svmla_lane (sv_f64 (d->c0), r2, c_1_3, 0);
+   svfloat64_t p23 = svmla_lane (sv_f64 (d->c2), r2, c_1_3, 1);
+   svfloat64_t p45 = svmla_lane (sv_f64 (d->c4), r2, c_5_7, 0);
+diff --git a/sysdeps/aarch64/fpu/tanpif_sve.c b/sysdeps/aarch64/fpu/tanpif_sve.c
+index 0285f56f34..6894379564 100644
+--- a/sysdeps/aarch64/fpu/tanpif_sve.c
++++ b/sysdeps/aarch64/fpu/tanpif_sve.c
+@@ -1,6 +1,6 @@
+ /* Single-precision (SVE) tanpi function
+ 
+-   Copyright (C) 2024 Free Software Foundation, Inc.
++   Copyright (C) 2024-2025 Free Software Foundation, Inc.
+    This file is part of the GNU C Library.
+ 
+    The GNU C Library is free software; you can redistribute it and/or
+@@ -37,7 +37,7 @@ const static struct v_tanpif_data
+ svfloat32_t SV_NAME_F1 (tanpi) (svfloat32_t x, const svbool_t pg)
+ {
+   const struct v_tanpif_data *d = ptr_barrier (&tanpif_data);
+-  svfloat32_t odd_coeffs = svld1rq (pg, &d->c1);
++  svfloat32_t odd_coeffs = svld1rq (svptrue_b32 (), &d->c1);
+   svfloat32_t n = svrintn_x (pg, x);
+ 
+   /* inf produces nan that propagates.  */
+diff --git a/sysdeps/aarch64/setjmp.S b/sysdeps/aarch64/setjmp.S
+index 53c5e7d8cc..92cedfad83 100644
+--- a/sysdeps/aarch64/setjmp.S
++++ b/sysdeps/aarch64/setjmp.S
+@@ -37,16 +37,8 @@ ENTRY_ALIGN (__sigsetjmp, 2)
+ 1:
+ 
+ #if IS_IN(libc)
+-	/* Disable ZA state of SME in libc.a and libc.so, but not in ld.so.
+-	   The calling convention of __libc_arm_za_disable allows to do
+-	   this thus allowing to avoid saving to and reading from stack.
+-	   As a result we also don't need to sign the return address and
+-	   check it after returning because it is not stored to stack.  */
+-	mov	x13, x30
+-	cfi_register (x30, x13)
+-	bl	__libc_arm_za_disable
+-	mov	x30, x13
+-	cfi_register (x13, x30)
++	/* Disable ZA state of SME in libc.a and libc.so, but not in ld.so.  */
++	CALL_LIBC_ARM_ZA_DISABLE
+ #endif
+ 
+ 	stp	x19, x20, [x0, #JB_X19<<3]
+diff --git a/sysdeps/aarch64/tst-sme-clone.c b/sysdeps/aarch64/tst-sme-clone.c
+new file mode 100644
+index 0000000000..b6ad54fa37
+--- /dev/null
++++ b/sysdeps/aarch64/tst-sme-clone.c
+@@ -0,0 +1,54 @@
++/* Test that ZA state of SME is cleared in both parent and child
++   when clone() syscall is used.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "tst-sme-skeleton.c"
++
++#include <signal.h>
++#include <support/xsched.h>
++
++static int
++fun (void * const arg)
++{
++  printf ("in child: %s\n", (const char *)arg);
++  /* Check that ZA state of SME was disabled in child.  */
++  check_sme_za_state ("after clone in child", /* Clear.  */ true);
++  return 0;
++}
++
++static char __attribute__((aligned(16)))
++stack[1024 * 1024];
++
++static void
++run (struct blk *ptr)
++{
++  char *syscall_name = (char *)"clone";
++  printf ("in parent: before %s\n", syscall_name);
++
++  /* Enabled ZA state so that effect of disabling be observable.  */
++  enable_sme_za_state (ptr);
++  check_sme_za_state ("before clone", /* Clear.  */ false);
++
++  pid_t pid = xclone (fun, syscall_name, stack, sizeof (stack),
++		      CLONE_NEWUSER | CLONE_NEWNS | SIGCHLD);
++
++  /* Check that ZA state of SME was disabled in parent.  */
++  check_sme_za_state ("after clone in parent", /* Clear.  */ true);
++
++  TEST_VERIFY (xwaitpid (pid, NULL, 0) == pid);
++}
+diff --git a/sysdeps/aarch64/tst-sme-clone3.c b/sysdeps/aarch64/tst-sme-clone3.c
+new file mode 100644
+index 0000000000..f420d5984d
+--- /dev/null
++++ b/sysdeps/aarch64/tst-sme-clone3.c
+@@ -0,0 +1,84 @@
++/* Test that ZA state of SME is cleared in both parent and child
++   when clone3() syscall is used.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "tst-sme-skeleton.c"
++
++#include <clone3.h>
++
++#include <errno.h>
++#include <signal.h>
++#include <support/xsched.h>
++
++/* Since clone3 is not a public symbol, we link this test explicitly
++   with clone3.o and have to provide this declaration.  */
++int __clone3 (struct clone_args *cl_args, size_t size,
++	    int (*func)(void *arg), void *arg);
++
++static int
++fun (void * const arg)
++{
++  printf ("in child: %s\n", (const char *)arg);
++  /* Check that ZA state of SME was disabled in child.  */
++  check_sme_za_state ("after clone3 in child", /* Clear.  */ true);
++  return 0;
++}
++
++static char __attribute__((aligned(16)))
++stack[1024 * 1024];
++
++/* Required by __arm_za_disable.o and provided by the startup code
++   as a hidden symbol.  */
++uint64_t _dl_hwcap2;
++
++static void
++run (struct blk *ptr)
++{
++  _dl_hwcap2 = getauxval (AT_HWCAP2);
++
++  char *syscall_name = (char *)"clone3";
++  struct clone_args args = {
++    .flags = CLONE_VM | CLONE_VFORK,
++    .exit_signal = SIGCHLD,
++    .stack = (uintptr_t) stack,
++    .stack_size = sizeof (stack),
++  };
++  printf ("in parent: before %s\n", syscall_name);
++
++  /* Enabled ZA state so that effect of disabling be observable.  */
++  enable_sme_za_state (ptr);
++  check_sme_za_state ("before clone3", /* Clear.  */ false);
++
++  pid_t pid = __clone3 (&args, sizeof (args), fun, syscall_name);
++
++  /* Check that ZA state of SME was disabled in parent.  */
++  check_sme_za_state ("after clone3 in parent", /* Clear.  */ true);
++
++  printf ("%s child pid: %d\n", syscall_name, pid);
++
++  xwaitpid (pid, NULL, 0);
++  printf ("in parent: after %s\n", syscall_name);
++}
++
++/* Workaround to simplify linking with clone3.o.  */
++void __syscall_error(int code)
++{
++  int err = -code;
++  fprintf (stderr, "syscall error %d (%s)\n", err, strerror (err));
++  exit (err);
++}
+diff --git a/sysdeps/aarch64/tst-sme-fork.c b/sysdeps/aarch64/tst-sme-fork.c
+new file mode 100644
+index 0000000000..b003b08884
+--- /dev/null
++++ b/sysdeps/aarch64/tst-sme-fork.c
+@@ -0,0 +1,43 @@
++/* Test that ZA state of SME is cleared in both parent and child
++   when fork() function is used.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "tst-sme-skeleton.c"
++
++static void
++run (struct blk *blk)
++{
++  /* Enabled ZA state so that effect of disabling be observable.  */
++  enable_sme_za_state (blk);
++  check_sme_za_state ("before fork", /* Clear.  */ false);
++  fflush (stdout);
++
++  pid_t pid = xfork ();
++
++  if (pid == 0)
++    {
++      /* Check that ZA state of SME was disabled in child.  */
++      check_sme_za_state ("after fork in child", /* Clear.  */ true);
++      exit (0);
++    }
++
++  /* Check that ZA state of SME was disabled in parent.  */
++  check_sme_za_state ("after fork in parent", /* Clear.  */ true);
++
++  TEST_VERIFY (xwaitpid (pid, NULL, 0) == pid);
++}
+diff --git a/sysdeps/aarch64/tst-sme-helper.h b/sysdeps/aarch64/tst-sme-helper.h
+index f049416c2b..ab9c503e45 100644
+--- a/sysdeps/aarch64/tst-sme-helper.h
++++ b/sysdeps/aarch64/tst-sme-helper.h
+@@ -16,9 +16,6 @@
+    License along with the GNU C Library; if not, see
+    <https://www.gnu.org/licenses/>.  */
+ 
+-/* Streaming SVE vector register size.  */
+-static unsigned long svl;
+-
+ struct blk {
+   void *za_save_buffer;
+   uint16_t num_za_save_slices;
+@@ -68,10 +65,10 @@ start_za (void)
+ 
+ /* Load data into ZA byte by byte from p.  */
+ static void __attribute__ ((noinline))
+-load_za (const void *p)
++load_za (const void *buf, unsigned long svl)
+ {
+   register unsigned long x15 asm ("x15") = 0;
+-  register unsigned long x16 asm ("x16") = (unsigned long)p;
++  register unsigned long x16 asm ("x16") = (unsigned long)buf;
+   register unsigned long x17 asm ("x17") = svl;
+ 
+   asm volatile (
+diff --git a/sysdeps/aarch64/tst-sme-jmp.c b/sysdeps/aarch64/tst-sme-jmp.c
+index 103897ad36..b2d21c6e1a 100644
+--- a/sysdeps/aarch64/tst-sme-jmp.c
++++ b/sysdeps/aarch64/tst-sme-jmp.c
+@@ -29,6 +29,9 @@
+ 
+ #include "tst-sme-helper.h"
+ 
++/* Streaming SVE vector register size.  */
++static unsigned long svl;
++
+ static uint8_t *za_orig;
+ static uint8_t *za_dump;
+ static uint8_t *za_save;
+@@ -82,7 +85,7 @@ longjmp_test (void)
+     FAIL_EXIT1 ("svcr != 0: %lu", svcr);
+   set_tpidr2 (&blk);
+   start_za ();
+-  load_za (za_orig);
++  load_za (za_orig, svl);
+ 
+   print_data ("za save space", za_save);
+   p = get_tpidr2 ();
+@@ -131,7 +134,7 @@ setcontext_test (void)
+     FAIL_EXIT1 ("svcr != 0: %lu", svcr);
+   set_tpidr2 (&blk);
+   start_za ();
+-  load_za (za_orig);
++  load_za (za_orig, svl);
+ 
+   print_data ("za save space", za_save);
+   p = get_tpidr2 ();
+diff --git a/sysdeps/aarch64/tst-sme-signal.c b/sysdeps/aarch64/tst-sme-signal.c
+new file mode 100644
+index 0000000000..b4b07bcc44
+--- /dev/null
++++ b/sysdeps/aarch64/tst-sme-signal.c
+@@ -0,0 +1,115 @@
++/* Test handling of SME state in a signal handler.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "tst-sme-skeleton.c"
++
++#include <support/xsignal.h>
++
++static struct _aarch64_ctx *
++extension (void *p)
++{
++  return p;
++}
++
++#ifndef TPIDR2_MAGIC
++#define TPIDR2_MAGIC 0x54504902
++#endif
++
++#ifndef ZA_MAGIC
++#define ZA_MAGIC 0x54366345
++#endif
++
++#ifndef ZT_MAGIC
++#define ZT_MAGIC 0x5a544e01
++#endif
++
++#ifndef EXTRA_MAGIC
++#define EXTRA_MAGIC 0x45585401
++#endif
++
++/* We use a pipe to make sure that the final check of the SME state
++   happens after signal handler finished.  */
++static int pipefd[2];
++
++#define WRITE(msg) xwrite (1, msg, sizeof (msg));
++
++static void
++handler (int signo, siginfo_t *si, void *ctx)
++{
++  TEST_VERIFY (signo == SIGUSR1);
++  WRITE ("in the handler\n");
++  check_sme_za_state ("during signal", true /* State is clear.  */);
++  ucontext_t *uc = ctx;
++  void *p = uc->uc_mcontext.__reserved;
++  unsigned int found = 0;
++  uint32_t m;
++  while ((m = extension (p)->magic))
++    {
++      if (m == TPIDR2_MAGIC)
++        {
++          WRITE ("found TPIDR2_MAGIC\n");
++          found += 1;
++        }
++      if (m == ZA_MAGIC)
++        {
++          WRITE ("found ZA_MAGIC\n");
++          found += 1;
++        }
++      if (m == ZT_MAGIC)
++        {
++          WRITE ("found ZT_MAGIC\n");
++          found += 1;
++        }
++      if (m == EXTRA_MAGIC)
++        {
++          WRITE ("found EXTRA_MAGIC\n");
++          struct { struct _aarch64_ctx h; uint64_t data; } *e = p;
++          p = (char *)e->data;
++          continue;
++        }
++      p = (char *)p + extension (p)->size;
++    }
++  TEST_COMPARE (found, 3);
++
++  /* Signal that the wait is over (see below).  */
++  char message = '\0';
++  xwrite (pipefd[1], &message, 1);
++}
++
++static void
++run (struct blk *blk)
++{
++  xpipe (pipefd);
++
++  struct sigaction sigact;
++  sigemptyset (&sigact.sa_mask);
++  sigact.sa_flags = 0;
++  sigact.sa_flags |= SA_SIGINFO;
++  sigact.sa_sigaction = handler;
++  xsigaction (SIGUSR1, &sigact, NULL);
++
++  enable_sme_za_state (blk);
++  check_sme_za_state ("before signal", false /* State is not clear.  */);
++  xraise (SIGUSR1);
++
++  /* Wait for signal handler to complete.  */
++  char response;
++  xread (pipefd[0], &response, 1);
++
++  check_sme_za_state ("after signal", false /* State is not clear.  */);
++}
+diff --git a/sysdeps/aarch64/tst-sme-skeleton.c b/sysdeps/aarch64/tst-sme-skeleton.c
+new file mode 100644
+index 0000000000..ba84dda1cb
+--- /dev/null
++++ b/sysdeps/aarch64/tst-sme-skeleton.c
+@@ -0,0 +1,101 @@
++/* Template for SME tests.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <stdio.h>
++#include <stddef.h>
++#include <stdint.h>
++#include <string.h>
++#include <sys/auxv.h>
++
++#include <support/check.h>
++#include <support/support.h>
++#include <support/xstdlib.h>
++#include <support/xunistd.h>
++#include <support/test-driver.h>
++
++#include "tst-sme-helper.h"
++
++/* Streaming SVE vector register size.  */
++static unsigned long svl;
++
++static uint8_t *state;
++
++static void
++enable_sme_za_state (struct blk *blk)
++{
++  start_za ();
++  set_tpidr2 (blk);
++  load_za (blk, svl);
++}
++
++/* Check if SME state is disabled (when CLEAR is true) or
++   enabled (when CLEAR is false).  */
++static void
++check_sme_za_state (const char msg[], bool clear)
++{
++  unsigned long svcr = get_svcr ();
++  void *tpidr2 = get_tpidr2 ();
++  printf ("[%s]\n", msg);
++  printf ("svcr = %016lx\n", svcr);
++  printf ("tpidr2 = %016lx\n", (unsigned long)tpidr2);
++  if (clear)
++    {
++      TEST_VERIFY (svcr == 0);
++      TEST_VERIFY (tpidr2 == NULL);
++    }
++  else
++    {
++      TEST_VERIFY (svcr != 0);
++      TEST_VERIFY (tpidr2 != NULL);
++    }
++}
++
++/* Should be defined in actual test that includes this
++   skeleton file. */
++static void
++run (struct blk *ptr);
++
++static int
++do_test (void)
++{
++  unsigned long hwcap2 = getauxval (AT_HWCAP2);
++  if ((hwcap2 & HWCAP2_SME) == 0)
++    return EXIT_UNSUPPORTED;
++
++  /* Get current streaming SVE vector length in bytes.  */
++  svl = get_svl ();
++  printf ("svl: %lu\n", svl);
++
++  TEST_VERIFY_EXIT (!(svl < 16 || svl % 16 != 0 || svl >= (1 << 16)));
++
++  /* Initialise buffer for ZA state of SME.  */
++  state = xmalloc (svl * svl);
++  memset (state, 1, svl * svl);
++  struct blk blk = {
++    .za_save_buffer = state,
++    .num_za_save_slices = svl,
++    .__reserved = {0},
++  };
++
++  run (&blk);
++
++  free (state);
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/sysdeps/aarch64/tst-sme-vfork.c b/sysdeps/aarch64/tst-sme-vfork.c
+new file mode 100644
+index 0000000000..3feea065e5
+--- /dev/null
++++ b/sysdeps/aarch64/tst-sme-vfork.c
+@@ -0,0 +1,43 @@
++/* Test that ZA state of SME is cleared in both parent and child
++   when vfork() function is used.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "tst-sme-skeleton.c"
++
++static void
++run (struct blk *blk)
++{
++  /* Enabled ZA state so that effect of disabling be observable.  */
++  enable_sme_za_state (blk);
++  check_sme_za_state ("before vfork", /* Clear.  */ false);
++  fflush (stdout);
++
++  pid_t pid = vfork ();
++
++  if (pid == 0)
++    {
++      /* Check that ZA state of SME was disabled in child.  */
++      check_sme_za_state ("after vfork in child", /* Clear.  */ true);
++      _exit (0);
++    }
++
++  /* Check that ZA state of SME was disabled in parent.  */
++  check_sme_za_state ("after vfork in parent", /* Clear.  */ true);
++
++  TEST_VERIFY (xwaitpid (pid, NULL, 0) == pid);
++}
+diff --git a/sysdeps/aarch64/tst-sme-za-state.c b/sysdeps/aarch64/tst-sme-za-state.c
+index 63f6eebeb4..00118ef506 100644
+--- a/sysdeps/aarch64/tst-sme-za-state.c
++++ b/sysdeps/aarch64/tst-sme-za-state.c
+@@ -16,47 +16,9 @@
+    License along with the GNU C Library; if not, see
+    <https://www.gnu.org/licenses/>.  */
+ 
+-#include <stdio.h>
+-#include <setjmp.h>
+-#include <stdlib.h>
+-#include <string.h>
+-#include <sys/auxv.h>
+-
+-#include <support/check.h>
+-#include <support/support.h>
+-#include <support/test-driver.h>
+-
+-#include "tst-sme-helper.h"
+-
+-static uint8_t *state;
+-
+-static void
+-enable_sme_za_state (struct blk *ptr)
+-{
+-  set_tpidr2 (ptr);
+-  start_za ();
+-  load_za (state);
+-}
++#include "tst-sme-skeleton.c"
+ 
+-static void
+-check_sme_za_state (const char msg[], bool clear)
+-{
+-  unsigned long svcr = get_svcr ();
+-  void *tpidr2 = get_tpidr2 ();
+-  printf ("[%s]\n", msg);
+-  printf ("svcr = %016lx\n", svcr);
+-  printf ("tpidr2 = %016lx\n", (unsigned long)tpidr2);
+-  if (clear)
+-    {
+-      TEST_VERIFY (svcr == 0);
+-      TEST_VERIFY (tpidr2 == NULL);
+-    }
+-  else
+-    {
+-      TEST_VERIFY (svcr != 0);
+-      TEST_VERIFY (tpidr2 != NULL);
+-    }
+-}
++#include <setjmp.h>
+ 
+ static void
+ run (struct blk *ptr)
+@@ -88,32 +50,3 @@ run (struct blk *ptr)
+   TEST_COMPARE (ret, 42);
+   check_sme_za_state ("after longjmp", /* Clear.  */ true);
+ }
+-
+-static int
+-do_test (void)
+-{
+-  unsigned long hwcap2 = getauxval (AT_HWCAP2);
+-  if ((hwcap2 & HWCAP2_SME) == 0)
+-    return EXIT_UNSUPPORTED;
+-
+-  /* Get current streaming SVE vector register size.  */
+-  svl = get_svl ();
+-  printf ("svl: %lu\n", svl);
+-  TEST_VERIFY_EXIT (!(svl < 16 || svl % 16 != 0 || svl >= (1 << 16)));
+-
+-  /* Initialise buffer for ZA state of SME.  */
+-  state = xmalloc (svl * svl);
+-  memset (state, 1, svl * svl);
+-  struct blk blk = {
+-    .za_save_buffer = state,
+-    .num_za_save_slices = svl,
+-    .__reserved = {0},
+-  };
+-
+-  run (&blk);
+-
+-  free (state);
+-  return 0;
+-}
+-
+-#include <support/test-driver.c>
 diff --git a/sysdeps/i386/Makefile b/sysdeps/i386/Makefile
 index ee6470d78e..c0c017b899 100644
 --- a/sysdeps/i386/Makefile
@@ -1426,6 +2942,612 @@ index 36e23b466a..9c84c8ef04 100644
  }
  libm {
    GLIBC_2.1 {
+diff --git a/sysdeps/powerpc/powerpc64/le/power10/strcmp.S b/sysdeps/powerpc/powerpc64/le/power10/strcmp.S
+new file mode 100644
+index 0000000000..0d4a53317c
+--- /dev/null
++++ b/sysdeps/powerpc/powerpc64/le/power10/strcmp.S
+@@ -0,0 +1,185 @@
++/* Optimized strcmp implementation for PowerPC64/POWER10.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++#include <sysdep.h>
++
++#ifndef STRCMP
++# define STRCMP strcmp
++#endif
++
++/* Implements the function
++   int [r3] strcmp (const char *s1 [r3], const char *s2 [r4]).  */
++
++
++#define COMPARE_16(vreg1,vreg2,offset)  \
++	lxv       vreg1+32,offset(r3);  \
++	lxv       vreg2+32,offset(r4);	\
++	vcmpnezb. v7,vreg1,vreg2;	\
++	bne       cr6,L(different);     \
++
++#define COMPARE_32(vreg1,vreg2,offset,label1,label2) \
++	lxvp	  vreg1+32,offset(r3);               \
++	lxvp	  vreg2+32,offset(r4);               \
++	vcmpnezb. v7,vreg1+1,vreg2+1;                \
++	bne	  cr6,L(label1);                     \
++	vcmpnezb. v7,vreg1,vreg2;                    \
++	bne	  cr6,L(label2);                     \
++
++#define TAIL(vreg1,vreg2)     \
++	vctzlsbb r6,v7;	      \
++	vextubrx r5,r6,vreg1; \
++	vextubrx r4,r6,vreg2; \
++	subf	 r3,r4,r5;    \
++	blr;                  \
++
++#define CHECK_N_BYTES(reg1,reg2,len_reg) \
++	sldi	  r0,len_reg,56;         \
++	lxvl	  32+v4,reg1,r0;         \
++	lxvl	  32+v5,reg2,r0;         \
++	add	  reg1,reg1,len_reg;     \
++	add	  reg2,reg2,len_reg;     \
++	vcmpnezb. v7,v4,v5;              \
++	vctzlsbb  r6,v7;                 \
++	cmpld	  cr7,r6,len_reg;        \
++	blt	  cr7,L(different);      \
++
++
++	.machine  power10
++ENTRY_TOCLESS (STRCMP, 4)
++	li	 r11,16
++	/* eq bit of cr1 used as swap status flag to indicate if
++	source pointers were swapped.  */
++	crclr	 4*cr1+eq
++	andi.	 r7,r3,15
++	sub	 r7,r11,r7	/* r7(nalign1) = 16 - (str1 & 15).  */
++	andi.	 r9,r4,15
++	sub	 r5,r11,r9	/* r5(nalign2) = 16 - (str2 & 15).  */
++	cmpld	 cr7,r7,r5
++	beq	 cr7,L(same_aligned)
++	blt	 cr7,L(nalign1_min)
++	/* Swap r3 and r4, and r7 and r5 such that r3 and r7 hold the
++	pointer which is closer to the next 16B boundary so that only
++	one CHECK_N_BYTES is needed before entering the loop below.  */
++	mr	 r8,r4
++	mr	 r4,r3
++	mr	 r3,r8
++	mr	 r12,r7
++	mr	 r7,r5
++	mr	 r5,r12
++	crset	 4*cr1+eq	/* Set bit on swapping source pointers.  */
++
++	.p2align 5
++L(nalign1_min):
++	CHECK_N_BYTES(r3,r4,r7)
++
++	.p2align 5
++L(s1_aligned):
++	/* r9 and r5 is number of bytes to be read after and before
++	 page boundary correspondingly.  */
++	sub 	r5,r5,r7
++	subfic	r9,r5,16
++	/* Now let r7 hold the count of quadwords which can be
++	checked without crossing a page boundary. quadword offset is
++	(str2>>4)&0xFF.  */
++	rlwinm	r7,r4,28,0xFF
++	/* Below check is required only for first iteration. For second
++	iteration and beyond, the new loop counter is always 255.  */
++	cmpldi	r7,255
++	beq	L(L3)
++	/* Get the initial loop count by 255-((str2>>4)&0xFF).  */
++	subfic  r11,r7,255
++
++	.p2align 5
++L(L1):
++	mtctr	r11
++
++	.p2align 5
++L(L2):
++	COMPARE_16(v4,v5,0)	/* Load 16B blocks using lxv.  */
++	addi	r3,r3,16
++	addi	r4,r4,16
++	bdnz	L(L2)
++	/* Cross the page boundary of s2, carefully.  */
++
++	.p2align 5
++L(L3):
++	CHECK_N_BYTES(r3,r4,r5)
++	CHECK_N_BYTES(r3,r4,r9)
++	li 	r11,255		/* Load the new loop counter.  */
++	b	L(L1)
++
++	.p2align 5
++L(same_aligned):
++	CHECK_N_BYTES(r3,r4,r7)
++        /* Align s1 to 32B and adjust s2 address.
++	   Use lxvp only if both s1 and s2 are 32B aligned.  */
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++	COMPARE_16(v4,v5,32)
++	COMPARE_16(v4,v5,48)
++	addi	r3,r3,64
++	addi	r4,r4,64
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++
++	clrldi	r6,r3,59
++	subfic	r5,r6,32
++	add	r3,r3,r5
++	add	r4,r4,r5
++	andi.	r5,r4,0x1F
++	beq	cr0,L(32B_aligned_loop)
++
++	.p2align 5
++L(16B_aligned_loop):
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++	COMPARE_16(v4,v5,32)
++	COMPARE_16(v4,v5,48)
++	addi	r3,r3,64
++	addi	r4,r4,64
++	b	L(16B_aligned_loop)
++
++	/* Calculate and return the difference.  */
++L(different):
++	vctzlsbb r6,v7
++	vextubrx r5,r6,v4
++	vextubrx r4,r6,v5
++	bt  	 4*cr1+eq,L(swapped)
++	subf	 r3,r4,r5
++	blr
++
++	/* If src pointers were swapped, then swap the
++	indices and calculate the return value.  */
++L(swapped):
++	subf     r3,r5,r4
++	blr
++
++	.p2align 5
++L(32B_aligned_loop):
++	COMPARE_32(v14,v16,0,tail1,tail2)
++	COMPARE_32(v14,v16,32,tail1,tail2)
++	COMPARE_32(v14,v16,64,tail1,tail2)
++	COMPARE_32(v14,v16,96,tail1,tail2)
++	addi	r3,r3,128
++	addi	r4,r4,128
++	b	L(32B_aligned_loop)
++
++L(tail1): TAIL(v15,v17)
++L(tail2): TAIL(v14,v16)
++
++END (STRCMP)
++libc_hidden_builtin_def (strcmp)
+diff --git a/sysdeps/powerpc/powerpc64/le/power10/strlen.S b/sysdeps/powerpc/powerpc64/le/power10/strlen.S
+index ec644d5bff..29a5a7d960 100644
+--- a/sysdeps/powerpc/powerpc64/le/power10/strlen.S
++++ b/sysdeps/powerpc/powerpc64/le/power10/strlen.S
+@@ -31,7 +31,7 @@
+ #  define FUNCNAME RAWMEMCHR
+ # endif
+ # define MCOUNT_NARGS 2
+-# define VREG_ZERO v20
++# define VREG_ZERO v17
+ # define OFF_START_LOOP 256
+ # define RAWMEMCHR_SUBTRACT_VECTORS \
+ 	vsububm   v4,v4,v18;	    \
+diff --git a/sysdeps/powerpc/powerpc64/le/power10/strncmp.S b/sysdeps/powerpc/powerpc64/le/power10/strncmp.S
+new file mode 100644
+index 0000000000..6e09fcb7f2
+--- /dev/null
++++ b/sysdeps/powerpc/powerpc64/le/power10/strncmp.S
+@@ -0,0 +1,252 @@
++/* Optimized strncmp implementation for PowerPC64/POWER10.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <sysdep.h>
++
++/* Implements the function
++
++   int [r3] strncmp (const char *s1 [r3], const char *s2 [r4], size_t [r5] n)
++
++   The implementation uses unaligned doubleword access to avoid specialized
++   code paths depending of data alignment for first 32 bytes and uses
++   vectorised loops after that.  */
++
++#ifndef STRNCMP
++# define STRNCMP strncmp
++#endif
++
++#define COMPARE_16(vreg1,vreg2,offset) \
++	lxv	  vreg1+32,offset(r3); \
++	lxv	  vreg2+32,offset(r4); \
++	vcmpnezb. v7,vreg1,vreg2;      \
++	bne	  cr6,L(different);    \
++	cmpldi	  cr7,r5,16;           \
++	ble	  cr7,L(ret0);         \
++	addi	  r5,r5,-16;
++
++#define COMPARE_32(vreg1,vreg2,offset,label1,label2) \
++	lxvp	  vreg1+32,offset(r3);               \
++	lxvp	  vreg2+32,offset(r4);               \
++	vcmpnezb. v7,vreg1+1,vreg2+1;                \
++	bne	  cr6,L(label1);                     \
++	vcmpnezb. v7,vreg1,vreg2;                    \
++	bne	  cr6,L(label2);                     \
++	cmpldi	  cr7,r5,32;                         \
++	ble	  cr7,L(ret0);                       \
++	addi	  r5,r5,-32;
++
++#define TAIL_FIRST_16B(vreg1,vreg2) \
++	vctzlsbb r6,v7;             \
++	cmpld	 cr7,r5,r6;         \
++	ble	 cr7,L(ret0);       \
++	vextubrx r5,r6,vreg1;       \
++	vextubrx r4,r6,vreg2;       \
++	subf	 r3,r4,r5;          \
++	blr;
++
++#define TAIL_SECOND_16B(vreg1,vreg2) \
++	vctzlsbb r6,v7;              \
++	addi	 r0,r6,16;           \
++	cmpld	 cr7,r5,r0;          \
++	ble	 cr7,L(ret0);        \
++	vextubrx r5,r6,vreg1;        \
++	vextubrx r4,r6,vreg2;        \
++	subf	 r3,r4,r5;           \
++	blr;
++
++#define CHECK_N_BYTES(reg1,reg2,len_reg) \
++	sldi	  r6,len_reg,56;	 \
++	lxvl	  32+v4,reg1,r6;	 \
++	lxvl	  32+v5,reg2,r6;	 \
++	add	  reg1,reg1,len_reg;	 \
++	add	  reg2,reg2,len_reg;	 \
++	vcmpnezb  v7,v4,v5;		 \
++	vctzlsbb  r6,v7;		 \
++	cmpld	  cr7,r6,len_reg;	 \
++	blt	  cr7,L(different);	 \
++	cmpld	  cr7,r5,len_reg;	 \
++	ble	  cr7,L(ret0);		 \
++	sub	  r5,r5,len_reg;	 \
++
++	.machine  power10
++ENTRY_TOCLESS (STRNCMP, 4)
++	/* Check if size is 0.  */
++	cmpdi	 cr0,r5,0
++	beq	 cr0,L(ret0)
++	andi.   r7,r3,4095
++	andi.   r8,r4,4095
++	cmpldi  cr0,r7,4096-16
++	cmpldi  cr1,r8,4096-16
++	bgt     cr0,L(crosses)
++	bgt     cr1,L(crosses)
++	COMPARE_16(v4,v5,0)
++	addi	r3,r3,16
++	addi	r4,r4,16
++
++L(crosses):
++	andi.	 r7,r3,15
++	subfic	 r7,r7,16	/* r7(nalign1) = 16 - (str1 & 15).  */
++	andi.	 r9,r4,15
++	subfic	 r8,r9,16	/* r8(nalign2) = 16 - (str2 & 15).  */
++	cmpld	 cr7,r7,r8
++	beq	 cr7,L(same_aligned)
++	blt	 cr7,L(nalign1_min)
++
++	/* nalign2 is minimum and s2 pointer is aligned.  */
++	CHECK_N_BYTES(r3,r4,r8)
++	/* Are we on the 64B hunk which crosses a page?  */
++	andi.   r10,r3,63       /* Determine offset into 64B hunk.  */
++	andi.   r8,r3,15        /* The offset into the 16B hunk.  */
++	neg     r7,r3
++	andi.   r9,r7,15        /* Number of bytes after a 16B cross.  */
++	rlwinm. r7,r7,26,0x3F   /* ((r4-4096))>>6&63.  */
++	beq     L(compare_64_pagecross)
++	mtctr   r7
++	b       L(compare_64B_unaligned)
++
++	/* nalign1 is minimum and s1 pointer is aligned.  */
++L(nalign1_min):
++	CHECK_N_BYTES(r3,r4,r7)
++	/* Are we on the 64B hunk which crosses a page?  */
++	andi.   r10,r4,63       /* Determine offset into 64B hunk.  */
++	andi.   r8,r4,15        /* The offset into the 16B hunk.  */
++	neg     r7,r4
++	andi.   r9,r7,15        /* Number of bytes after a 16B cross.  */
++	rlwinm. r7,r7,26,0x3F   /* ((r4-4096))>>6&63.  */
++	beq     L(compare_64_pagecross)
++	mtctr   r7
++
++	.p2align 5
++L(compare_64B_unaligned):
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++	COMPARE_16(v4,v5,32)
++	COMPARE_16(v4,v5,48)
++	addi    r3,r3,64
++	addi    r4,r4,64
++	bdnz    L(compare_64B_unaligned)
++
++	/* Cross the page boundary of s2, carefully. Only for first
++	iteration we have to get the count of 64B blocks to be checked.
++	From second iteration and beyond, loop counter is always 63.  */
++L(compare_64_pagecross):
++	li      r11, 63
++	mtctr   r11
++	cmpldi  r10,16
++	ble     L(cross_4)
++	cmpldi  r10,32
++	ble     L(cross_3)
++	cmpldi  r10,48
++	ble     L(cross_2)
++L(cross_1):
++	CHECK_N_BYTES(r3,r4,r9)
++	CHECK_N_BYTES(r3,r4,r8)
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++	COMPARE_16(v4,v5,32)
++	addi    r3,r3,48
++	addi    r4,r4,48
++	b       L(compare_64B_unaligned)
++L(cross_2):
++	COMPARE_16(v4,v5,0)
++	addi    r3,r3,16
++	addi    r4,r4,16
++	CHECK_N_BYTES(r3,r4,r9)
++	CHECK_N_BYTES(r3,r4,r8)
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++	addi    r3,r3,32
++	addi    r4,r4,32
++	b       L(compare_64B_unaligned)
++L(cross_3):
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++	addi    r3,r3,32
++	addi    r4,r4,32
++	CHECK_N_BYTES(r3,r4,r9)
++	CHECK_N_BYTES(r3,r4,r8)
++	COMPARE_16(v4,v5,0)
++	addi    r3,r3,16
++	addi    r4,r4,16
++	b       L(compare_64B_unaligned)
++L(cross_4):
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++	COMPARE_16(v4,v5,32)
++	addi    r3,r3,48
++	addi    r4,r4,48
++	CHECK_N_BYTES(r3,r4,r9)
++	CHECK_N_BYTES(r3,r4,r8)
++	b       L(compare_64B_unaligned)
++
++L(same_aligned):
++	CHECK_N_BYTES(r3,r4,r7)
++	/* Align s1 to 32B and adjust s2 address.
++	   Use lxvp only if both s1 and s2 are 32B aligned.  */
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++	COMPARE_16(v4,v5,32)
++	COMPARE_16(v4,v5,48)
++	addi	r3,r3,64
++	addi	r4,r4,64
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++	addi	r5,r5,32
++
++	clrldi  r6,r3,59
++	subfic	r7,r6,32
++	add	r3,r3,r7
++	add	r4,r4,r7
++	subf	r5,r7,r5
++	andi.	r7,r4,0x1F
++	beq	cr0,L(32B_aligned_loop)
++
++	.p2align 5
++L(16B_aligned_loop):
++	COMPARE_16(v4,v5,0)
++	COMPARE_16(v4,v5,16)
++	COMPARE_16(v4,v5,32)
++	COMPARE_16(v4,v5,48)
++	addi	r3,r3,64
++	addi	r4,r4,64
++	b	L(16B_aligned_loop)
++
++	/* Calculate and return the difference.  */
++L(different):
++	TAIL_FIRST_16B(v4,v5)
++
++	.p2align 5
++L(32B_aligned_loop):
++	COMPARE_32(v14,v16,0,tail1,tail2)
++	COMPARE_32(v14,v16,32,tail1,tail2)
++	COMPARE_32(v14,v16,64,tail1,tail2)
++	COMPARE_32(v14,v16,96,tail1,tail2)
++	addi	r3,r3,128
++	addi	r4,r4,128
++	b	L(32B_aligned_loop)
++
++L(tail1): TAIL_FIRST_16B(v15,v17)
++L(tail2): TAIL_SECOND_16B(v14,v16)
++
++	.p2align 5
++L(ret0):
++	li	r3,0
++	blr
++
++END(STRNCMP)
++libc_hidden_builtin_def(strncmp)
+diff --git a/sysdeps/powerpc/powerpc64/multiarch/Makefile b/sysdeps/powerpc/powerpc64/multiarch/Makefile
+index e321ce54e0..c9178223a8 100644
+--- a/sysdeps/powerpc/powerpc64/multiarch/Makefile
++++ b/sysdeps/powerpc/powerpc64/multiarch/Makefile
+@@ -32,7 +32,7 @@ sysdep_routines += memcpy-power8-cached memcpy-power7 memcpy-a2 memcpy-power6 \
+ ifneq (,$(filter %le,$(config-machine)))
+ sysdep_routines += memcmp-power10 memcpy-power10 memmove-power10 memset-power10 \
+ 		   rawmemchr-power9 rawmemchr-power10 \
+-		   strcmp-power9 strncmp-power9 \
++		   strcmp-power9 strcmp-power10 strncmp-power9 strncmp-power10 \
+ 		   strcpy-power9 strcat-power10 stpcpy-power9 \
+ 		   strlen-power9 strncpy-power9 stpncpy-power9 strlen-power10
+ endif
+diff --git a/sysdeps/powerpc/powerpc64/multiarch/ifunc-impl-list.c b/sysdeps/powerpc/powerpc64/multiarch/ifunc-impl-list.c
+index 016d05fd16..f2b9cccde3 100644
+--- a/sysdeps/powerpc/powerpc64/multiarch/ifunc-impl-list.c
++++ b/sysdeps/powerpc/powerpc64/multiarch/ifunc-impl-list.c
+@@ -164,6 +164,9 @@ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
+   /* Support sysdeps/powerpc/powerpc64/multiarch/strncmp.c.  */
+   IFUNC_IMPL (i, name, strncmp,
+ #ifdef __LITTLE_ENDIAN__
++	      IFUNC_IMPL_ADD (array, i, strncmp, hwcap2 & PPC_FEATURE2_ARCH_3_1
++			      && hwcap & PPC_FEATURE_HAS_VSX,
++			      __strncmp_power10)
+ 	      IFUNC_IMPL_ADD (array, i, strncmp, hwcap2 & PPC_FEATURE2_ARCH_3_00
+ 			      && hwcap & PPC_FEATURE_HAS_ALTIVEC,
+ 			      __strncmp_power9)
+@@ -366,6 +369,10 @@ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
+   /* Support sysdeps/powerpc/powerpc64/multiarch/strcmp.c.  */
+   IFUNC_IMPL (i, name, strcmp,
+ #ifdef __LITTLE_ENDIAN__
++	      IFUNC_IMPL_ADD (array, i, strcmp,
++			      (hwcap2 & PPC_FEATURE2_ARCH_3_1)
++			      && (hwcap & PPC_FEATURE_HAS_VSX),
++			      __strcmp_power10)
+ 	      IFUNC_IMPL_ADD (array, i, strcmp,
+ 			      hwcap2 & PPC_FEATURE2_ARCH_3_00
+ 			      && hwcap & PPC_FEATURE_HAS_ALTIVEC,
+diff --git a/sysdeps/powerpc/powerpc64/multiarch/strcmp-power10.S b/sysdeps/powerpc/powerpc64/multiarch/strcmp-power10.S
+new file mode 100644
+index 0000000000..a4ee7fb53c
+--- /dev/null
++++ b/sysdeps/powerpc/powerpc64/multiarch/strcmp-power10.S
+@@ -0,0 +1,26 @@
++/* Optimized strcmp implementation for POWER10/PPC64.
++   Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#if defined __LITTLE_ENDIAN__ && IS_IN (libc)
++#define STRCMP __strcmp_power10
++
++#undef libc_hidden_builtin_def
++#define libc_hidden_builtin_def(name)
++
++#include <sysdeps/powerpc/powerpc64/le/power10/strcmp.S>
++#endif /* __LITTLE_ENDIAN__ && IS_IN (libc) */
+diff --git a/sysdeps/powerpc/powerpc64/multiarch/strcmp.c b/sysdeps/powerpc/powerpc64/multiarch/strcmp.c
+index 7c77c084a7..3c636e3bbc 100644
+--- a/sysdeps/powerpc/powerpc64/multiarch/strcmp.c
++++ b/sysdeps/powerpc/powerpc64/multiarch/strcmp.c
+@@ -29,12 +29,16 @@ extern __typeof (strcmp) __strcmp_power7 attribute_hidden;
+ extern __typeof (strcmp) __strcmp_power8 attribute_hidden;
+ # ifdef __LITTLE_ENDIAN__
+ extern __typeof (strcmp) __strcmp_power9 attribute_hidden;
++extern __typeof (strcmp) __strcmp_power10 attribute_hidden;
+ # endif
+ 
+ # undef strcmp
+ 
+ libc_ifunc_redirected (__redirect_strcmp, strcmp,
+ # ifdef __LITTLE_ENDIAN__
++		        (hwcap2 & PPC_FEATURE2_ARCH_3_1
++			 && hwcap & PPC_FEATURE_HAS_VSX)
++			? __strcmp_power10 :
+ 			(hwcap2 & PPC_FEATURE2_ARCH_3_00
+ 			 && hwcap & PPC_FEATURE_HAS_ALTIVEC)
+ 			? __strcmp_power9 :
+diff --git a/sysdeps/powerpc/powerpc64/multiarch/strncmp-power10.S b/sysdeps/powerpc/powerpc64/multiarch/strncmp-power10.S
+new file mode 100644
+index 0000000000..bb25bc75b8
+--- /dev/null
++++ b/sysdeps/powerpc/powerpc64/multiarch/strncmp-power10.S
+@@ -0,0 +1,25 @@
++/* Copyright (C) 2025 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#if defined __LITTLE_ENDIAN__ && IS_IN (libc)
++#define STRNCMP __strncmp_power10
++
++#undef libc_hidden_builtin_def
++#define libc_hidden_builtin_def(name)
++
++#include <sysdeps/powerpc/powerpc64/le/power10/strncmp.S>
++#endif
+diff --git a/sysdeps/powerpc/powerpc64/multiarch/strncmp.c b/sysdeps/powerpc/powerpc64/multiarch/strncmp.c
+index 4cfe27fa45..0a664a620d 100644
+--- a/sysdeps/powerpc/powerpc64/multiarch/strncmp.c
++++ b/sysdeps/powerpc/powerpc64/multiarch/strncmp.c
+@@ -29,6 +29,7 @@ extern __typeof (strncmp) __strncmp_ppc attribute_hidden;
+ extern __typeof (strncmp) __strncmp_power8 attribute_hidden;
+ # ifdef __LITTLE_ENDIAN__
+ extern __typeof (strncmp) __strncmp_power9 attribute_hidden;
++extern __typeof (strncmp) __strncmp_power10 attribute_hidden;
+ # endif
+ # undef strncmp
+ 
+@@ -36,6 +37,9 @@ extern __typeof (strncmp) __strncmp_power9 attribute_hidden;
+    ifunc symbol properly.  */
+ libc_ifunc_redirected (__redirect_strncmp, strncmp,
+ # ifdef __LITTLE_ENDIAN__
++			(hwcap2 & PPC_FEATURE2_ARCH_3_1
++			 && hwcap & PPC_FEATURE_HAS_VSX)
++			? __strncmp_power10 :
+ 			(hwcap2 & PPC_FEATURE2_ARCH_3_00
+ 			 && hwcap & PPC_FEATURE_HAS_ALTIVEC)
+ 			? __strncmp_power9 :
 diff --git a/sysdeps/pthread/tst-fopen-threaded.c b/sysdeps/pthread/tst-fopen-threaded.c
 index ade58ad19e..c17f1eaa13 100644
 --- a/sysdeps/pthread/tst-fopen-threaded.c
@@ -1484,6 +3606,126 @@ index ade58ad19e..c17f1eaa13 100644
    return 0;
  }
  
+diff --git a/sysdeps/unix/sysv/linux/aarch64/clone.S b/sysdeps/unix/sysv/linux/aarch64/clone.S
+index 40015c6933..53f1efd728 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/clone.S
++++ b/sysdeps/unix/sysv/linux/aarch64/clone.S
+@@ -45,6 +45,9 @@ ENTRY(__clone)
+ 	and	x1, x1, -16
+ 	cbz	x1, .Lsyscall_error
+ 
++	/* Clear ZA state of SME.  */
++	CALL_LIBC_ARM_ZA_DISABLE
++
+ 	/* Do the system call.  */
+ 	/* X0:flags, x1:newsp, x2:parenttidptr, x3:newtls, x4:childtid.  */
+ 	mov	x0, x2                  /* flags  */
+diff --git a/sysdeps/unix/sysv/linux/aarch64/clone3.S b/sysdeps/unix/sysv/linux/aarch64/clone3.S
+index c9ca845ef2..bc978b7e10 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/clone3.S
++++ b/sysdeps/unix/sysv/linux/aarch64/clone3.S
+@@ -46,6 +46,9 @@ ENTRY(__clone3)
+ 	cbz	x10, .Lsyscall_error	/* No NULL cl_args pointer.  */
+ 	cbz	x2, .Lsyscall_error	/* No NULL function pointer.  */
+ 
++    /* Clear ZA state of SME.  */
++	CALL_LIBC_ARM_ZA_DISABLE
++
+ 	/* Do the system call, the kernel expects:
+ 	   x8: system call number
+ 	   x0: cl_args
+diff --git a/sysdeps/unix/sysv/linux/aarch64/setcontext.S b/sysdeps/unix/sysv/linux/aarch64/setcontext.S
+index d9716f012e..8e98594663 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/setcontext.S
++++ b/sysdeps/unix/sysv/linux/aarch64/setcontext.S
+@@ -49,15 +49,7 @@ ENTRY (__setcontext)
+ 	b	C_SYMBOL_NAME (__syscall_error)
+ 1:
+ 	/* Clear ZA state of SME.  */
+-	/* The calling convention of __libc_arm_za_disable allows to do
+-	   this thus allowing to avoid saving to and reading from stack.
+-	   As a result we also don't need to sign the return address and
+-	   check it after returning because it is not stored to stack.  */
+-	mov	x13, x30
+-	cfi_register (x30, x13)
+-	bl	__libc_arm_za_disable
+-	mov	x30, x13
+-	cfi_register (x13, x30)
++	CALL_LIBC_ARM_ZA_DISABLE
+ 	/* Restore the general purpose registers.  */
+ 	mov	x0, x9
+ 	cfi_def_cfa (x0, 0)
+diff --git a/sysdeps/unix/sysv/linux/aarch64/sysdep.h b/sysdeps/unix/sysv/linux/aarch64/sysdep.h
+index f0e8d64eef..8a7690d4a8 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/sysdep.h
++++ b/sysdeps/unix/sysv/linux/aarch64/sysdep.h
+@@ -150,6 +150,19 @@
+     mov x8, SYS_ify (syscall_name);		\
+     svc 0
+ 
++/* Clear ZA state of SME (ASM version).  */
++/* The __libc_arm_za_disable function has special calling convention
++   that allows to call it without stack manipulation and preserving
++   most of the registers.  */
++	.macro CALL_LIBC_ARM_ZA_DISABLE
++	cfi_remember_state
++	mov		x13, x30
++	cfi_register(x30, x13)
++	bl		__libc_arm_za_disable
++	mov		x30, x13
++	cfi_restore_state
++	.endm
++
+ #else /* not __ASSEMBLER__ */
+ 
+ # define VDSO_NAME  "LINUX_2.6.39"
+@@ -230,6 +243,32 @@
+ #undef HAVE_INTERNAL_BRK_ADDR_SYMBOL
+ #define HAVE_INTERNAL_BRK_ADDR_SYMBOL 1
+ 
++/* Clear ZA state of SME (C version).  */
++/* The __libc_arm_za_disable function has special calling convention
++   that allows to call it without stack manipulation and preserving
++   most of the registers.  */
++#define CALL_LIBC_ARM_ZA_DISABLE()			\
++({							\
++  unsigned long int __tmp;				\
++  asm volatile (					\
++  "	.cfi_remember_state\n"			\
++  "	mov		%0, x30\n"			\
++  "	.cfi_register x30, %0\n"      \
++  "	bl		__libc_arm_za_disable\n"	\
++  "	mov		x30, %0\n"			\
++  "	.cfi_restore_state\n"			\
++  : "=r" (__tmp)					\
++  :							\
++  : "x14", "x15", "x16", "x17", "x18", "memory" );	\
++})
++
++/* Do clear ZA state of SME before making normal clone syscall.  */
++#define INLINE_CLONE_SYSCALL(a0, a1, a2, a3, a4)	\
++({							\
++  CALL_LIBC_ARM_ZA_DISABLE ();				\
++  INLINE_SYSCALL_CALL (clone, a0, a1, a2, a3, a4);	\
++})
++
+ #endif	/* __ASSEMBLER__ */
+ 
+ #endif /* linux/aarch64/sysdep.h */
+diff --git a/sysdeps/unix/sysv/linux/aarch64/vfork.S b/sysdeps/unix/sysv/linux/aarch64/vfork.S
+index d5943a7485..2600bc9be3 100644
+--- a/sysdeps/unix/sysv/linux/aarch64/vfork.S
++++ b/sysdeps/unix/sysv/linux/aarch64/vfork.S
+@@ -27,6 +27,9 @@
+ 
+ ENTRY (__vfork)
+ 
++	/* Clear ZA state of SME.  */
++	CALL_LIBC_ARM_ZA_DISABLE
++
+ 	mov	x0, #0x4111	/* CLONE_VM | CLONE_VFORK | SIGCHLD */
+ 	mov	x1, sp
+ 	DO_CALL (clone, 2)
 diff --git a/sysdeps/x86/Makefile b/sysdeps/x86/Makefile
 index 4fbd48e1c8..9e1c8cce85 100644
 --- a/sysdeps/x86/Makefile
@@ -1518,6 +3760,55 @@ index 4b10c4b5d7..e8dcfccbe4 100644
 +    __placeholder_only_for_empty_version_map;
 +  }
  }
+diff --git a/sysdeps/x86/cpu-features.c b/sysdeps/x86/cpu-features.c
+index b7d1506135..b67ef541dd 100644
+--- a/sysdeps/x86/cpu-features.c
++++ b/sysdeps/x86/cpu-features.c
+@@ -543,6 +543,8 @@ enum intel_microarch
+   INTEL_BIGCORE_PANTHERLAKE,
+   INTEL_BIGCORE_GRANITERAPIDS,
+   INTEL_BIGCORE_DIAMONDRAPIDS,
++  INTEL_BIGCORE_WILDCATLAKE,
++  INTEL_BIGCORE_NOVALAKE,
+ 
+   /* Mixed (bigcore + atom SOC).  */
+   INTEL_MIXED_LAKEFIELD,
+@@ -702,6 +704,8 @@ intel_get_fam6_microarch (unsigned int model,
+       return INTEL_BIGCORE_ARROWLAKE;
+     case 0xCC:
+       return INTEL_BIGCORE_PANTHERLAKE;
++    case 0xD5:
++      return INTEL_BIGCORE_WILDCATLAKE;
+     case 0xAD:
+     case 0xAE:
+       return INTEL_BIGCORE_GRANITERAPIDS;
+@@ -818,6 +822,17 @@ disable_tsx:
+ 	      break;
+ 	    }
+ 	}
++      else if (family == 18)
++	switch (model)
++	  {
++	  case 0x01:
++	  case 0x03:
++	    microarch = INTEL_BIGCORE_NOVALAKE;
++	    break;
++
++	  default:
++	    break;
++	  }
+       else if (family == 19)
+ 	switch (model)
+ 	  {
+@@ -934,6 +949,8 @@ disable_tsx:
+ 	case INTEL_BIGCORE_LUNARLAKE:
+ 	case INTEL_BIGCORE_ARROWLAKE:
+ 	case INTEL_BIGCORE_PANTHERLAKE:
++	case INTEL_BIGCORE_WILDCATLAKE:
++	case INTEL_BIGCORE_NOVALAKE:
+ 	case INTEL_BIGCORE_SAPPHIRERAPIDS:
+ 	case INTEL_BIGCORE_EMERALDRAPIDS:
+ 	case INTEL_BIGCORE_GRANITERAPIDS:
 diff --git a/sysdeps/x86_64/Makefile b/sysdeps/x86_64/Makefile
 index c3e1065c81..fe9f1cdddb 100644
 --- a/sysdeps/x86_64/Makefile
@@ -1554,3 +3845,16 @@ index e94758b236..6a989ad3b3 100644
  }
  libm {
    GLIBC_2.1 {
+diff --git a/sysdeps/x86_64/multiarch/ifunc-wmemset.h b/sysdeps/x86_64/multiarch/ifunc-wmemset.h
+index f95cca6ae5..50af138230 100644
+--- a/sysdeps/x86_64/multiarch/ifunc-wmemset.h
++++ b/sysdeps/x86_64/multiarch/ifunc-wmemset.h
+@@ -35,7 +35,7 @@ IFUNC_SELECTOR (void)
+ 
+   if (X86_ISA_CPU_FEATURE_USABLE_P (cpu_features, AVX2)
+       && X86_ISA_CPU_FEATURES_ARCH_P (cpu_features,
+-				      AVX_Fast_Unaligned_Load, !))
++				      AVX_Fast_Unaligned_Load,))
+     {
+       if (X86_ISA_CPU_FEATURE_USABLE_P (cpu_features, AVX512VL))
+ 	{
