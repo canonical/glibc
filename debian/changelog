@@ -1,3 +1,18 @@
+glibc (2.42-5) unstable; urgency=medium
+
+  [ Martin Bagge ]
+  * Update Swedish debconf translation.  Closes: #1121991.
+
+  [ Aurelien Jarno ]
+  * debian/control.in/main: change libc-gconv-modules-extra to Multi-Arch:
+    same as it contains libraries.
+  * debian/libc6.symbols.i386, debian/libc6-i386.symbols.{amd64,x32}: force
+    the minimum libc6 version to >= 2.42, to ensure GLIBC_ABI_GNU_TLS is
+    available, given symbols in .gnu.version_r section are currently not
+    handled by dpkg-shlibdeps.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 06 Dec 2025 23:02:46 +0100
+
 glibc (2.42-4) unstable; urgency=medium
 
   * Upload to unstable.
