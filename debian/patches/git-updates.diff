@@ -1,4 +1,4 @@
-GIT update of https://sourceware.org/git/glibc.git/release/2.42/master from glibc-2.42 to 8aaf4b732d7650c2db3beb4dc8bb70eab5b022c3
+GIT update of https://sourceware.org/git/glibc.git/release/2.42/master from glibc-2.42 to b11411fe2ee7a8f3c3a2c1ee99c1729adb9a0efe
 
 diff --git a/ADVISORIES b/ADVISORIES
 new file mode 100644
@@ -1320,6 +1320,22 @@ index 5ca390cc22..5f3e701fd1 100644
        return 1;
      }
  
+diff --git a/misc/tst-preadvwritev2-common.c b/misc/tst-preadvwritev2-common.c
+index ff1007d6d2..5182fcdce0 100644
+--- a/misc/tst-preadvwritev2-common.c
++++ b/misc/tst-preadvwritev2-common.c
+@@ -109,9 +109,8 @@ do_test_with_invalid_iov (void)
+ static void
+ do_test_with_invalid_flags (void)
+ {
+-  /* Set the next bit from the mask of all supported flags.  */
+-  int invalid_flag = RWF_SUPPORTED != 0 ? __builtin_clz (RWF_SUPPORTED) : 2;
+-  invalid_flag = 0x1 << ((sizeof (int) * CHAR_BIT) - invalid_flag);
++  /* Set all the bits that are not used by the supported flags.  */
++  int invalid_flag = ~RWF_SUPPORTED;
+ 
+   char buf[32];
+   const struct iovec vec = { .iov_base = buf, .iov_len = sizeof (buf) };
 diff --git a/nptl/allocatestack.c b/nptl/allocatestack.c
 index 800ca89720..fb8a60a21d 100644
 --- a/nptl/allocatestack.c

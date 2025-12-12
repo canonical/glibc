@@ -1,3 +1,25 @@
+glibc (2.42-6) unstable; urgency=medium
+
+  [ Benjamin Drung ]
+  * debian/control: add new lines when concatenating files
+  * Update debian/watch to version 5
+
+  [ Aurelien Jarno ]
+  * debian/symbols.wildcards: adjust ABI flags version:
+    - Fix corresponding to GLIBC_ABI_DT_X86_64_PLT was first corrected in 2.36
+    - Fix corresponding to GLIBC_ABI_GNU2_TLS as first corrected in 2.40
+  * debian/control.in/libc, debian/control.in/main: remove breaks, conflicts
+    and (build-)depends already satisfied in bookworm.
+  * debian/control.in/amd64, debian/control.in/libc: add a Breaks against
+    binutils (<< 2.45) for builds with sframe support enabled.
+  * debian/control.in/main, debian/rules: build with GCC 15.
+  * debian/patches/git-updates.diff: update from upstream stable branch.
+
+  [ Baptiste Jammet ]
+  * Update French debconf translation.  Closes: #1118006.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Fri, 12 Dec 2025 18:37:16 +0100
+
 glibc (2.42-5) unstable; urgency=medium
 
   [ Martin Bagge ]

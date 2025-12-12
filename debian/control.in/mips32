@@ -26,4 +26,3 @@ Description: GNU C Library: o32 Development Libraries for MIPS
  Contains the symlinks and object files needed to compile and link programs
  which use the standard C library. This is the o32 version of the
  library, meant for MIPS systems.
-

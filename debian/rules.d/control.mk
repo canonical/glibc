@@ -18,26 +18,21 @@ $(patsubst %,debian/control.in/%,$(libc_packages)) :: debian/control.in/% : debi
 debian/control: $(stamp)control
 $(stamp)control: debian/rules.d/control.mk $(control_deps) debian/tests/control.in
 
-	# Check that all files end with a new line
-	set -e ; for i in debian/control.in/* ; do \
-		tail -n1 $$i | grep -q "^$$" ; \
-	done
-
-	cat debian/control.in/main		>  $@T
+	cat debian/control.in/main			>  $@T
 	for p in $(libc_packages) ; do \
-	    cat debian/control.in/$$p           >> $@T ; \
+	    (echo; cat debian/control.in/$$p)		>> $@T ; \
 	done
-	cat debian/control.in/i386		>> $@T
-	cat debian/control.in/sparc		>> $@T
-	cat debian/control.in/sparc64		>> $@T
-	cat debian/control.in/s390 		>> $@T
-	cat debian/control.in/amd64		>> $@T
-	cat debian/control.in/powerpc		>> $@T
-	cat debian/control.in/ppc64		>> $@T
-	cat debian/control.in/mips32		>> $@T
-	cat debian/control.in/mipsn32		>> $@T
-	cat debian/control.in/mips64		>> $@T
-	cat debian/control.in/x32		>> $@T
+	(echo; cat debian/control.in/i386)		>> $@T
+	(echo; cat debian/control.in/sparc)		>> $@T
+	(echo; cat debian/control.in/sparc64)		>> $@T
+	(echo; cat debian/control.in/s390) 		>> $@T
+	(echo; cat debian/control.in/amd64)		>> $@T
+	(echo; cat debian/control.in/powerpc)		>> $@T
+	(echo; cat debian/control.in/ppc64)		>> $@T
+	(echo; cat debian/control.in/mips32)		>> $@T
+	(echo; cat debian/control.in/mipsn32)		>> $@T
+	(echo; cat debian/control.in/mips64)		>> $@T
+	(echo; cat debian/control.in/x32)		>> $@T
 	sed -e 's%@libc@%$(libc)%g' -e 's%@DEB_VERSION_UPSTREAM@%$(DEB_VERSION_UPSTREAM)%g' -e 's%@DEB_GCC_VERSION@%$(DEB_GCC_VERSION)%g' < $@T > debian/control
 	rm $(addprefix debian/control.in/, $(libc_packages))
 	rm $@T
