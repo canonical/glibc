@@ -54,6 +54,7 @@ hurd-i386/git-elf-ordering.diff
 hurd-i386/git-rename.diff
 hurd-i386/git-signal-SSE-MMX.diff
 hurd-i386/git-sigreturn-xmm.diff
+hurd-i386/git-cancel-stack.diff
 
 i386/local-biarch.diff
 i386/unsubmitted-quiet-ldconfig.diff

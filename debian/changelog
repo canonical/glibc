@@ -1,3 +1,15 @@
+glibc (2.42-9) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-cancel-stack.diff: Fix crash on cancellation
+    with unaligned stack.
+
+  [ Aurelien Jarno ]
+  * debian/rules.d/debhelper.mk: do not strip ld.so on armhf.  Closes:
+    #1125796.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 18 Jan 2026 11:52:41 +0100
+
 glibc (2.42-8) unstable; urgency=medium
 
   [ Samuel Thibault ]
