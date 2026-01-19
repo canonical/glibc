@@ -1,3 +1,9 @@
+glibc (2.42-2ubuntu3) resolute; urgency=medium
+
+  * No-change rebuilding using binutils 2.42.50.20260119.
+
+ -- Matthias Klose <doko@ubuntu.com>  Mon, 19 Jan 2026 13:55:08 +0100
+
 glibc (2.42-2ubuntu2) resolute; urgency=medium
 
   *  Fix gconv regression on i386 due to modules being multi-arch foreign
