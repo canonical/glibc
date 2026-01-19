@@ -1,3 +1,13 @@
+glibc (2.42-10) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/sysdeps/{amd64,arm64,i386,x32}.mk: disable SFrame support.  Closes:
+    #1125944.
+  * debian/control.in/{main,libc}: drop versioned Build-Depends and Breaks on
+    binutils 2.45, now pointless.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 19 Jan 2026 20:12:24 +0100
+
 glibc (2.42-9) unstable; urgency=medium
 
   [ Samuel Thibault ]
