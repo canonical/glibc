@@ -1,3 +1,9 @@
+glibc (2.42-2ubuntu4) resolute; urgency=medium
+
+  * Stop building with --enable-sframe for now.
+
+ -- Matthias Klose <doko@ubuntu.com>  Tue, 20 Jan 2026 03:25:35 +0100
+
 glibc (2.42-2ubuntu3) resolute; urgency=medium
 
   * No-change rebuilding using binutils 2.42.50.20260119.

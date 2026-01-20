@@ -7,7 +7,7 @@ CXX = $(DEB_HOST_GNU_TYPE)-$(BASE_CXX)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 libc_mvec = yes
 libc_extra_cflags = -O3 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer
 libc_rtlddir = /lib64
-libc_extra_config_options += --enable-sframe
+#libc_extra_config_options += --enable-sframe
 
 # multilib flavours
 ifeq (,$(filter nobiarch, $(DEB_BUILD_PROFILES)))
