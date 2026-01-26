@@ -1,3 +1,17 @@
+glibc (2.42-11) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/local-execstack.diff: Work around missing execstack
+    on libc.so.
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix bug in wordexp, which could return uninitialized memory when using
+      WRDE_REUSE together with WRDE_APPEND (CVE-2025-15281).  Closes: #1126266.
+    - Switch currency symbol for the bg_BG locale to euro.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 26 Jan 2026 23:40:35 +0100
+
 glibc (2.42-10) unstable; urgency=medium
 
   [ Aurelien Jarno ]
@@ -36,7 +50,8 @@ glibc (2.42-8) unstable; urgency=medium
   * debian/patches/git-updates.diff: update from upstream stable branch:
     - Fix and integer overflow in _int_memalign leading to heap corruption
       (CVE-2026-0861).  Closes: #1125678.
-    - Fix stack contents leak in getnetbyaddr (CVE-2026-0915).
+    - Fix stack contents leak in getnetbyaddr (CVE-2026-0915).  Closes:
+      #1125748.
     - Optimize trylock for high cache contention workloads.
 
   [ Helmut Grohne ]

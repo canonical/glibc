@@ -45,6 +45,7 @@ hurd-i386/local-no_unsupported_ioctls.diff
 hurd-i386/local-stack_chk_guard.diff
 
 hurd-i386/local-intr-msg-clobber.diff
+hurd-i386/local-execstack.diff
 
 # committed for 2.43
 hurd-i386/git-sigreturn-SEGV.diff
