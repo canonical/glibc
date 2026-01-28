@@ -1,4 +1,4 @@
-# Copyright (C) 1991-2025 Free Software Foundation, Inc.
+# Copyright (C) 1991-2026 Free Software Foundation, Inc.
 # Copyright The GNU Toolchain Authors.
 # This file is part of the GNU C Library.
 
@@ -260,6 +260,7 @@ tests := \
   tllformat \
   tst-bz11319 \
   tst-bz11319-fortify2 \
+  tst-bz12701-c \
   tst-cookie \
   tst-dprintf-length \
   tst-fclose-devzero \
@@ -313,6 +314,7 @@ tests := \
   tst-popen2 \
   tst-printf-binary \
   tst-printf-intn \
+  tst-printf-macro \
   tst-printf-oct \
   tst-printf-round \
   tst-printfsz \
@@ -496,11 +498,11 @@ include ../Rules
 # than 2.29 it might generate object sizes different than the expected ones.
 $(objpfx)errlist-data-aux-shared.S: errlist-data-gen.c
 	$(make-target-directory)
-	$(compile-command.c) $(pic-cppflags) $(pic-ccflag) $(no-stack-protector) -S
+	$(filter-out -c,$(compile-command.c)) $(pic-cppflags) $(pic-ccflag) $(no-stack-protector) -S
 
 $(objpfx)errlist-data-aux.S: errlist-data-gen.c
 	$(make-target-directory)
-	$(compile-command.c) $(pie-default) $(no-stack-protector) -S
+	$(filter-out -c,$(compile-command.c)) $(pie-default) $(no-stack-protector) -S
 
 ifndef no_deps
 -include $(objpfx)errlist-data-aux.S.d $(objpfx)errlist-data-aux-shared.S.d
@@ -512,11 +514,11 @@ $(addprefix $(objpfx)errlist-data, $(object-suffixes-noshared)): \
 
 $(objpfx)siglist-aux-shared.S: siglist-gen.c
 	$(make-target-directory)
-	$(compile-command.c) $(pic-cppflags) $(pic-ccflag) $(no-stack-protector) -S
+	$(filter-out -c,$(compile-command.c)) $(pic-cppflags) $(pic-ccflag) $(no-stack-protector) -S
 
 $(objpfx)siglist-aux.S: siglist-gen.c
 	$(make-target-directory)
-	$(compile-command.c) $(pie-default) $(no-stack-protector) -S
+	$(filter-out -c,$(compile-command.c)) $(pie-default) $(no-stack-protector) -S
 
 ifndef no_deps
 -include $(objpfx)siglist-aux.S.d $(objpfx)siglist-aux-shared.S.d
@@ -715,8 +717,6 @@ CFLAGS-isoc23_vscanf.c += -fexceptions
 CFLAGS-isoc23_fscanf.c += -fexceptions
 CFLAGS-isoc23_scanf.c += -fexceptions
 
-CFLAGS-dprintf.c += $(config-cflags-wno-ignored-attributes)
-
 # Called during static library initialization, so turn stack-protection
 # off for non-shared builds.
 CFLAGS-_itoa.o = $(no-stack-protector)
@@ -758,6 +758,30 @@ CFLAGS-tst-scanf-binary-gnu11.c += -std=gnu11 -DOBJPFX=\"$(objpfx)\"
 CFLAGS-tst-scanf-binary-gnu89.c += -std=gnu89 -DOBJPFX=\"$(objpfx)\"
 
 CPPFLAGS += $(libio-mtsafe)
+
+make-tst-freopen4-out = \
+  $(run-program-prefix-before-env) \
+  $(run-program-env) \
+  MALLOC_TRACE=$(@:.out=.mtrace) \
+  LD_PRELOAD=$(common-objpfx)malloc/libc_malloc_debug.so \
+  $(run-program-prefix-after-env) $<
+
+freopen4-temp-dir-before = warning: could not remove temporary file:
+freopen4-temp-dir-after = : No such file or directory
+
+$(objpfx)tst-freopen4.out: $(objpfx)tst-freopen4
+	$(make-tst-freopen4-out) > $@ && \
+	  grep "$(freopen4-temp-dir-before)" $@ \
+	  | sed -e "s/$(freopen4-temp-dir-before)//; s/$(freopen4-temp-dir-after)//" \
+	  | xargs rm -rf; \
+	$(evaluate-test)
+
+$(objpfx)tst-freopen64-4.out: $(objpfx)tst-freopen64-4
+	$(make-tst-freopen4-out) > $@ && \
+	  grep "$(freopen4-temp-dir-before)" $@ \
+	  | sed -e "s/$(freopen4-temp-dir-before)//; s/$(freopen4-temp-dir-after)//" \
+	  | xargs rm -rf; \
+	$(evaluate-test)
 
 $(objpfx)tst-setvbuf1.out: /dev/null $(objpfx)tst-setvbuf1
 	$(test-program-cmd) > $@ 2>&1; \

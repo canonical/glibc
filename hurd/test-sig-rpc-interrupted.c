@@ -1,7 +1,7 @@
 /* Test the state save/restore procedures during signal handling when an
    interruptible RPC is restarted.
 
-   Copyright (C) 2024 Free Software Foundation, Inc.
+   Copyright (C) 2024-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -45,9 +45,12 @@
 void handler (int signum, siginfo_t *info, void *context)
 {
   printf ("signal %d setting a different CPU state\n", signum);
-  char buf3[XSTATE_BUFFER_SIZE];
-  memset (buf3, 0x77, XSTATE_BUFFER_SIZE);
-  SET_XSTATE (buf3);
+  char mmxbuf3[MMXSTATE_BUFFER_SIZE];
+  char xbuf3[XSTATE_BUFFER_SIZE];
+  memset (mmxbuf3, 0x77, MMXSTATE_BUFFER_SIZE);
+  memset (xbuf3, 0x77, XSTATE_BUFFER_SIZE);
+  SET_MMXSTATE (mmxbuf3);
+  SET_XSTATE (xbuf3);
 }
 
 static const mach_msg_type_t RetCodeCheck = {

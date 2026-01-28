@@ -1,4 +1,4 @@
-/* Copyright (C) 1991-2025 Free Software Foundation, Inc.
+/* Copyright (C) 1991-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -1337,7 +1337,12 @@ printf_positional (struct Xprintf_buffer * buf, const CHAR_T *format,
       /* Process format specifiers.  */
       do
 	{
-	  if (spec <= UCHAR_MAX
+# ifdef COMPILE_WPRINTF
+#  define CHECK_SPEC(spec) ((spec) <= UCHAR_MAX)
+# else
+#  define CHECK_SPEC(spec) (true)
+# endif
+	  if (CHECK_SPEC (spec)
 	      && __printf_function_table != NULL
 	      && __printf_function_table[(size_t) spec] != NULL)
 	    {

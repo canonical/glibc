@@ -1,5 +1,5 @@
 /* Locating objects in the process image.  ld.so implementation.
-   Copyright (C) 2021-2025 Free Software Foundation, Inc.
+   Copyright (C) 2021-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -94,7 +94,7 @@ _dl_find_object_to_external (struct dl_find_object_internal *internal,
 }
 
 /* Extract the object location data from a link map and writes it to
-   *RESULT using relaxed MO stores.  */
+   *RESULT using relaxed MO stores.  Set L->l_find_object_processed.  */
 static void __attribute__ ((unused))
 _dl_find_object_from_map (struct link_map *l,
                           struct dl_find_object_internal *result)
@@ -136,13 +136,16 @@ _dl_find_object_from_map (struct link_map *l,
           atomic_store_relaxed (&result->sframe,
                                 (void *) (ph->p_vaddr + l->l_addr));
           read_seg |= 2;
-          /* Fall through.  */
+	  [[fallthrough]];
         default:
           break;
         }
       if (read_seg == 3)
-        return;
+        goto done;
    }
+
+ done:
+  l->l_find_object_processed = 1;
 }
 
 /* Called by the dynamic linker to set up the data structures for the

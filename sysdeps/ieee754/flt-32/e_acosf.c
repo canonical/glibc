@@ -29,6 +29,8 @@ SOFTWARE.
 #include <math_private.h>
 #include <libm-alias-finite.h>
 #include <math-barriers.h>
+#include <libm-alias-float.h>
+#include <math-svid-compat.h>
 #include "math_config.h"
 #include "s_asincosf_data.h"
 
@@ -66,7 +68,7 @@ poly12 (double z, const double *c)
 }
 
 float
-__ieee754_acosf (float x)
+__acosf (float x)
 {
   double pi2 = 0x1.921fb54442d18p+0;
   static const double o[] = { 0, 0x1.921fb54442d18p+1 };
@@ -112,9 +114,9 @@ __ieee754_acosf (float x)
   if (ax < (0x7eu << 24))
     {
       if (t == 0x328885a3u)
-	return 0x1.921fb6p+0f + 0x1p-25;
+	return 0x1.921fb6p+0f + 0x1p-25f;
       if (t == 0x39826222u)
-	return 0x1.920f6ap+0f + 0x1p-25;
+	return 0x1.920f6ap+0f + 0x1p-25f;
       double x2 = xs * xs;
       r = (pi2 - xs) - (xs * x2) * poly12 (x2, C0);
     }
@@ -127,4 +129,11 @@ __ieee754_acosf (float x)
     }
   return r;
 }
+strong_alias (__acosf, __ieee754_acosf)
+#if LIBM_SVID_COMPAT
+versioned_symbol (libm, __acosf, acosf, GLIBC_2_43);
+libm_alias_float_other (__acos, acos)
+#else
+libm_alias_float (__acos, acos)
+#endif
 libm_alias_finite (__ieee754_acosf, __acosf)

@@ -1,5 +1,5 @@
 /* Extract signed integral and fractional values.
-   Copyright (C) 1993-2025 Free Software Foundation, Inc.
+   Copyright (C) 1993-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -19,19 +19,21 @@
 #include <math.h>
 #include <libm-alias-float.h>
 #include "math_config.h"
-#include <math-use-builtins-trunc.h>
 
 float
 __modff (float x, float *iptr)
 {
   uint32_t t = asuint (x);
 #if USE_TRUNCF_BUILTIN
+# ifndef TRUNCF
+#  define TRUNCF truncf
+# endif
   if (is_inf (t))
     {
       *iptr = x;
       return copysignf (0.0, x);
     }
-  *iptr = truncf (x);
+  *iptr = TRUNCF (x);
   return copysignf (x - *iptr, x);
 #else
   int e = get_exponent (t);

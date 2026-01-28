@@ -1,5 +1,5 @@
 /* Testcase for BZ 30932.
-   Copyright (C) 2023-2025 Free Software Foundation, Inc.
+   Copyright (C) 2023-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -94,7 +94,7 @@ do_test (void)
   max_fd = (rl.rlim_cur < max_fd ? rl.rlim_cur : max_fd);
   rl.rlim_cur = max_fd;
 
-  if (setrlimit (RLIMIT_NOFILE, &rl) == 1)
+  if (setrlimit (RLIMIT_NOFILE, &rl) == -1)
     FAIL_EXIT1 ("setrlimit (RLIMIT_NOFILE): %m");
 
   /* Exhaust the file descriptor limit with temporary files.  */

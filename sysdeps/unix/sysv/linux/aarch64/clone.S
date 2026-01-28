@@ -1,4 +1,4 @@
-/* Copyright (C) 1996-2025 Free Software Foundation, Inc.
+/* Copyright (C) 1996-2026 Free Software Foundation, Inc.
 
    This file is part of the GNU C Library.
 
@@ -44,6 +44,9 @@ ENTRY(__clone)
 	/* Align sp.  */
 	and	x1, x1, -16
 	cbz	x1, .Lsyscall_error
+
+	/* Clear ZA state of SME.  */
+	CALL_LIBC_ARM_ZA_DISABLE
 
 	/* Do the system call.  */
 	/* X0:flags, x1:newsp, x2:parenttidptr, x3:newtls, x4:childtid.  */

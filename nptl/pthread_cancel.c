@@ -1,4 +1,4 @@
-/* Copyright (C) 2002-2025 Free Software Foundation, Inc.
+/* Copyright (C) 2002-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -60,7 +60,8 @@ __pthread_cancel (pthread_t th)
 {
   volatile struct pthread *pd = (volatile struct pthread *) th;
 
-  if (pd->tid == 0)
+  unsigned int state = atomic_load_relaxed (&pd->joinstate);
+  if (state == THREAD_STATE_EXITED)
     /* The thread has already exited on the kernel side.  Its outcome
        (regular exit, other cancelation) has already been
        determined.  */

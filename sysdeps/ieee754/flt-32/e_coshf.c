@@ -27,11 +27,13 @@ SOFTWARE.
 #include <stdint.h>
 #include <math.h>
 #include <libm-alias-finite.h>
+#include <libm-alias-float.h>
+#include <math-svid-compat.h>
 #include "math_config.h"
 #include "e_sincoshf_data.h"
 
 float
-__ieee754_coshf (float x)
+__coshf (float x)
 {
   const double iln2 = 0x1.71547652b82fep+5;
   double z = x;
@@ -77,7 +79,7 @@ __ieee754_coshf (float x)
   double rm = sm * (te - h * to);
   double r = rp + rm;
   float ub = r;
-  double lb = r - 1.45e-10 * r;
+  float lb = r - 1.45e-10 * r;
   if (__glibc_unlikely (ub != lb))
     {
       const double iln2h = 0x1.7154765p+5;
@@ -92,4 +94,11 @@ __ieee754_coshf (float x)
     }
   return ub;
 }
+strong_alias (__coshf, __ieee754_coshf)
+#if LIBM_SVID_COMPAT
+versioned_symbol (libm, __coshf, coshf, GLIBC_2_43);
+libm_alias_float_other (__cosh, cosh)
+#else
+libm_alias_float (__cosh, cosh)
+#endif
 libm_alias_finite (__ieee754_coshf, __coshf)

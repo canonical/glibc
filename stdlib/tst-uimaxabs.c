@@ -1,5 +1,5 @@
-/* Basic tests for uimaxabs.
-   Copyright (C) 2025 Free Software Foundation, Inc.
+/* Basic tests for uimaxabs (compat symbol).
+   Copyright (C) 2025-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -20,7 +20,11 @@
 #include <limits.h>
 #include <stdlib.h>
 
+#include <shlib-compat.h>
 #include <support/check.h>
+
+extern uintmax_t uimaxabs (intmax_t);
+compat_symbol_reference (libc, uimaxabs, uimaxabs, GLIBC_2_42);
 
 #define LARGE_PRIME 49999
 

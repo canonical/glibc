@@ -1,6 +1,6 @@
 /* Architectural parameters for Linux termios - Alpha/PowerPC version
 
-   Copyright (C) 1997-2025 Free Software Foundation, Inc.
+   Copyright (C) 1997-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -17,8 +17,8 @@
    License along with the GNU C Library; if not, see
    <https://www.gnu.org/licenses/>.  */
 
-#ifndef TERMIOS_INTERNALS_H
-# error "<termios_arch.h> should only be included from <termios_internals.h>"
+#ifndef K_TERMIOS_H
+# error "<termios_arch.h> should only be included from <k_termios.h>"
 #endif
 
 #define _TERMIOS2_NCCS 19

@@ -1,5 +1,5 @@
 /* Test skeleton for formatted scanf input.
-   Copyright (C) 2025 Free Software Foundation, Inc.
+   Copyright (C) 2025-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -59,11 +59,6 @@
    supplied by the individual test case.  */
 #ifndef TYPE_T_UNSIGNED_P
 # define TYPE_T_UNSIGNED_P 0
-#endif
-#if TYPE_T_UNSIGNED_P
-# define UNSIGNED unsigned
-#else
-# define UNSIGNED
 #endif
 
 /* Read and return a single character from standard input, returning

@@ -1,6 +1,6 @@
 /* Initialize CPU feature data.
    This file is part of the GNU C Library.
-   Copyright (C) 2008-2025 Free Software Foundation, Inc.
+   Copyright (C) 2008-2026 Free Software Foundation, Inc.
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -543,6 +543,8 @@ enum intel_microarch
   INTEL_BIGCORE_PANTHERLAKE,
   INTEL_BIGCORE_GRANITERAPIDS,
   INTEL_BIGCORE_DIAMONDRAPIDS,
+  INTEL_BIGCORE_WILDCATLAKE,
+  INTEL_BIGCORE_NOVALAKE,
 
   /* Mixed (bigcore + atom SOC).  */
   INTEL_MIXED_LAKEFIELD,
@@ -702,6 +704,8 @@ intel_get_fam6_microarch (unsigned int model,
       return INTEL_BIGCORE_ARROWLAKE;
     case 0xCC:
       return INTEL_BIGCORE_PANTHERLAKE;
+    case 0xD5:
+      return INTEL_BIGCORE_WILDCATLAKE;
     case 0xAD:
     case 0xAE:
       return INTEL_BIGCORE_GRANITERAPIDS;
@@ -794,7 +798,7 @@ init_cpu_features (struct cpu_features *cpu_features)
 		 processor.  */
 	      if (stepping > 0xc)
 		break;
-	      /* Fall through.  */
+	      [[fallthrough]];
 	    case INTEL_BIGCORE_SKYLAKE:
 	      /* Disable Intel TSX and enable RTM_ALWAYS_ABORT for
 		 processors listed in:
@@ -818,6 +822,17 @@ disable_tsx:
 	      break;
 	    }
 	}
+      else if (family == 18)
+	switch (model)
+	  {
+	  case 0x01:
+	  case 0x03:
+	    microarch = INTEL_BIGCORE_NOVALAKE;
+	    break;
+
+	  default:
+	    break;
+	  }
       else if (family == 19)
 	switch (model)
 	  {
@@ -922,7 +937,7 @@ disable_tsx:
 	     non-temporal on all Skylake servers. */
 	  cpu_features->preferred[index_arch_Avoid_Non_Temporal_Memset]
 	    |= bit_arch_Avoid_Non_Temporal_Memset;
-	  /* fallthrough */
+	  [[fallthrough]];
 	case INTEL_BIGCORE_COMETLAKE:
 	case INTEL_BIGCORE_SKYLAKE:
 	case INTEL_BIGCORE_KABYLAKE:
@@ -934,6 +949,8 @@ disable_tsx:
 	case INTEL_BIGCORE_LUNARLAKE:
 	case INTEL_BIGCORE_ARROWLAKE:
 	case INTEL_BIGCORE_PANTHERLAKE:
+	case INTEL_BIGCORE_WILDCATLAKE:
+	case INTEL_BIGCORE_NOVALAKE:
 	case INTEL_BIGCORE_SAPPHIRERAPIDS:
 	case INTEL_BIGCORE_EMERALDRAPIDS:
 	case INTEL_BIGCORE_GRANITERAPIDS:
@@ -1074,7 +1091,7 @@ disable_tsx:
 	      /* Yongfeng and Shijidadao mircoarch tuning.  */
 	    case 0x5b:
 	      cpu_features->cachesize_non_temporal_divisor = 2;
-	      /* fallthrough */
+	      [[fallthrough]];
 	    case 0x6b:
 	      cpu_features->preferred[index_arch_AVX_Fast_Unaligned_Load]
 		  &= ~bit_arch_AVX_Fast_Unaligned_Load;
@@ -1106,6 +1123,19 @@ disable_tsx:
        hardware.  */
       cpu_features->preferred[index_arch_Avoid_Non_Temporal_Memset]
 	    &= ~bit_arch_Avoid_Non_Temporal_Memset;
+      if (model < 0x4)
+	{
+	  /*  Unaligned AVX loads are slower.  */
+	  cpu_features->preferred[index_arch_AVX_Fast_Unaligned_Load]
+	    &= ~bit_arch_AVX_Fast_Unaligned_Load;
+	}
+      else if (model == 0x7)
+	{
+	  /* Benchmarks indicate evex can be more profitable on Hygon
+	     hardware than AVX512.  */
+	  cpu_features->preferred[index_arch_Prefer_No_AVX512]
+	    |= bit_arch_Prefer_No_AVX512;
+	}
     }
   else
     {

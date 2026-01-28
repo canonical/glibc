@@ -1,5 +1,5 @@
 /* Low-level lock implementation.  High-level Hurd helpers.
-   Copyright (C) 1999-2025 Free Software Foundation, Inc.
+   Copyright (C) 1999-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -58,6 +58,7 @@ extern int __lll_abstimed_wait (void *__ptr, int __val,
 /* Interruptible version.  */
 extern int __lll_abstimed_wait_intr (void *__ptr, int __val,
   const struct timespec *__tsp, int __flags, int __clk);
+libc_hidden_proto (__lll_abstimed_wait_intr)
 
 /* Same as 'lll_xwait', but only block until TSP elapses,
    using clock CLK.  */

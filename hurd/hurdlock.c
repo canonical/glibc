@@ -1,5 +1,5 @@
 /* Hurd helpers for lowlevellocks.
-   Copyright (C) 1999-2025 Free Software Foundation, Inc.
+   Copyright (C) 1999-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -64,6 +64,7 @@ __lll_abstimed_wait_intr (void *ptr, int val,
   int mlsec = compute_reltime (tsp, clk);
   return mlsec < 0 ? KERN_TIMEDOUT : __lll_timed_wait_intr (ptr, val, mlsec, flags);
 }
+libc_hidden_def (__lll_abstimed_wait_intr)
 
 int
 __lll_abstimed_xwait (void *ptr, int lo, int hi,

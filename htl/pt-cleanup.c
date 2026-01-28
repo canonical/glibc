@@ -1,5 +1,5 @@
 /* Add a cancelation handler to the stack.
-   Copyright (C) 2002-2025 Free Software Foundation, Inc.
+   Copyright (C) 2002-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -20,6 +20,8 @@
 
 #include <pt-internal.h>
 #include <shlib-compat.h>
+
+static __thread struct __pthread_cancelation_handler *__pthread_cleanup_stack;
 
 struct __pthread_cancelation_handler **
 ___pthread_get_cleanup_stack (void)

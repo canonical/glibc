@@ -1,5 +1,5 @@
 /* Malloc implementation for multiple threads without lock contention.
-   Copyright (C) 2001-2025 Free Software Foundation, Inc.
+   Copyright (C) 2001-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -240,7 +240,6 @@ TUNABLE_CALLBACK_FNDECL (set_tcache_max, size_t)
 TUNABLE_CALLBACK_FNDECL (set_tcache_count, size_t)
 TUNABLE_CALLBACK_FNDECL (set_tcache_unsorted_limit, size_t)
 #endif
-TUNABLE_CALLBACK_FNDECL (set_mxfast, size_t)
 TUNABLE_CALLBACK_FNDECL (set_hugetlb, size_t)
 
 #if USE_TCACHE
@@ -294,7 +293,6 @@ __ptmalloc_init (void)
   TUNABLE_GET (tcache_unsorted_limit, size_t,
 	       TUNABLE_CALLBACK (set_tcache_unsorted_limit));
 # endif
-  TUNABLE_GET (mxfast, size_t, TUNABLE_CALLBACK (set_mxfast));
   TUNABLE_GET (hugetlb, size_t, TUNABLE_CALLBACK (set_hugetlb));
 
   if (mp_.hp_pagesize > 0 && mp_.hp_pagesize <= heap_max_size ())
@@ -444,10 +442,13 @@ alloc_new_heap  (size_t size, size_t top_pad, size_t pagesize,
 static heap_info *
 new_heap (size_t size, size_t top_pad)
 {
-  if (mp_.hp_pagesize != 0 && mp_.hp_pagesize <= heap_max_size ())
+  bool use_hugepage = mp_.hp_pagesize != 0;
+  size_t pagesize = use_hugepage ? mp_.hp_pagesize : mp_.thp_pagesize;
+
+  if (pagesize != 0 && pagesize <= heap_max_size ())
     {
-      heap_info *h = alloc_new_heap (size, top_pad, mp_.hp_pagesize,
-				     mp_.hp_flags);
+      heap_info *h = alloc_new_heap (size, top_pad, pagesize,
+				     use_hugepage ? mp_.hp_flags : 0);
       if (h != NULL)
 	return h;
     }
@@ -478,6 +479,11 @@ grow_heap (heap_info *h, long diff)
 
       h->mprotect_size = new_size;
     }
+
+  /* mprotect preserves MADV_HUGEPAGE semantics - this means that if the old
+     region was marked with MADV_HUGEPAGE, the new region will retain that.  */
+  if (h->size < mp_.thp_pagesize)
+    madvise_thp (h, new_size);
 
   h->size = new_size;
   LIBC_PROBE (memory_heap_more, 2, h, h->size);
@@ -836,11 +842,11 @@ arena_get2 (size_t size, mstate avoid_arena)
          enough address space to create that many arenas.  */
       if (__glibc_unlikely (n <= narenas_limit - 1))
         {
-          if (catomic_compare_and_exchange_bool_acq (&narenas, n + 1, n))
+          if (atomic_compare_and_exchange_bool_acq (&narenas, n + 1, n))
             goto repeat;
           a = _int_new_arena (size);
 	  if (__glibc_unlikely (a == NULL))
-            catomic_decrement (&narenas);
+            atomic_fetch_add_relaxed (&narenas, -1);
         }
       else
         a = reused_arena (avoid_arena);
@@ -856,15 +862,14 @@ static mstate
 arena_get_retry (mstate ar_ptr, size_t bytes)
 {
   LIBC_PROBE (memory_arena_retry, 2, bytes, ar_ptr);
+  __libc_lock_unlock (ar_ptr->mutex);
   if (ar_ptr != &main_arena)
     {
-      __libc_lock_unlock (ar_ptr->mutex);
       ar_ptr = &main_arena;
       __libc_lock_lock (ar_ptr->mutex);
     }
   else
     {
-      __libc_lock_unlock (ar_ptr->mutex);
       ar_ptr = arena_get2 (bytes, ar_ptr);
     }
 

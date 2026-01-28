@@ -1,5 +1,5 @@
 /* Extract signed integral and fractional values.
-   Copyright (C) 1993-2025 Free Software Foundation, Inc.
+   Copyright (C) 1993-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -19,19 +19,21 @@
 #include <math.h>
 #include <libm-alias-double.h>
 #include "math_config.h"
-#include <math-use-builtins-trunc.h>
 
 double
 __modf (double x, double *iptr)
 {
   uint64_t t = asuint64 (x);
 #if USE_TRUNC_BUILTIN
+# ifndef TRUNC
+#  define TRUNC trunc
+# endif
   if (is_inf (t))
     {
       *iptr = x;
       return copysign (0.0, x);
     }
-  *iptr = trunc (x);
+  *iptr = TRUNC (x);
   return copysign (x - *iptr, x);
 #else
   int e = get_exponent (t);

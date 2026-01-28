@@ -1,5 +1,5 @@
 /* Utility functions for SME tests.
-   Copyright (C) 2025 Free Software Foundation, Inc.
+   Copyright (C) 2025-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -15,9 +15,6 @@
    You should have received a copy of the GNU Lesser General Public
    License along with the GNU C Library; if not, see
    <https://www.gnu.org/licenses/>.  */
-
-/* Streaming SVE vector register size.  */
-static unsigned long svl;
 
 struct blk {
   void *za_save_buffer;
@@ -68,10 +65,10 @@ start_za (void)
 
 /* Load data into ZA byte by byte from p.  */
 static void __attribute__ ((noinline))
-load_za (const void *p)
+load_za (const void *buf, unsigned long svl)
 {
   register unsigned long x15 asm ("x15") = 0;
-  register unsigned long x16 asm ("x16") = (unsigned long)p;
+  register unsigned long x16 asm ("x16") = (unsigned long)buf;
   register unsigned long x17 asm ("x17") = svl;
 
   asm volatile (

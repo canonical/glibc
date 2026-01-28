@@ -1,5 +1,5 @@
 /* Load a shared object at runtime, relocate it, and run its initializer.
-   Copyright (C) 1996-2025 Free Software Foundation, Inc.
+   Copyright (C) 1996-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -625,7 +625,7 @@ dl_open_worker_begin (void *a)
 #endif
       }
 
-  _dl_open_check (new);
+  _dl_open_check (new, mode);
 
   /* Print scope information.  */
   if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_SCOPES))

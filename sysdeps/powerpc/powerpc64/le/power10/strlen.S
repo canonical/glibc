@@ -1,5 +1,5 @@
 /* Optimized strlen implementation for POWER10 LE.
-   Copyright (C) 2021-2025 Free Software Foundation, Inc.
+   Copyright (C) 2021-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -31,7 +31,7 @@
 #  define FUNCNAME RAWMEMCHR
 # endif
 # define MCOUNT_NARGS 2
-# define VREG_ZERO v20
+# define VREG_ZERO v17
 # define OFF_START_LOOP 256
 # define RAWMEMCHR_SUBTRACT_VECTORS \
 	vsububm   v4,v4,v18;	    \

@@ -1,4 +1,4 @@
-# Copyright (C) 1993-2025 Free Software Foundation, Inc.
+# Copyright (C) 1993-2026 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -199,10 +199,6 @@ $(objpfx)rcrt0.o: $(objpfx)static-start.o $(objpfx)abi-note.o $(objpfx)init.o
 
 endif
 
-ifeq (hurd, $(subdir))
-sysdep_routines += cthreads
-endif
-
 ifeq (elf, $(subdir))
 sysdep-dl-routines += dl-tls-initialized
 endif
@@ -306,42 +302,11 @@ test-xfail-tst-origin = yes
 CFLAGS-tst-execstack.c += -DDEFAULT_RWX_STACK=1
 endif
 
-# For bug 30166
-# (missing RLIMIT_AS support)
-ifeq ($(subdir),htl)
-tests-unsupported += tst-basic7
-endif
-ifeq ($(subdir),libio)
-tests-unsupported += tst-asprintf-null
-endif
-ifeq ($(subdir),malloc)
-tests-unsupported += tst-malloc-thread-fail
-tests-unsupported += tst-malloc-thread-fail-malloc-check
-tests-unsupported += tst-malloc-thread-fail-mcheck
-tests-unsupported += tst-malloc-thread-fail-malloc-hugetlb1
-tests-unsupported += tst-malloc-thread-fail-malloc-hugetlb2
-tests-unsupported += tst-malloc-thread-fail-malloc-largetcache
-tests-unsupported += tst-dynarray-fail
-endif
-ifeq ($(subdir),misc)
-tests-unsupported += bug18240
-endif
-ifeq ($(subdir),stdio-common)
-tests-unsupported += tst-getline-enomem
-tests-unsupported += tst-getline-enomem-mem
-tests-unsupported += tst-vfprintf-width-prec
-tests-unsupported += tst-vfprintf-width-prec-mem
-tests-unsupported += tst-vfprintf-width-prec-alloc
-endif
 ifeq ($(subdir),stdlib)
-tests-unsupported += test-bz22786 tst-strtod-overflow
 # pthread_cleanup_combined_push/pthread_cleanup_combined_pop requires cleanup
 # support (BZ 32058).
 test-xfail-tst-qsort7-mem = yes
 test-xfail-tst-qsortx7-mem = yes
-endif
-ifeq ($(subdir),timezone)
-tests-unsupported += tst-tzset
 endif
 
 # For bug 30167

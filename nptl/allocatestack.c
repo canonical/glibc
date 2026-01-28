@@ -1,4 +1,4 @@
-/* Copyright (C) 2002-2025 Free Software Foundation, Inc.
+/* Copyright (C) 2002-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -116,6 +116,10 @@ get_cached_stack (size_t *sizep, void **memp)
   /* Release the lock early.  */
   lll_unlock (GL (dl_stack_cache_lock), LLL_PRIVATE);
 
+  if (__glibc_unlikely (GLRO (dl_debug_mask) & DL_DEBUG_TLS))
+    GLRO (dl_debug_printf) ("TLS TCB reused from cache: 0x%lx\n",
+			    (unsigned long int) result);
+
   /* Report size and location of the stack to the caller.  */
   *sizep = result->stackblock_size;
   *memp = result->stackblock;
@@ -150,17 +154,11 @@ get_cached_stack (size_t *sizep, void **memp)
    and fallback to ALLOCATE_GUARD_PROT_NONE if the madvise call fails.  */
 static int allocate_stack_mode = ALLOCATE_GUARD_MADV_GUARD;
 
-static inline int stack_prot (void)
-{
-  return (PROT_READ | PROT_WRITE
-	  | ((GL(dl_stack_flags) & PF_X) ? PROT_EXEC : 0));
-}
-
 static void *
 allocate_thread_stack (size_t size, size_t guardsize)
 {
   /* MADV_ADVISE_GUARD does not require an additional PROT_NONE mapping.  */
-  int prot = stack_prot ();
+  int prot = GL(dl_stack_prot_flags);
 
   if (atomic_load_relaxed (&allocate_stack_mode) == ALLOCATE_GUARD_PROT_NONE)
     /* If a guard page is required, avoid committing memory by first allocate
@@ -216,7 +214,7 @@ setup_stack_prot (char *mem, size_t size, struct pthread *pd,
     }
   else
     {
-      const int prot = stack_prot ();
+      const int prot = GL(dl_stack_prot_flags);
       char *guardend = guard + guardsize;
 #if _STACK_GROWS_DOWN
       /* As defined at guard_position, for architectures with downward stack
@@ -240,7 +238,7 @@ setup_stack_prot (char *mem, size_t size, struct pthread *pd,
 /* Update the guard area of the thread stack MEM of size SIZE with the new
    GUARDISZE.  It uses the method defined by PD stack_mode.  */
 static inline bool
-adjust_stack_prot (char *mem, size_t size, const struct pthread *pd,
+adjust_stack_prot (char *mem, size_t size, struct pthread *pd,
 		   size_t guardsize, size_t pagesize_m1)
 {
   /* The required guard area is larger than the current one.  For
@@ -258,11 +256,23 @@ adjust_stack_prot (char *mem, size_t size, const struct pthread *pd,
      so use the new guard placement with the new size.  */
   if (guardsize > pd->guardsize)
     {
+      /* There was no need to previously setup a guard page, so we need
+	 to check whether the kernel supports guard advise.  */
       char *guard = guard_position (mem, size, guardsize, pd, pagesize_m1);
-      if (pd->stack_mode == ALLOCATE_GUARD_MADV_GUARD)
-	return __madvise (guard, guardsize, MADV_GUARD_INSTALL) == 0;
-      else if (pd->stack_mode == ALLOCATE_GUARD_PROT_NONE)
-	return __mprotect (guard, guardsize, PROT_NONE) == 0;
+      if (atomic_load_relaxed (&allocate_stack_mode)
+	  == ALLOCATE_GUARD_MADV_GUARD)
+	{
+	  if (__madvise (guard, guardsize, MADV_GUARD_INSTALL) == 0)
+	    {
+	      pd->stack_mode = ALLOCATE_GUARD_MADV_GUARD;
+	      return true;
+	    }
+	  atomic_store_relaxed (&allocate_stack_mode,
+				ALLOCATE_GUARD_PROT_NONE);
+	}
+
+      pd->stack_mode = ALLOCATE_GUARD_PROT_NONE;
+      return __mprotect (guard, guardsize, PROT_NONE) == 0;
     }
   /* The current guard area is larger than the required one.  For
      _STACK_GROWS_DOWN is means change the guard as:
@@ -294,7 +304,7 @@ adjust_stack_prot (char *mem, size_t size, const struct pthread *pd,
 	}
       else if (pd->stack_mode == ALLOCATE_GUARD_PROT_NONE)
 	{
-	  const int prot = stack_prot ();
+	  const int prot = GL(dl_stack_prot_flags);
 #if _STACK_GROWS_DOWN
 	  return __mprotect (mem + guardsize, slacksize, prot) == 0;
 #else
@@ -424,6 +434,12 @@ allocate_stack (const struct pthread_attr *attr, struct pthread **pdp,
 	 stack cache nor will the memory (except the TLS memory) be freed.  */
       pd->stack_mode = ALLOCATE_GUARD_USER;
 
+      if (__glibc_unlikely (GLRO (dl_debug_mask) & DL_DEBUG_TLS))
+	GLRO (dl_debug_printf) (
+	  "TCB for user-supplied stack created: 0x%lx, stack=0x%lx, size=%lu\n",
+	  (unsigned long int) pd, (unsigned long int) pd->stackblock,
+	  (unsigned long int) pd->stackblock_size);
+
       /* This is at least the second thread.  */
       pd->header.multiple_threads = 1;
 
@@ -543,6 +559,10 @@ allocate_stack (const struct pthread_attr *attr, struct pthread **pdp,
 
 	  /* Don't allow setxid until cloned.  */
 	  pd->setxid_futex = -1;
+
+	  if (__glibc_unlikely (GLRO (dl_debug_mask) & DL_DEBUG_TLS))
+	    GLRO (dl_debug_printf) ("TCB for new stack allocated: 0x%lx\n",
+				    (unsigned long int) pd);
 
 	  /* Allocate the DTV for this thread.  */
 	  if (_dl_allocate_tls (TLS_TPADJ (pd)) == NULL)

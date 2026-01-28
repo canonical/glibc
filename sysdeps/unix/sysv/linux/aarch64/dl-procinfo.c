@@ -1,6 +1,6 @@
 /* Data for AArch64 version of processor capability information.
    Linux version.
-   Copyright (C) 2017-2025 Free Software Foundation, Inc.
+   Copyright (C) 2017-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -48,6 +48,22 @@ PROCINFO_CLASS struct cpu_features _dl_aarch64_cpu_features
 # endif
 # ifndef PROCINFO_DECL
 = { }
+# endif
+# if !defined SHARED || defined PROCINFO_DECL
+;
+# else
+,
+# endif
+#endif
+
+#if !IS_IN (ldconfig)
+# if !defined PROCINFO_DECL && defined SHARED
+  ._dl_aarch64_bti
+# else
+PROCINFO_CLASS unsigned long _dl_aarch64_bti
+# endif
+# ifndef PROCINFO_DECL
+= BTI_CHECK_PERMISSIVE
 # endif
 # if !defined SHARED || defined PROCINFO_DECL
 ;

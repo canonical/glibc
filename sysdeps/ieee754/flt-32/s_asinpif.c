@@ -65,7 +65,7 @@ __asinpif (float x)
       c0 += c2 * z4;
       c4 += c6 * z4;
       c0 += c4 * (z4 * z4);
-      if (__glibc_unlikely (ax != 0.0 && ax <= 0x1.921fb4p-126f))
+      if (__glibc_unlikely (ax != 0.0f && ax <= 0x1.921fb4p-126f))
 	__set_errno (ERANGE);
       return z * c0;
     }
@@ -79,8 +79,13 @@ __asinpif (float x)
       c0 += c2 * z2;
       c4 += c6 * z2;
       c0 += c4 * z4;
-      double r = fma (-c0, copysign (f, x), copysign (0.5, x));
-      return r;
+#ifndef __FP_FAST_FMA
+      /* The fma is required only for x == 0x1.6371e8p-4f in FE_TOWARDZERO
+	 to provide correctly rounded results.  */
+      if (__glibc_likely (ax != 0x1.6371e8p-4f))
+	return copysign (0.5, x) - c0 * copysign (f, x);
+#endif
+      return fma (-c0, copysign (f, x), copysign (0.5, x));
     }
 }
 libm_alias_float (__asinpi, asinpi)

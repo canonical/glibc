@@ -1,5 +1,5 @@
 # sysdeps makefile fragment for all pthread-supporting configurations.
-# Copyright (C) 2014-2025 Free Software Foundation, Inc.
+# Copyright (C) 2014-2026 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -26,14 +26,6 @@ headers += \
   # headers
 
 routines += \
-  pthread_atfork \
-  thrd_current \
-  thrd_equal \
-  thrd_sleep \
-  thrd_yield \
-  # routines
-
-$(libpthread-routines-var) += \
   call_once \
   cnd_broadcast \
   cnd_destroy \
@@ -47,16 +39,21 @@ $(libpthread-routines-var) += \
   mtx_timedlock \
   mtx_trylock \
   mtx_unlock \
+  pthread_atfork \
   pthread_atfork_compat \
   thrd_create \
+  thrd_current \
   thrd_detach \
+  thrd_equal \
   thrd_exit \
   thrd_join \
+  thrd_sleep \
+  thrd_yield \
   tss_create \
   tss_delete \
   tss_get \
   tss_set \
-  # $(libpthread-routines-var)
+  # routines
 
 tests += \
   tst-abstime \
@@ -201,7 +198,6 @@ tests += \
   tst-mutex6 \
   tst-mutex7 \
   tst-mutex9 \
-  tst-mutex10 \
   tst-mutex11 \
   tst-once1 \
   tst-once2 \
@@ -216,6 +212,7 @@ tests += \
   tst-pt-vfork1 \
   tst-pt-vfork2 \
   tst-pthread-exit-signal \
+  tst-pthread-exited \
   tst-pthread-mutexattr \
   tst-pthread-mutexattr-2 \
   tst-pthread-raise-blocked-self \

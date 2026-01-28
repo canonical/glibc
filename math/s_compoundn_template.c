@@ -1,5 +1,5 @@
 /* Return (1+X)^Y for integer Y.
-   Copyright (C) 2025 Free Software Foundation, Inc.
+   Copyright (C) 2025-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -61,8 +61,8 @@ mul3_split (FLOAT *out, FLOAT a, FLOAT b, FLOAT c, FLOAT d)
 static int
 compare (const void *p, const void *q)
 {
-  FLOAT pd = fabs (*(const FLOAT *) p);
-  FLOAT qd = fabs (*(const FLOAT *) q);
+  FLOAT pd = M_FABS (*(const FLOAT *) p);
+  FLOAT qd = M_FABS (*(const FLOAT *) q);
   if (pd < qd)
     return -1;
   else if (pd == qd)

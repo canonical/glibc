@@ -1,5 +1,5 @@
 /* Internal function for converting integers to ASCII.
-   Copyright (C) 1994-2025 Free Software Foundation, Inc.
+   Copyright (C) 1994-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -25,7 +25,6 @@
 #include <gmp.h>
 #include <limits.h>
 #include <stdlib/gmp-impl.h>
-#include <stdlib/longlong.h>
 
 #include <_itoa.h>
 
@@ -308,8 +307,8 @@ _itoa (unsigned long long int value, char *buflim, unsigned int base,
 		if (big_normalization_steps == 0)
 		  xh = 0;
 		else
-		  xh = (mp_limb_t) (value >> 64 - big_normalization_steps);
-		xl = (mp_limb_t) (value >> 32 - big_normalization_steps);
+		  xh = (mp_limb_t) (value >> (64 - big_normalization_steps));
+		xl = (mp_limb_t) (value >> (32 - big_normalization_steps));
 		udiv_qrnnd (x1hi, r, xh, xl, big_base_norm);
 
 		xl = ((mp_limb_t) value) << big_normalization_steps;
@@ -320,7 +319,7 @@ _itoa (unsigned long long int value, char *buflim, unsigned int base,
 		  xh = x1hi;
 		else
 		  xh = ((x1hi << big_normalization_steps)
-			| (x1lo >> 32 - big_normalization_steps));
+			| (x1lo >> (32 - big_normalization_steps)));
 		xl = x1lo << big_normalization_steps;
 		udiv_qrnnd (t[0], x, xh, xl, big_base_norm);
 		t[1] = x >> big_normalization_steps;

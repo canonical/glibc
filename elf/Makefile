@@ -1,4 +1,4 @@
-# Copyright (C) 1995-2025 Free Software Foundation, Inc.
+# Copyright (C) 1995-2026 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -543,6 +543,8 @@ tests-internal += \
   tst-dl_find_object-threads \
   tst-dlmopen2 \
   tst-hash-collision3 \
+  tst-link-map-contiguous-ldso \
+  tst-link-map-contiguous-libc \
   tst-ptrguard1 \
   tst-stackguard1 \
   tst-tls-surplus \
@@ -553,6 +555,10 @@ tests-internal += \
   unload \
   unload2 \
   # tests-internal
+
+ifeq ($(build-hardcoded-path-in-tests),yes)
+tests-internal += tst-link-map-contiguous-main
+endif
 
 tests-container += \
   tst-dlopen-self-container \
@@ -1481,6 +1487,21 @@ rtld-stubbed-symbols = \
   realloc \
   # rtld-stubbed-symbols
 
+ifeq (no,$(abort-in-ld))
+# clang might generate an abort call for cleanup functions.
+rtld-stubbed-symbols += \
+  __GI_abort \
+  # rtld-stubbed-symbols
+endif
+
+# These symbols might be emitted by the compiler when fortify is enabled
+# (through builtins).
+rtld-stubbed-symbols += \
+  __GI___vfprintf_chk \
+  __GI___vsprintf_chk \
+  __GI___vsyslog_chk \
+  # rtld-stubbed-symbols
+
 ifeq ($(have-ssp),yes)
 # rtld is not built with the stack protector, so these references will
 # go away in the rebuilds.
@@ -1907,7 +1928,7 @@ $(objpfx)lateglobal.out: $(objpfx)ltglobmod1.so $(objpfx)ltglobmod2.so
 $(objpfx)tst-pathopt.out: tst-pathopt.sh $(objpfx)tst-pathopt \
 			  $(objpfx)pathoptobj.so
 	$(SHELL) $< $(common-objpfx) '$(test-wrapper-env)' \
-		 '$(run-program-env)'; \
+		 '$(run-program-env)' '$(rpath-link)' ; \
 	$(evaluate-test)
 
 $(objpfx)tst-rtld-load-self.out: tst-rtld-load-self.sh $(objpfx)ld.so
@@ -2161,7 +2182,7 @@ $(objpfx)execstack-default: $(first-word $(wildcard $(sysdirs:%=%/stackinfo.h)))
 	$(make-target-directory)
 	{ echo '#include <elf.h>'; \
 	  echo '#include <stackinfo.h>'; \
-	  echo '#if (DEFAULT_STACK_PERMS & PF_X) == 0'; \
+	  echo '#if (DEFAULT_STACK_PROT_PERMS & PROT_EXEC) == 0'; \
 	  echo '@@@execstack-no@@@'; \
 	  echo '#else'; \
 	  echo '@@@execstack-yes@@@'; \

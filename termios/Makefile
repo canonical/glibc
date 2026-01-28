@@ -1,4 +1,4 @@
-# Copyright (C) 1991-2025 Free Software Foundation, Inc.
+# Copyright (C) 1991-2026 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -53,4 +53,3 @@ routines := \
 include ../Rules
 
 CFLAGS-tcdrain.c += -fexceptions -fasynchronous-unwind-tables
-CFLAGS-tcsetattr.c += $(config-cflags-wno-ignored-attributes)

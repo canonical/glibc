@@ -1,6 +1,6 @@
 /* Scalar wrappers for double-precision Advanced SIMD vector math functions.
 
-   Copyright (C) 2023-2025 Free Software Foundation, Inc.
+   Copyright (C) 2023-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -44,12 +44,17 @@ VPCS_VECTOR_WRAPPER (exp_advsimd, _ZGVnN2v_exp)
 VPCS_VECTOR_WRAPPER (exp10_advsimd, _ZGVnN2v_exp10)
 VPCS_VECTOR_WRAPPER (exp2_advsimd, _ZGVnN2v_exp2)
 VPCS_VECTOR_WRAPPER (expm1_advsimd, _ZGVnN2v_expm1)
+VPCS_VECTOR_WRAPPER (exp2m1_advsimd, _ZGVnN2v_exp2m1)
+VPCS_VECTOR_WRAPPER (exp10m1_advsimd, _ZGVnN2v_exp10m1)
 VPCS_VECTOR_WRAPPER_ff (hypot_advsimd, _ZGVnN2vv_hypot)
 VPCS_VECTOR_WRAPPER (log_advsimd, _ZGVnN2v_log)
 VPCS_VECTOR_WRAPPER (log10_advsimd, _ZGVnN2v_log10)
+VPCS_VECTOR_WRAPPER (log10p1_advsimd, _ZGVnN2v_log10p1)
 VPCS_VECTOR_WRAPPER (log1p_advsimd, _ZGVnN2v_log1p)
 VPCS_VECTOR_WRAPPER (log2_advsimd, _ZGVnN2v_log2)
+VPCS_VECTOR_WRAPPER (log2p1_advsimd, _ZGVnN2v_log2p1)
 VPCS_VECTOR_WRAPPER_ff (pow_advsimd, _ZGVnN2vv_pow)
+VPCS_VECTOR_WRAPPER (rsqrt_advsimd, _ZGVnN2v_rsqrt)
 VPCS_VECTOR_WRAPPER (sin_advsimd, _ZGVnN2v_sin)
 VPCS_VECTOR_WRAPPER (sinh_advsimd, _ZGVnN2v_sinh)
 VPCS_VECTOR_WRAPPER (sinpi_advsimd, _ZGVnN2v_sinpi)

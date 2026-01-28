@@ -1,5 +1,5 @@
 /* Test skeleton for formatted scanf input for unsigned long long int convs.
-   Copyright (C) 2025 Free Software Foundation, Inc.
+   Copyright (C) 2025-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -19,4 +19,5 @@
 #define TYPE_T_UNSIGNED_P 1
 typedef unsigned long long int type_t;
 
+#include "tst-scanf-format-integer.h"
 #include "tst-scanf-format-skeleton.c"

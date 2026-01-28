@@ -585,7 +585,7 @@ AC_CHECK_PROG_VER(BISON, bison, --version,
 # Require GCC 12.1 to build.
 AC_CACHE_CHECK([if $CC is sufficient to build libc], libc_cv_compiler_ok, [
 AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[]], [[
-#if !defined __GNUC__ || __GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 1)
+#if (!defined __GNUC__ || __GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 1)) && (!defined __clang__ || __clang_major__ < 18)
 #error insufficient compiler
 #endif]])],
 	       [libc_cv_compiler_ok=yes],
@@ -1328,9 +1328,9 @@ if test $libc_cv_as_noexecstack = yes; then
 fi
 AC_SUBST(ASFLAGS_config)
 
-LIBC_LINKER_FEATURE([--no-error-execstack], [-Wl,--no-error-execstack],
-		    [libc_cv_no_error_execstack=yes], [libc_cv_no_error_execstack=no])
-AC_SUBST(libc_cv_no_error_execstack)
+LIBC_TEST_LINKER_FEATURE([--no-error-execstack], [-Wl,--no-error-execstack],
+		    [libc_cv_test_no_error_execstack=yes], [libc_cv_test_no_error_execstack=no])
+AC_SUBST(libc_cv_test_no_error_execstack)
 
 LIBC_LINKER_FEATURE([-z execstack], [-Wl,-z,execstack],
 		    [libc_cv_z_execstack=yes], [libc_cv_z_execstack=no])
@@ -1340,9 +1340,9 @@ LIBC_LINKER_FEATURE([-z start-stop-gc], [-Wl,-z,start-stop-gc],
 		    [libc_cv_z_start_stop_gc=yes], [libc_cv_z_start_stop_gc=no])
 LIBC_CONFIG_VAR([have-z-start-stop-gc], [$libc_cv_z_start_stop_gc])
 
-LIBC_LINKER_FEATURE([--depaudit], [-Wl,--depaudit,x],
-		    [libc_cv_depaudit=yes], [libc_cv_depaudit=no])
-LIBC_CONFIG_VAR([have-depaudit], [$libc_cv_depaudit])
+LIBC_TEST_LINKER_FEATURE([--depaudit], [-Wl,--depaudit,x],
+			 [libc_cv_test_depaudit=yes], [libc_cv_test_depaudit=no])
+LIBC_CONFIG_VAR([have-depaudit], [$libc_cv_test_depaudit])
 
 LIBC_LINKER_FEATURE([-z pack-relative-relocs],
 		    [-Wl,-z,pack-relative-relocs],
@@ -1369,6 +1369,22 @@ LIBC_TRY_CC_OPTION([-fpie], [libc_cv_fpie=yes], [libc_cv_fpie=no])
 ])
 
 AC_SUBST(libc_cv_fpie)
+
+dnl Check how to suppress C23-qualifier-generic const warnings.  GCC has
+dnl -Wno-discarded-qualifiers, while clang -Wno-incompatible-pointer-types-discards-qualifiers
+AC_CACHE_CHECK(for -Wno-discarded-qualifiers, libc_cv_cflags_wno_discarded_qualifiers, [dnl
+LIBC_TRY_CC_OPTION([-Werror -Wno-discarded-qualifiers],
+		   [libc_cv_cflags_wno_discarded_qualifiers=-Wno-discarded-qualifiers],
+		   [libc_cv_cflags_wno_discarded_qualifiers=])
+if test -z "$libc_cv_cflags_wno_discarded_qualifiers"; then
+  LIBC_TRY_CC_OPTION([-Werror -Wno-incompatible-pointer-types-discards-qualifiers],
+		     [libc_cv_cflags_wno_incompatible_pointer_type_discards_qualifiers=-Wno-incompatible-pointer-types-discards-qualifiers],
+		     [libc_cv_cflags_wno_incompatible_pointer_type_discards_qualifiers=])
+  libc_cv_cflags_wno_discarded_qualifiers=$libc_cv_cflags_wno_incompatible_pointer_type_discards_qualifiers
+fi
+])
+LIBC_CONFIG_VAR([config-cflags-wno-discarded-qualifiers],
+		[$libc_cv_cflags_wno_discarded_qualifiers])
 
 AC_CACHE_CHECK(for GLOB_DAT reloc,
 	       libc_cv_has_glob_dat, [dnl
@@ -1420,29 +1436,14 @@ LIBC_TRY_TEST_CC_COMMAND([for traditional tls support],
 LIBC_CONFIG_VAR([have-test-mtls-traditional],
 		[$libc_cv_test_mtls_traditional])
 
-dnl clang emits an warning for a double alias redirection, to warn the
-dnl original symbol is sed even when weak definition overrides it.
-dnl It is a usual pattern for weak_alias, where multiple alias point to
-dnl same symbol.
-conftest_code="
-void __foo (void)
-{
-}
-extern __typeof (__foo) foo __attribute__ ((weak, alias ("__foo")));
-extern __typeof (__foo) bar __attribute__ ((weak, alias ("foo")));
-"
-LIBC_TRY_CC_AND_TEST_CC_COMMAND([if -Wno-ignored-attributes is required for aliases],
-  [$conftest_code],
-  [-c -Werror -Wno-ignored-attributes],
-  libc_cv_wno_ignored_attributes,
-  [libc_cv_wno_ignored_attributes="-Wno-ignored-attributes"],
-  [libc_cv_wno_ignored_attributes=],
-  libc_cv_test_wno_ignored_attributes,
-  [libc_cv_test_wno_ignored_attributes="-Wno-ignored-attributes"],
-  [libc_cv_test_wno_ignored_attributes=])
-LIBC_CONFIG_VAR([config-cflags-wno-ignored-attributes],
-		[$libc_cv_wno_ignored_attributes])
-AC_SUBST(libc_cv_test_wno_ignored_attributes)
+AC_CACHE_CHECK([for -Wno-maybe-uninitialized],
+                libc_cv_wno_maybe_uninitialized, [dnl
+		LIBC_TRY_CC_OPTION([-Werror -Wno-maybe-uninitialized],
+				   [libc_cv_wno_maybe_uninitialized=-Wno-maybe-uninitialized],
+				   [libc_cv_wno_maybe_uninitialized=])
+])
+LIBC_CONFIG_VAR([config-cflags-wno-maybe-uninitialized],
+		[$libc_cv_wno_maybe_uninitialized])
 
 AC_CACHE_CHECK(whether cc puts quotes around section names,
 	       libc_cv_have_section_quotes,
@@ -1484,24 +1485,31 @@ if test "$libc_cv_gcc_builtin_memset" = yes ; then
   AC_DEFINE(HAVE_BUILTIN_MEMSET)
 fi
 
-AC_CACHE_CHECK(for redirection of built-in functions, libc_cv_gcc_builtin_redirection, [dnl
+AC_CACHE_CHECK(for 64-bit atomic support, libc_cv_gcc_has_64b_atomics, [dnl
 cat > conftest.c <<\EOF
-extern char *strstr (const char *, const char *) __asm ("my_strstr");
-char *foo (const char *a, const char *b)
+typedef struct { long long t; } X;
+extern void has_64b_atomics(void);
+void f(void)
 {
-  return __builtin_strstr (a, b);
+  X x;
+  /* Use address of structure with 64-bit type.  This avoids incorrect
+     implementations which return true even if long long is not 64-bit aligned.
+     This works on GCC and LLVM - other cases have bugs and they disagree.  */
+  _Static_assert (__atomic_always_lock_free (sizeof (x), &x), "no_64b_atomics");
 }
 EOF
 dnl
-if AC_TRY_COMMAND([${CC-cc} -O3 -S conftest.c -o - | grep -F "my_strstr" > /dev/null]);
+if AC_TRY_COMMAND([${CC-cc} -O2 -S conftest.c]);
 then
-  libc_cv_gcc_builtin_redirection=yes
+  libc_cv_gcc_has_64b_atomics=yes
 else
-  libc_cv_gcc_builtin_redirection=no
+  libc_cv_gcc_has_64b_atomics=no
 fi
 rm -f conftest* ])
-if test "$libc_cv_gcc_builtin_redirection" = no; then
-  AC_MSG_ERROR([support for the symbol redirection needed])
+if test "$libc_cv_gcc_has_64b_atomics" = yes; then
+  AC_DEFINE(HAVE_64B_ATOMICS, 1)
+else
+  AC_DEFINE(HAVE_64B_ATOMICS, 0)
 fi
 
 dnl Determine how to disable generation of FMA instructions.
@@ -1543,7 +1551,7 @@ AC_SUBST(libc_cv_test_cc_signaling_nans)
 
 dnl Check if TEST_CC supports -fsemantic-interposition.
 LIBC_TRY_TEST_CC_OPTION([-fsemantic-interposition],
-  [-c -Werror -fsemantic-interposition],
+  [-Werror -fsemantic-interposition],
   libc_cv_test_cc_cflags_fsemantic_interposition,
   [libc_cv_test_cc_cflags_fsemantic_interposition=yes],
   [libc_cv_test_cc_cflags_fsemantic_interposition=no]
@@ -1581,6 +1589,7 @@ if test $libc_cv_test_cc_loop_to_function = yes; then
   AC_DEFINE(HAVE_TEST_CC_INHIBIT_LOOP_TO_LIBCALL)
 fi
 AC_SUBST(libc_cv_cc_loop_to_function)
+LIBC_CONFIG_VAR(config-cflags-cc-loop-to-function,$libc_cv_cc_loop_to_function)
 
 LIBC_TRY_CC_AND_TEST_CC_OPTION([for -Wimplicit-fallthrough],
   [-Werror -Wimplicit-fallthrough],
@@ -1590,6 +1599,14 @@ LIBC_TRY_CC_AND_TEST_CC_OPTION([for -Wimplicit-fallthrough],
   libc_cv_test_cc_wimplicit_fallthrough,
   [libc_cv_test_cc_wimplicit_fallthrough=-Wimplicit-fallthrough],
   [libc_cv_test_cc_wimplicit_fallthrough=])
+dnl Clang's -Wimplicit-fallthrough warning, which flags unannotated
+dnl fall-through in switch statements, does not recognize specific
+dnl comments like /* FALLTHROUGH */ for suppressing the warning, unlike
+dnl GCC.  Since fall through comments are used extensively in glibc,
+dnl disable -Wimplicit-fallthrough when clang is in use.
+if test $libc_cv_test_clang = yes; then
+  libc_cv_test_cc_wimplicit_fallthrough=
+fi
 LIBC_CONFIG_VAR([cc-option-wimplicit-fallthrough],
 		[$libc_cv_cc_wimplicit_fallthrough])
 AC_SUBST(libc_cv_test_cc_wimplicit_fallthrough)
@@ -1641,7 +1658,7 @@ LIBC_CONFIG_VAR([have-test-cc-trampoline],
 
 dnl Check if TEST_CC supports -Wno-restrict.
 LIBC_TRY_TEST_CC_OPTION([-Wno-restrict],
-  [-c -Werror -Wno-restrict],
+  [-Werror -Wno-restrict],
   libc_cv_test_cflags_wno_restrict,
   [libc_cv_test_cflags_wno_restrict=-Wno-restrict],
   [libc_cv_test_cflags_wno_restrict=]
@@ -1651,7 +1668,7 @@ LIBC_CONFIG_VAR([test-config-cflags-wno-restrict],
 
 dnl Check if TEST_CC supports -Wno-fortify-source.
 LIBC_TRY_TEST_CC_OPTION([-Wno-fortify-source],
-  [-c -Werror -Wno-fortify-source],
+  [-Werror -Wno-fortify-source],
   libc_cv_test_cflags_wno_fortify_source,
   [libc_cv_test_cflags_wno_fortify_source=-Wno-fortify-source],
   [libc_cv_test_cflags_wno_fortify_source=]
@@ -1661,7 +1678,7 @@ LIBC_CONFIG_VAR([test-config-cflags-wno-fortify-source],
 
 dnl Check if TEST_CC supports -finput-charset=ascii.
 LIBC_TRY_TEST_CC_OPTION([-finput-charset=ascii],
-  [-c -Werror -finput-charset=ascii],
+  [-Werror -finput-charset=ascii],
   libc_cv_test_cflags_finput_charset_ascii,
   [libc_cv_test_cflags_finput_charset_ascii="-finput-charset=ascii"],
   [libc_cv_test_cflags_finput_charset_ascii=]
@@ -1671,7 +1688,7 @@ LIBC_CONFIG_VAR(test-config-cflags-finput-charset-ascii,
 
 dnl Check if TEST_CXX supports -finput-charset=ascii.
 LIBC_TRY_TEST_CXX_OPTION([$CXX -finput-charset=ascii],
-  [-c -Werror -finput-charset=ascii],
+  [-Werror -finput-charset=ascii],
   libc_cv_test_cxxflags_finput_charset_ascii,
   [libc_cv_test_cxxflags_finput_charset_ascii="-finput-charset=ascii"],
   [libc_cv_test_cxxflags_finput_charset_ascii=]
@@ -1922,6 +1939,7 @@ libc_cv_localstatedir=$localstatedir
 libc_cv_gcc_unwind_find_fde=no
 libc_cv_idn=no
 pthread_in_libc=yes
+abort_in_ld=no
 
 # Iterate over all the sysdep directories we will use, running their
 # configure fragments.
@@ -2050,22 +2068,22 @@ LIBC_LINKER_FEATURE([-Ttext-segment=$libc_cv_pde_load_address],
 		    [libc_cv_load_address_ldflag=])
 LIBC_CONFIG_VAR([load-address-ldflag], [$libc_cv_load_address_ldflag])
 
-# Check if compilers support GCS in branch protection:
-LIBC_TRY_CC_AND_TEST_CC_OPTION([if compiler supports -mbranch-protection=gcs],
-  [-Werror -mbranch-protection=gcs],
-  libc_cv_cc_gcs,
-  [libc_cv_cc_gcs=yes],
-  [libc_cv_cc_gcs=no],
-  libc_cv_test_cc_gcs,
-  [libc_cv_test_cc_gcs=yes],
-  [libc_cv_test_cc_gcs=no])
-LIBC_CONFIG_VAR([have-cc-gcs], [$libc_cv_cc_gcs])
-LIBC_CONFIG_VAR([have-test-cc-gcs], [$libc_cv_test_cc_gcs])
+# Check if compiler supports -fno-fp-int-builtin-inexact
+LIBC_TRY_CC_AND_TEST_CC_OPTION([if compiler supports -fno-fp-int-builtin-inexact],
+  [-Werror -fno-fp-int-builtin-inexact],
+  libc_cv_cc_no_fp_builtin_inexact,
+  [libc_cv_cc_no_fp_builtin_inexact=-fno-fp-int-builtin-inexact],
+  [libc_cv_cc_no_fp_builtin_inexact=],
+  libc_cv_test_cc_no_fp_builtin_inexact,
+  [libc_cv_test_cc_no_fp_builtin_inexact=-fno-fp-int-builtin-inexact],
+  [libc_cv_test_cc_no_fp_builtin_inexact=])
+LIBC_CONFIG_VAR([config-cflags-no-fp-builtin-inexact], [$libc_cv_cc_no_fp_builtin_inexact])
 
-# Check if linker supports GCS marking
-LIBC_LINKER_FEATURE([-z gcs=always], [-Wl,-z,gcs=always],
-		    [libc_cv_ld_gcs=yes], [libc_cv_ld_gcs=no])
-LIBC_CONFIG_VAR([have-ld-gcs], [$libc_cv_ld_gcs])
+
+LIBC_LINKER_FEATURE([--undefined-version], [-Wl,--undefined-version],
+		    [libc_cv_ld_undefined_version=-Wl,--undefined-version],
+		    [libc_cv_ld_undefined_version=])
+LIBC_CONFIG_VAR([have-undefined-version], [$libc_cv_ld_undefined_version])
 
 AC_MSG_CHECKING(if we can build programs as PIE)
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#ifdef PIE_UNSUPPORTED
@@ -2119,7 +2137,6 @@ LIBC_CONFIG_VAR([have-libgcc_s], [$libc_cv_have_libgcc_s])
 # Support configure.ac under sysdeps.
 AC_SUBST(libc_cv_test_cc_mprefer_vector_width)
 AC_SUBST(test_enable_cet)
-AC_SUBST(libc_cv_test_x86_have_amx_tile)
 
 enable_gsframe=no
 if test $use_sframe = yes; then
@@ -2187,6 +2204,28 @@ if test "$pthread_in_libc" = yes; then
   AC_DEFINE(PTHREAD_IN_LIBC)
 fi
 AC_SUBST(pthread_in_libc)
+
+# Some symbols that might be auto-generated by the compiler are redefined
+# to internal alias (for instance mempcpy to __mempcpy).  However, if fortify
+# is enabled, the fortify wrapper is define before the alias re-defined and
+# clang warns attribute declaration must precede definition.
+AC_CACHE_CHECK([attribute can declared after function declaration],
+	       libc_cv_attr_after_func_decl, [dnl
+cat > conftest.c <<EOF
+extern __inline int foo (void) { return 0; };
+extern __typeof (foo) foo __asm__ ("__foo");
+EOF
+libc_cv_attr_after_func_decl=no
+if ${CC-cc} $CFLAGS $CPPFLAGS -fgnu89-inline -Werror conftest.c -c \
+   1>&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD ; then
+   libc_cv_attr_after_func_decl=yes
+fi
+rm -rf conftest*])
+if test "$libc_cv_attr_after_func_decl" = yes; then
+   AC_DEFINE(ATTR_AFTER_FUNC_DECL)
+fi
+
+LIBC_CONFIG_VAR([abort-in-ld],[$abort_in_ld]);
 
 AC_CONFIG_FILES([config.make Makefile])
 AC_CONFIG_COMMANDS([default],[[

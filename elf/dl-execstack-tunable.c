@@ -1,5 +1,5 @@
 /* Stack executability handling for GNU dynamic linker.
-   Copyright (C) 2025 Free Software Foundation, Inc.
+   Copyright (C) 2025-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -25,7 +25,7 @@ _dl_handle_execstack_tunable (void)
   switch (TUNABLE_GET (glibc, rtld, execstack, int32_t, NULL))
     {
     case stack_tunable_mode_disable:
-      if ((__glibc_unlikely (GL(dl_stack_flags)) & PF_X))
+      if ((__glibc_unlikely (GL(dl_stack_prot_flags)) & PROT_EXEC))
 	_dl_fatal_printf (
 "Fatal glibc error: executable stack is not allowed\n");
       break;

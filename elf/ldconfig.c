@@ -1,4 +1,4 @@
-/* Copyright (C) 1999-2025 Free Software Foundation, Inc.
+/* Copyright (C) 1999-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    This program is free software; you can redistribute it and/or modify
@@ -1151,7 +1151,7 @@ parse_conf_include (const char *config_file, unsigned int lineno,
 
     case GLOB_NOSPACE:
       errno = ENOMEM;
-      /* Fall through.  */
+      [[fallthrough]];
     case GLOB_ABORTED:
       if (opt_verbose)
 	error (0, errno, _("%s:%u: cannot read directory %s"),

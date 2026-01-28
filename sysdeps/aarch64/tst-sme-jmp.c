@@ -1,5 +1,5 @@
 /* Test for SME longjmp.
-   Copyright (C) 2023-2025 Free Software Foundation, Inc.
+   Copyright (C) 2023-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -28,6 +28,9 @@
 #include <support/test-driver.h>
 
 #include "tst-sme-helper.h"
+
+/* Streaming SVE vector register size.  */
+static unsigned long svl;
 
 static uint8_t *za_orig;
 static uint8_t *za_dump;
@@ -82,7 +85,7 @@ longjmp_test (void)
     FAIL_EXIT1 ("svcr != 0: %lu", svcr);
   set_tpidr2 (&blk);
   start_za ();
-  load_za (za_orig);
+  load_za (za_orig, svl);
 
   print_data ("za save space", za_save);
   p = get_tpidr2 ();
@@ -131,7 +134,7 @@ setcontext_test (void)
     FAIL_EXIT1 ("svcr != 0: %lu", svcr);
   set_tpidr2 (&blk);
   start_za ();
-  load_za (za_orig);
+  load_za (za_orig, svl);
 
   print_data ("za save space", za_save);
   p = get_tpidr2 ();

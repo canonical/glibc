@@ -1,5 +1,5 @@
 /* Test for formatted 'vfscanf' input for long double conversions.
-   Copyright (C) 2025 Free Software Foundation, Inc.
+   Copyright (C) 2025-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -18,5 +18,4 @@
 
 #include "tst-scanf-format-skeleton.h"
 #include "tst-scanf-format-vf.h"
-#include "tst-scanf-format-real.h"
-#include "tst-scanf-format-skeleton-ldouble.c"
+#include <tst-scanf-format-skeleton-ldouble.c>

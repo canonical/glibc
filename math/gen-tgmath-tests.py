@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # Generate tests for <tgmath.h> macros.
-# Copyright (C) 2017-2025 Free Software Foundation, Inc.
+# Copyright (C) 2017-2026 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 #
 # The GNU C Library is free software; you can redistribute it and/or
@@ -726,10 +726,10 @@ class Tests(object):
         self.add_tests('fminmag', 'r', ['r', 'r'])
         self.add_tests('fmaxmag', 'r', ['r', 'r'])
         self.add_tests('llogb', 'long int', ['r'])
-        self.add_tests('fromfp', 'intmax_t', ['r', 'int', 'unsigned int'])
-        self.add_tests('fromfpx', 'intmax_t', ['r', 'int', 'unsigned int'])
-        self.add_tests('ufromfp', 'uintmax_t', ['r', 'int', 'unsigned int'])
-        self.add_tests('ufromfpx', 'uintmax_t', ['r', 'int', 'unsigned int'])
+        self.add_tests('fromfp', 'r', ['r', 'int', 'unsigned int'])
+        self.add_tests('fromfpx', 'r', ['r', 'int', 'unsigned int'])
+        self.add_tests('ufromfp', 'r', ['r', 'int', 'unsigned int'])
+        self.add_tests('ufromfpx', 'r', ['r', 'int', 'unsigned int'])
         for fn, args in (('add', 2), ('div', 2), ('fma', 3), ('mul', 2),
                          ('sqrt', 1), ('sub', 2)):
             for ret, prefix in (('float', 'f'),

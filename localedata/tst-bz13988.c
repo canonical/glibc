@@ -1,5 +1,5 @@
 /* Localized test for BZ #13988.
-   Copyright (C) 2025 Free Software Foundation, Inc.
+   Copyright (C) 2025-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -22,6 +22,7 @@
 
 #include <libc-diag.h>
 #include <support/check.h>
+#include <support/xstdio.h>
 
 #define PD "\xd9\xab"
 
@@ -32,7 +33,7 @@ do_test (void)
     FAIL_EXIT1 ("setlocale (LC_ALL, \"fa_IR.UTF-8\")");
 
   char s[] = "+" PD "e";
-  FILE *f = fmemopen (s, strlen (s), "r");
+  FILE *f = xfmemopen (s, strlen (s), "r");
 
   /* Avoid: "warning: 'I' flag used with '%f' gnu_scanf format [-Wformat=]";
      cf. GCC PR c/119514.  */
@@ -46,6 +47,8 @@ do_test (void)
   TEST_VERIFY_EXIT (fgetc (f) == 'e');
 
   DIAG_POP_NEEDS_COMMENT;
+
+  xfclose (f);
 
   return 0;
 }

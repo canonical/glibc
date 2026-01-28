@@ -1,6 +1,6 @@
 /* Scalar wrappers for single-precision SVE vector math functions.
 
-   Copyright (C) 2023-2025 Free Software Foundation, Inc.
+   Copyright (C) 2023-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -63,12 +63,17 @@ SVE_VECTOR_WRAPPER (expf_sve, _ZGVsMxv_expf)
 SVE_VECTOR_WRAPPER (exp10f_sve, _ZGVsMxv_exp10f)
 SVE_VECTOR_WRAPPER (exp2f_sve, _ZGVsMxv_exp2f)
 SVE_VECTOR_WRAPPER (expm1f_sve, _ZGVsMxv_expm1f)
+SVE_VECTOR_WRAPPER (exp2m1f_sve, _ZGVsMxv_exp2m1f)
+SVE_VECTOR_WRAPPER (exp10m1f_sve, _ZGVsMxv_exp10m1f)
 SVE_VECTOR_WRAPPER_ff (hypotf_sve, _ZGVsMxvv_hypotf)
 SVE_VECTOR_WRAPPER (logf_sve, _ZGVsMxv_logf)
 SVE_VECTOR_WRAPPER (log10f_sve, _ZGVsMxv_log10f)
+SVE_VECTOR_WRAPPER (log10p1f_sve, _ZGVsMxv_log10p1f)
 SVE_VECTOR_WRAPPER (log1pf_sve, _ZGVsMxv_log1pf)
 SVE_VECTOR_WRAPPER (log2f_sve, _ZGVsMxv_log2f)
+SVE_VECTOR_WRAPPER (log2p1f_sve, _ZGVsMxv_log2p1f)
 SVE_VECTOR_WRAPPER_ff (powf_sve, _ZGVsMxvv_powf)
+SVE_VECTOR_WRAPPER (rsqrtf_sve, _ZGVsMxv_rsqrtf)
 SVE_VECTOR_WRAPPER (sinf_sve, _ZGVsMxv_sinf)
 SVE_VECTOR_WRAPPER (sinhf_sve, _ZGVsMxv_sinhf)
 SVE_VECTOR_WRAPPER (sinpif_sve, _ZGVsMxv_sinpif)

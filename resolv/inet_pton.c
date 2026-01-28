@@ -1,4 +1,4 @@
-/* Copyright (C) 1996-2025 Free Software Foundation, Inc.
+/* Copyright (C) 1996-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -43,5 +43,5 @@ __inet_pton (int af, const char *src, void *dst)
   return __inet_pton_length (af, src, strlen (src), dst);
 }
 libc_hidden_def (__inet_pton)
-weak_alias (__inet_pton, inet_pton)
+static_weak_alias (__inet_pton, inet_pton)
 libc_hidden_weak (inet_pton)

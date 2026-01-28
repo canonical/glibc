@@ -1,4 +1,4 @@
-# Copyright (C) 1991-2025 Free Software Foundation, Inc.
+# Copyright (C) 1991-2026 Free Software Foundation, Inc.
 # Copyright The GNU Toolchain Authors.
 # This file is part of the GNU C Library.
 
@@ -916,6 +916,9 @@ endif
 # disable any optimization that assume default rounding mode.
 +math-flags = -frounding-math
 
+# We have to assume that glibc functions might generate user-visible traps.
++math-flags += -ftrapping-math
+
 # Logically only "libnldbl", "nonlib" and "testsuite" should be using
 # -fno-math-errno. However due to GCC bug #88576, only "libm" and
 # "libmvec" can use -fno-math-errno.
@@ -1182,7 +1185,7 @@ endif
 
 # The assembler can generate debug information too.
 ifndef ASFLAGS
-ASFLAGS := $(filter -g% -fdebug-prefix-map=%,$(CFLAGS))
+ASFLAGS := $(filter -g% -fdebug-prefix-map=% -m%,$(CFLAGS))
 endif
 override ASFLAGS += -Werror=undef $(ASFLAGS-config) $(asflags-cpu) $(as-sframe)
 

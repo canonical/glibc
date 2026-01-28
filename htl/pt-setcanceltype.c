@@ -1,5 +1,5 @@
 /* Set the cancel type for the calling thread.
-   Copyright (C) 2002-2025 Free Software Foundation, Inc.
+   Copyright (C) 2002-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -42,7 +42,7 @@ __pthread_setcanceltype (int type, int *oldtype)
   cancelled = (p->cancel_state == PTHREAD_CANCEL_ENABLE) && p->cancel_pending && (p->cancel_type == PTHREAD_CANCEL_ASYNCHRONOUS);
   __pthread_mutex_unlock (&p->cancel_lock);
 
-  if (cancelled && __pthread_exit)
+  if (cancelled)
     __pthread_exit (PTHREAD_CANCELED);
 
   return 0;

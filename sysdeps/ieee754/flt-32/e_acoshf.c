@@ -27,6 +27,8 @@ SOFTWARE.
 #include <math.h>
 #include <stdint.h>
 #include <libm-alias-finite.h>
+#include <libm-alias-float.h>
+#include <math-svid-compat.h>
 #include "math_config.h"
 #include "s_asincoshf_data.h"
 
@@ -44,7 +46,7 @@ as_special (float x)
 }
 
 float
-__ieee754_acoshf (float x)
+__acoshf (float x)
 {
   uint32_t t = asuint (x);
   if (__glibc_unlikely (t <= 0x3f800000u))
@@ -93,10 +95,10 @@ __ieee754_acoshf (float x)
 	  const double ln2h = 0x1.62e4p-1;
 	  double Lh = ln2h * e;
 	  double Ll = ln2l * e;
-	  r = fma (z, c0, Ll + LIX[j]) + Lh;
+	  r = (z * c0 + (Ll + LIX[j])) + Lh;
 	  if (__glibc_unlikely ((asuint64 (r) & UINT64_C(0xfffffff)) == 0))
 	    {
-	      double h = fma (z, c0, Ll + LIX[j]) + (Lh - r);
+	      double h = (z * c0 + (Ll + LIX[j])) + (Lh - r);
 	      r = r + 64.0 * h;
 	    }
 	}
@@ -105,4 +107,11 @@ __ieee754_acoshf (float x)
   else
     return as_special (x);
 }
+strong_alias (__acoshf, __ieee754_acoshf)
+#if LIBM_SVID_COMPAT
+versioned_symbol (libm, __acoshf, acoshf, GLIBC_2_43);
+libm_alias_float_other (__acosh, acosh)
+#else
+libm_alias_float (__acosh, acosh)
+#endif
 libm_alias_finite (__ieee754_acoshf, __acoshf)

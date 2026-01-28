@@ -1,4 +1,4 @@
-# Copyright (C) 1991-2025 Free Software Foundation, Inc.
+# Copyright (C) 1991-2026 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -37,6 +37,7 @@ headers := \
   bits/time64.h \
   bits/timesize.h \
   bits/types/error_t.h \
+  bits/types/once_flag.h \
   bits/wordsize.h \
   errno.h \
   fmtmsg.h \
@@ -96,6 +97,7 @@ routines := \
   mblen \
   mbstowcs \
   mbtowc \
+  memalignment \
   mrand48 \
   mrand48_r \
   nrand48 \
@@ -278,6 +280,7 @@ tests := \
   tst-canon-bz26341 \
   tst-concurrent-exit \
   tst-concurrent-quick_exit \
+  tst-const \
   tst-cxa_atexit \
   tst-environ \
   tst-environ-change-1 \
@@ -298,6 +301,7 @@ tests := \
   tst-makecontext-align \
   tst-makecontext2 \
   tst-makecontext3 \
+  tst-memalignment \
   tst-on_exit \
   tst-qsort \
   tst-qsort2 \
@@ -367,14 +371,20 @@ tests := \
   tst-thread-quick_exit \
   tst-tininess \
   tst-uabs \
-  tst-uimaxabs \
   tst-ulabs \
   tst-ullabs \
+  tst-umaxabs \
   tst-unsetenv1 \
   tst-width \
   tst-width-stdint \
   tst-xpg-basename \
   # tests
+
+ifeq ($(have-GLIBC_2.42)$(build-shared),yesyes)
+tests += \
+  tst-uimaxabs \
+  # tests
+endif
 
 tests-internal := \
   tst-qsort4 \
@@ -423,6 +433,7 @@ CFLAGS-tst-uabs.c += -fno-builtin
 CFLAGS-tst-uimaxabs.c += -fno-builtin
 CFLAGS-tst-ulabs.c += -fno-builtin
 CFLAGS-tst-ullabs.c += -fno-builtin
+CFLAGS-tst-umaxabs.c += -fno-builtin
 
 CFLAGS-tst-stdbit-Wconversion.c += -Wconversion -Werror
 CFLAGS-tst-stdc_trailing_zeros.c += -fno-builtin
@@ -439,6 +450,8 @@ CFLAGS-tst-stdc_count_ones.c += -fno-builtin
 CFLAGS-tst-stdc_bit_width.c += -fno-builtin
 CFLAGS-tst-stdc_bit_floor.c += -fno-builtin
 CFLAGS-tst-stdc_bit_ceil.c += -fno-builtin
+
+CFLAGS-tst-memalignment.c += -fno-builtin
 
 ifeq ($(have-cxx-thread_local),yes)
 CFLAGS-tst-quick_exit.o = -std=c++11
@@ -481,14 +494,12 @@ mpn-routines := \
   rshift \
   sub_n \
   submul_1 \
-  udiv_qrnnd \
   # mpn-routines
 mpn-headers = \
   asm-syntax.h \
   gmp-impl.h \
   gmp-mparam.h \
   gmp.h \
-  longlong.h \
   # mpn-headers
 
 routines := \
@@ -501,7 +512,6 @@ routines := \
   # routines
 aux += \
   fpioconst \
-  mp_clz_tab \
   # aux
 
 tests-extras += \
@@ -532,18 +542,6 @@ CFLAGS-strfmon_l.c += $(libio-mtsafe)
 CFLAGS-strfromd.c += $(libio-mtsafe)
 CFLAGS-strfromf.c += $(libio-mtsafe)
 CFLAGS-strfroml.c += $(libio-mtsafe)
-
-CFLAGS-strtol.c += $(config-cflags-wno-ignored-attributes)
-CFLAGS-strtoul.c += $(config-cflags-wno-ignored-attributes)
-CFLAGS-strtoll.c += $(config-cflags-wno-ignored-attributes)
-CFLAGS-strtoull.c += $(config-cflags-wno-ignored-attributes)
-CFLAGS-strtof.c += $(config-cflags-wno-ignored-attributes)
-CFLAGS-strtof_l.c += $(config-cflags-wno-ignored-attributes)
-CFLAGS-strtod.c += $(config-cflags-wno-ignored-attributes)
-CFLAGS-strtod_l.c += $(config-cflags-wno-ignored-attributes)
-CFLAGS-strtold.c += $(config-cflags-wno-ignored-attributes)
-CFLAGS-strtold_l.c += $(config-cflags-wno-ignored-attributes)
-CFLAGS-secure-getenv.c += $(config-cflags-wno-ignored-attributes)
 
 CFLAGS-tst-bsearch.c += $(stack-align-test-flags)
 CFLAGS-tst-qsort.c += $(stack-align-test-flags)

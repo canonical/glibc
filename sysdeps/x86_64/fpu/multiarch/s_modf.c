@@ -1,5 +1,5 @@
 /* Multiple versions of modf
-   Copyright (C) 2025 Free Software Foundation, Inc.
+   Copyright (C) 2025-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -38,4 +38,6 @@ libm_alias_double (__modf, modf)
 #  define __modf __modf_sse2
 # endif
 #endif
+#include <math_private.h>
+#define trunc __trunc
 #include <sysdeps/ieee754/dbl-64/s_modf.c>

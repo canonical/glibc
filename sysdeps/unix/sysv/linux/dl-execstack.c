@@ -1,5 +1,5 @@
 /* Stack executability handling for GNU dynamic linker.  Linux version.
-   Copyright (C) 2003-2025 Free Software Foundation, Inc.
+   Copyright (C) 2003-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -17,6 +17,7 @@
    <https://www.gnu.org/licenses/>.  */
 
 #include <ldsodefs.h>
+#include <stackinfo.h>
 
 int
 _dl_make_stack_executable (const void *stack_endp)
@@ -36,7 +37,7 @@ _dl_make_stack_executable (const void *stack_endp)
     return errno;
 
   /* Remember that we changed the permission.  */
-  GL(dl_stack_flags) |= PF_X;
+  GL(dl_stack_prot_flags) |= PROT_EXEC;
 
   return 0;
 }

@@ -1,4 +1,4 @@
-# Copyright (C) 1994-2025 Free Software Foundation, Inc.
+# Copyright (C) 1994-2026 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -80,7 +80,10 @@ routines_no_fortify += \
   # routines_no_fortify
 
 tests = tst-aton tst-leaks tst-inet_ntop
-tests-container = tst-leaks2
+tests-container += \
+  tst-getaddrinfo-eai-again \
+  tst-leaks2 \
+  # tests-container
 
 tests-internal += tst-inet_aton_exact
 
@@ -136,6 +139,8 @@ tests-static += tst-ns_rr_cursor
 # These tests need libdl.
 ifeq (yes,$(build-shared))
 tests += \
+  tst-getaddrinfo-eai-again-timeout \
+  tst-resolv-af-unspec-noerror-nodata \
   tst-resolv-ai_idn \
   tst-resolv-ai_idn-latin1 \
   tst-resolv-ai_idn-nolibidn2 \
@@ -245,7 +250,6 @@ LOCALES := en_US.UTF-8 en_US.ISO-8859-1
 include ../gen-locales.mk
 
 CFLAGS-res_hconf.c += -fexceptions
-CFLAGS-inet_pton.c += $(config-cflags-wno-ignored-attributes)
 
 # The DNS NSS modules needs the resolver.
 $(objpfx)libnss_dns.so: $(objpfx)libresolv.so
@@ -280,6 +284,10 @@ $(objpfx)mtrace-tst-resolv-res_ninit.out: $(objpfx)tst-resolv-res_ninit.out
 
 $(objpfx)tst-bug18665-tcp: $(objpfx)libresolv.so $(shared-thread-library)
 $(objpfx)tst-bug18665: $(objpfx)libresolv.so $(shared-thread-library)
+$(objpfx)tst-resolv-af-unspec-noerror-nodata: \
+  $(objpfx)libresolv.so $(shared-thread-library)
+$(objpfx)tst-getaddrinfo-eai-again-timeout: \
+  $(objpfx)libresolv.so $(shared-thread-library)
 $(objpfx)tst-resolv-ai_idn: $(objpfx)libresolv.so $(shared-thread-library)
 $(objpfx)tst-resolv-ai_idn-latin1: \
   $(objpfx)libresolv.so $(shared-thread-library)

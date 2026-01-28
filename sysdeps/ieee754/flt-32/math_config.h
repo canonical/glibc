@@ -1,5 +1,5 @@
 /* Configuration for math routines.
-   Copyright (C) 2017-2025 Free Software Foundation, Inc.
+   Copyright (C) 2017-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -23,6 +23,7 @@
 #include <math_private.h>
 #include <nan-high-order-bit.h>
 #include <stdint.h>
+#include <stdbit.h>
 
 #ifndef WANT_ROUNDING
 /* Correct special case results in non-nearest rounding modes.  */
@@ -47,14 +48,14 @@
 /* Round x to nearest int in all rounding modes, ties have to be rounded
    consistently with converttoint so the results match.  If the result
    would be outside of [-2^31, 2^31-1] then the semantics is unspecified.  */
-static inline double_t
-roundtoint (double_t x);
+static inline double
+roundtoint (double x);
 
 /* Convert x to nearest int in all rounding modes, ties have to be rounded
    consistently with roundtoint.  If the result is not representible in an
    int32_t then the semantics is unspecified.  */
 static inline int32_t
-converttoint (double_t x);
+converttoint (double x);
 #endif
 
 #ifndef ROUNDEVEN_INTRINSICS
@@ -77,7 +78,7 @@ roundeven_finite (double x)
     {
       union { double f; uint64_t i; } u = {y};
       union { double f; uint64_t i; } v = {y - copysign (1.0, x)};
-      if (__builtin_ctzll (v.i) > __builtin_ctzll (u.i))
+      if (stdc_trailing_zeros (v.i) > stdc_trailing_zeros (u.i))
         y = v.f;
     }
   return y;
@@ -101,8 +102,8 @@ roundevenf_finite (float x)
   if (fabs (x - y) == 0.5)
     {
       union { float f; uint32_t i; } u = {y};
-      union { float f; uint32_t i; } v = {y - copysignf (1.0, x)};
-      if (__builtin_ctzl (v.i) > __builtin_ctzl (u.i))
+      union { float f; uint32_t i; } v = {y - copysignf (1.0f, x)};
+      if (stdc_trailing_zeros (v.i) > stdc_trailing_zeros (u.i))
         y = v.f;
     }
   return y;
@@ -166,11 +167,11 @@ issignalingf_inline (float x)
 #define MANTISSA_WIDTH  23
 #define EXPONENT_WIDTH  8
 #define EXPONENT_BIAS   127
-#define MANTISSA_MASK   0x007fffff
-#define EXPONENT_MASK   0x7f800000
-#define EXP_MANT_MASK   0x7fffffff
-#define QUIET_NAN_MASK  0x00400000
-#define SIGN_MASK       0x80000000
+#define MANTISSA_MASK   UINT32_C (0x007fffff)
+#define EXPONENT_MASK   UINT32_C (0x7f800000)
+#define EXP_MANT_MASK   UINT32_C (0x7fffffff)
+#define QUIET_NAN_MASK  UINT32_C (0x00400000)
+#define SIGN_MASK       UINT32_C (0x80000000)
 
 static inline bool
 is_nan (uint32_t x)
@@ -224,6 +225,7 @@ attribute_hidden float __math_invalidf (float);
 attribute_hidden int __math_invalidf_i (int);
 attribute_hidden long int __math_invalidf_li (long int);
 attribute_hidden float __math_edomf (float x);
+attribute_hidden float __math_erangef (float x);
 
 /* Shared between expf, exp2f, exp10f, and powf.  */
 #define EXP2F_TABLE_BITS 5

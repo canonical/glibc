@@ -1,4 +1,4 @@
-# Copyright (C) 1996-2025 Free Software Foundation, Inc.
+# Copyright (C) 1996-2026 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -348,6 +348,7 @@ xtests := \
 tests-container := \
   tst-initgroups1 \
   tst-initgroups2 \
+  tst-nss-action-parse \
   tst-nss-compat1 \
   tst-nss-db-endgrent \
   tst-nss-db-endpwent \
@@ -444,6 +445,9 @@ generated += mtrace-tst-nss-gai-hv2-canonname.out \
 
 include ../Rules
 
+LOCALES := tr_TR.UTF-8
+include ../gen-locales.mk
+
 ifeq (yes,$(have-selinux))
 LDLIBS-makedb		:= -lselinux
 endif
@@ -520,6 +524,8 @@ $(objpfx)mtrace-tst-nss-gai-hv2-canonname.out: \
 	&& $(common-objpfx)malloc/mtrace \
 	$(objpfx)tst-nss-gai-hv2-canonname.mtrace; } > $@; \
 	$(evaluate-test)
+
+$(objpfx)tst-nss-action-parse.out: $(gen-locales)
 
 # Disable DT_RUNPATH on NSS tests so that the glibc internal NSS
 # functions can load testing NSS modules via DT_RPATH.

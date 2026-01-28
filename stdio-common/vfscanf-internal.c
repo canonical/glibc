@@ -1,5 +1,5 @@
 /* Internal functions for the *scanf* implementation.
-   Copyright (C) 1991-2025 Free Software Foundation, Inc.
+   Copyright (C) 1991-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -119,6 +119,15 @@
 			    (void) (c != EOF				      \
 				    ? ++read_in				      \
 				    : (size_t) (inchar_errno = errno)), c))
+/* Same as INCHAR, but stop upon field exhaustion according to AVAIL.  */
+# define inchar_in_field(avail)						      \
+({									      \
+  if (avail == 0)							      \
+    c = EOF;								      \
+  else									      \
+    inchar ();								      \
+  c;									      \
+})
 # define ISSPACE(Ch)	  __isspace_l (Ch, loc)
 # define ISDIGIT(Ch)	  __isdigit_l (Ch, loc)
 # define ISXDIGIT(Ch)	  __isxdigit_l (Ch, loc)
@@ -889,6 +898,8 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 	      else
 		while (--width > 0 && inchar () != EOF);
 #endif
+	      if (width > 0)
+		input_error ();
 
 	      if (!(flags & SUPPRESS))
 		{
@@ -904,7 +915,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 
 	      break;
 	    }
-	  /* FALLTHROUGH */
+	  [[fallthrough]];
 	case L_('C'):
 	  if (width == -1)
 	    width = 1;
@@ -1042,6 +1053,8 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 	    while (--width > 0 && inchar () != EOF);
 	  }
 #endif
+	  if (width > 0)
+	    input_error ();
 
 	  if (!(flags & SUPPRESS))
 	    {
@@ -1245,7 +1258,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 		}
 	      break;
 	    }
-	  /* FALLTHROUGH */
+	  [[fallthrough]];
 
 	case L_('S'):
 	  {
@@ -1618,7 +1631,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			 above, but the test for "map != NULL" is done
 			 inside the loop here and outside the loop there.  */
 		      DIAG_PUSH_NEEDS_COMMENT;
-		      DIAG_IGNORE_NEEDS_COMMENT (4.7, "-Wmaybe-uninitialized");
+		      DIAG_IGNORE_NEEDS_COMMENT_GCC (4.7, "-Wmaybe-uninitialized");
 
 		      if (__glibc_unlikely (map != NULL))
 			wcdigits[n] = digits_extended[n];
@@ -1639,7 +1652,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 		      ++wcdigits[n];
 #else
 		      const char *cmpp;
-		      int avail = width > 0 ? width : INT_MAX;
+		      int avail = width >= 0 ? width : INT_MAX;
 
 		      if (__glibc_unlikely (map != NULL))
 			mbdigits[n] = digits_extended[n];
@@ -1657,7 +1670,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			    break;
 			  else
 			    {
-			      if (avail == 0 || inchar () == EOF)
+			      if (inchar_in_field (avail) == EOF)
 				break;
 			      --avail;
 			    }
@@ -1701,7 +1714,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			      ++wcdigits[n];
 #else
 			      const char *cmpp;
-			      int avail = width > 0 ? width : INT_MAX;
+			      int avail = width >= 0 ? width : INT_MAX;
 
 			      cmpp = mbdigits[n];
 			      while ((unsigned char) *cmpp == c && avail >= 0)
@@ -1710,7 +1723,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 				    break;
 				  else
 				    {
-				      if (avail == 0 || inchar () == EOF)
+				      if (inchar_in_field (avail) == EOF)
 					break;
 				      --avail;
 				    }
@@ -1757,7 +1770,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			  break;
 #else
 		      const char *cmpp = thousands;
-		      int avail = width > 0 ? width : INT_MAX;
+		      int avail = width >= 0 ? width : INT_MAX;
 
 		      while ((unsigned char) *cmpp == c && avail >= 0)
 			{
@@ -1766,7 +1779,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			    break;
 			  else
 			    {
-			      if (avail == 0 || inchar () == EOF)
+			      if (inchar_in_field (avail) == EOF)
 				break;
 			      --avail;
 			    }
@@ -1837,7 +1850,7 @@ digits_extended_fail:
 			  break;
 #else
 			const char *cmpp = thousands;
-			int avail = width > 0 ? width : INT_MAX;
+			int avail = width >= 0 ? width : INT_MAX;
 
 			while ((unsigned char) *cmpp == c && avail >= 0)
 			  {
@@ -1846,7 +1859,7 @@ digits_extended_fail:
 			      break;
 			    else
 			      {
-				if (avail == 0 || inchar () == EOF)
+				if (inchar_in_field (avail) == EOF)
 				  break;
 				--avail;
 			      }
@@ -2225,7 +2238,7 @@ digits_extended_fail:
 		    }
 #else
 		  const char *cmpp = decimal;
-		  int avail = width > 0 ? width : INT_MAX;
+		  int avail = width >= 0 ? width : INT_MAX;
 
 		  if (! got_dot)
 		    {
@@ -2463,14 +2476,14 @@ digits_extended_fail:
 				}
 #else
 			      const char *cmpp = mbdigits[n];
-			      int avail = width > 0 ? width : INT_MAX;
+			      int avail = width >= 0 ? width : INT_MAX;
 
 			      while ((unsigned char) *cmpp == c && avail >= 0)
 				if (*++cmpp == '\0')
 				  break;
 				else
 				  {
-				    if (avail == 0 || inchar () == EOF)
+				    if (inchar_in_field (avail) == EOF)
 				      break;
 				    --avail;
 				  }
@@ -2552,15 +2565,15 @@ digits_extended_fail:
 	      goto errout;
 	    }
 
-	  /* Have we read any character?  If we try to read a number
-	     in hexadecimal notation and we have read only the `0x'
-	     prefix this is an error.  Also it is an error where we
-	     have read no digits after the exponent character.  */
+	  /* Have we read any character?  If we try to read a number in
+	     hexadecimal notation and we have read only the `0x' prefix,
+	     this is an error.  Also it is an error where we have read
+	     no digits (before or after the exponent character).  */
 	  if (__glibc_unlikely (char_buffer_size (&charbuf) == got_sign
 				|| ((flags & HEXA_FLOAT)
 				    && (char_buffer_size (&charbuf)
 					== 2 + got_sign)))
-				|| (got_e && !got_digit))
+				|| !got_digit)
 	    conv_error ();
 
 	scan_float:

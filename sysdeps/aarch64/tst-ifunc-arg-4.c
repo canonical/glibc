@@ -1,5 +1,5 @@
 /* Test for ifunc resolver that uses __ifunc_hwcap helper function.
-   Copyright (C) 2025 Free Software Foundation, Inc.
+   Copyright (C) 2025-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -35,7 +35,7 @@ two (void)
 }
 
 /* Resolver function.  */
-static void *
+static __attribute_used__ void *
 resolver (uint64_t arg0, const uint64_t arg1[])
 {
   uint64_t hwcap2 = __ifunc_hwcap (_IFUNC_ARG_AT_HWCAP2, arg0, arg1);

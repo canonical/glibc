@@ -1,5 +1,5 @@
 # Makefile for support library, used only at build and test time
-# Copyright (C) 2016-2025 Free Software Foundation, Inc.
+# Copyright (C) 2016-2026 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -66,6 +66,7 @@ libsupport-routines = \
   support_format_netent \
   support_fuse \
   support_isolate_in_subprocess \
+  support_mem_access \
   support_mutex_pi_monotonic \
   support_need_proc \
   support_open_and_compare_file_bytes \
@@ -97,6 +98,7 @@ libsupport-routines = \
   support_test_compare_failure \
   support_test_compare_string \
   support_test_compare_string_wide \
+  support_test_in_thread_wrapper \
   support_test_main \
   support_test_verify_impl \
   support_wait_for_thread_exit \
@@ -134,6 +136,7 @@ libsupport-routines = \
   xfclose \
   xfdopendir \
   xfgets \
+  xfmemopen \
   xfopen \
   xfork \
   xfread \
@@ -332,6 +335,7 @@ tests = \
   tst-support-open-dev-null-range \
   tst-support-openpty \
   tst-support-process_state \
+  tst-support_accept_oom \
   tst-support_blob_repeat \
   tst-support_capture_subprocess \
   tst-support_descriptors \

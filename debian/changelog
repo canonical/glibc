@@ -1,3 +1,35 @@
+glibc (2.43-1) experimental; urgency=medium
+
+  [ Aurelien Jarno ]
+  * New upstream release:
+    - debian/copyright: update following upstream changes.
+    - debian/symbols.wildcards: add 2.43.
+    - debian/patches/git-updates.diff: update from upstream stable branch.
+    - debian/patches/hurd-i386/local-enable-ldconfig.diff: rebased.
+    - debian/patches/hurd-i386/git-sigreturn-SEGV.diff: upstreamed.
+    - debian/patches/hurd-i386/git-rlimit-as.diff: upstreamed.
+    - debian/patches/hurd-i386/git-run-iconv-test.sh.diff: upstreamed.
+    - debian/patches/hurd-i386/git-elf-ordering.diff: upstreamed.
+    - debian/patches/hurd-i386/git-rename.diff: upstreamed.
+    - debian/patches/hurd-i386/git-signal-SSE-MMX.diff: upstreamed.
+    - debian/patches/hurd-i386/git-sigreturn-xmm.diff: upstreamed.
+    - debian/patches/hurd-i386/git-cancel-stack.diff: upstreamed.
+    - debian/patches/i386/unsubmitted-quiet-ldconfig.diff: rebased.
+    - debian/patches/any/local-asserth-decls.diff: rebased.
+    - debian/patches/any/local-tcsetaddr.diff: rebased.
+    - debian/patches/any/submitted-nptl-invalid-td.patch: drop, obsolete.
+    - debian/patches/any/git-ldd-set-u.diff: upstreamed.
+    - debian/patches/any/git-linux-termios.diff: upstreamed.
+    - debian/patches/hurd-i386/submitted-net.diff: rebased.
+    - debian/patches/hurd-i386/tg-bits_atomic.h_multiple_threads.diff: drop,
+      obsolete.
+    - debian/patches/hurd-i386/local-clock_gettime_MONOTONIC.diff: rebased.
+    - debian/patches/hurd-i386/local-fix-nss.diff: rebased.
+    - debian/libc0.3.symbols.hurd-i386: update following the move of symbols
+      from libpthread.so.0.3 to libc.so.0.3.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Wed, 28 Jan 2026 22:35:15 +0100
+
 glibc (2.42-11) unstable; urgency=medium
 
   [ Samuel Thibault ]

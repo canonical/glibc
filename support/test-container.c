@@ -1,5 +1,5 @@
 /* Run a test case in an isolated namespace.
-   Copyright (C) 2018-2025 Free Software Foundation, Inc.
+   Copyright (C) 2018-2026 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -273,7 +273,7 @@ devmount (const char *new_root_path, const char *which)
 {
   int fd;
   fd = open (concat (new_root_path, "/dev/", which, NULL),
-	     O_CREAT | O_TRUNC | O_RDWR, 0777);
+	     O_CREAT | O_TRUNC | O_RDWR, 0666);
   xclose (fd);
 
   trymount (concat ("/dev/", which, NULL),
@@ -705,6 +705,7 @@ check_for_unshare_hints (int require_pidns)
 
       val = -1; /* Sentinel.  */
       int cnt = fscanf (f, "%d", &val);
+      fclose (f);
       if (cnt == 1 && val != files[i].bad_value)
 	continue;
 
