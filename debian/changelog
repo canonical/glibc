@@ -1,3 +1,20 @@
+glibc (2.42-0ubuntu3.1) questing-security; urgency=medium
+
+  * SECURITY UPDATE: use-after-free in wordexp_t fields
+    - debian/patches/CVE-2025-15281.patch: posix: Reset wordexp_t fields
+      with WRDE_REUSE
+    - CVE-2025-15281
+  * SECURITY UPDATE: integer overflow in memalign
+    - debian/patches/CVE-2026-0861.patch: memalign: reinstate alignment
+      overflow check
+    - CVE-2026-0861
+  * SECURITY UPDATE: memory leak in NSS DNS
+    - debian/patches/CVE-2026-0915.patch: resolv: Fix NSS DNS backend for
+      getnetbyaddr
+    - CVE-2026-0915
+
+ -- Nishit Majithia <nishit.majithia@canonical.com>  Fri, 30 Jan 2026 13:59:18 +0530
+
 glibc (2.42-0ubuntu3) questing; urgency=medium
 
   * Fix pthread page guard on linux<6.13 (LP: #2121834)
