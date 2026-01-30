@@ -121,3 +121,6 @@ any/CVE-2024-33601_33602.patch
 any/CVE-2025-0395.patch
 any/CVE-2025-5702.patch
 any/CVE-2025-8058.patch
+CVE-2025-15281.patch
+CVE-2026-0861.patch
+CVE-2026-0915.patch
