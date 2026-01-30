@@ -221,3 +221,6 @@ any/CVE-2025-4802.patch
 any/CVE-2025-8058.patch
 
 lp2089789-Use-__get_nprocs-on-arena_get2-BZ-30945.patch
+CVE-2025-15281.patch
+CVE-2026-0861.patch
+CVE-2026-0915.patch
