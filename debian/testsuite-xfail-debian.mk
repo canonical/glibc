@@ -438,6 +438,9 @@ test-xfail-tst-malloc-alternate-path-threaded-main = yes
 test-xfail-tst-single_threaded-pthread = yes
 test-xfail-tst-single_threaded-pthread-static = yes
 
+# new in 2.44
+test-xfail-tst-cancel32 = yes
+
 # actually never succeded
 test-xfail-tst-create_format1 = yes
 test-xfail-tst-getcwd-abspath = yes
