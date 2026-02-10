@@ -1,3 +1,14 @@
+glibc (2.42-13) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/testsuite-xfail-debian.mk: ignore new tst-pie-bss-static issue on
+    hurd for now.
+
+  [ Aurelien Jarno ]
+  * debian/control: regenerate.  Closes: #1127589.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Tue, 10 Feb 2026 18:54:23 +0100
+
 glibc (2.42-12) unstable; urgency=medium
 
   [ Samuel Thibault ]

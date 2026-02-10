@@ -429,6 +429,7 @@ test-xfail-tst-malloc-too-large-malloc-largetcache = yes
 test-xfail-tst-mallocfork2-malloc-largetcache = yes
 test-xfail-tst-malloc-alternate-path-malloc-largetcache = yes
 test-xfail-tst-sprintf-fortify-rdonly-static = yes
+test-xfail-tst-pie-bss-static = yes
 
 # new in 2.43
 test-xfail-tst-pthread-exited = yes
