@@ -1,0 +1,315 @@
+Description: Revert patch riscv: Add RVV memset for multiarch and non-multiarch
+ That patch adds an RVV-optimized implementation of memset for RISC-V and
+ enables it for both multiarch (IFUNC) and non-multiarch builds.
+ .
+ The patch currently yields faulty (crashing) ldconfig binaries, when compiled
+ with -static-pie, on Launchpad virtualized riscv64 infrastructure.
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/glibc/+bug/2142067
+Forwarded: no
+Origin: upstream, https://sourceware.org/git/?p=glibc.git;h=0b8a996f44b5f4c02991f02cd12bf05b17db4576
+
+Index: glibc/sysdeps/riscv/multiarch/dl-symbol-redir-ifunc.h
+===================================================================
+--- glibc.orig/sysdeps/riscv/multiarch/dl-symbol-redir-ifunc.h
++++ /dev/null
+@@ -1,26 +0,0 @@
+-/* Symbol redirection for loader/static initialization code.
+-   Copyright (C) 2025-2026 Free Software Foundation, Inc.
+-   This file is part of the GNU C Library.
+-
+-   The GNU C Library is free software; you can redistribute it and/or
+-   modify it under the terms of the GNU Lesser General Public
+-   License as published by the Free Software Foundation; either
+-   version 2.1 of the License, or (at your option) any later version.
+-
+-   The GNU C Library is distributed in the hope that it will be useful,
+-   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-   Lesser General Public License for more details.
+-
+-   You should have received a copy of the GNU Lesser General Public
+-   License along with the GNU C Library; if not, see
+-   <https://www.gnu.org/licenses/>.  */
+-
+-#ifndef _DL_IFUNC_GENERIC_H
+-#define _DL_IFUNC_GENERIC_H
+-
+-#ifndef SHARED
+-asm ("memset = __memset_generic");
+-#endif
+-
+-#endif
+Index: glibc/sysdeps/riscv/multiarch/memset-generic.c
+===================================================================
+--- glibc.orig/sysdeps/riscv/multiarch/memset-generic.c
++++ /dev/null
+@@ -1,26 +0,0 @@
+-/* Re-include the default memset implementation.
+-   Copyright (C) 2025-2026 Free Software Foundation, Inc.
+-   This file is part of the GNU C Library.
+-
+-   The GNU C Library is free software; you can redistribute it and/or
+-   modify it under the terms of the GNU Lesser General Public
+-   License as published by the Free Software Foundation; either
+-   version 2.1 of the License, or (at your option) any later version.
+-
+-   The GNU C Library is distributed in the hope that it will be useful,
+-   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-   Lesser General Public License for more details.
+-
+-   You should have received a copy of the GNU Lesser General Public
+-   License along with the GNU C Library; if not, see
+-   <https://www.gnu.org/licenses/>.  */
+-
+-#include <string.h>
+-
+-#if IS_IN(libc)
+-# define MEMSET __memset_generic
+-# undef libc_hidden_builtin_def
+-# define libc_hidden_builtin_def(x)
+-#endif
+-#include <string/memset.c>
+Index: glibc/sysdeps/riscv/multiarch/memset-vector.S
+===================================================================
+--- glibc.orig/sysdeps/riscv/multiarch/memset-vector.S
++++ /dev/null
+@@ -1,25 +0,0 @@
+-
+-/* RISC-V RVV based memset.
+-   Copyright (C) 2025-2026 Free Software Foundation, Inc.
+-   This file is part of the GNU C Library.
+-
+-   The GNU C Library is free software; you can redistribute it and/or
+-   modify it under the terms of the GNU Lesser General Public
+-   License as published by the Free Software Foundation; either
+-   version 2.1 of the License, or (at your option) any later version.
+-
+-   The GNU C Library is distributed in the hope that it will be useful,
+-   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-   Lesser General Public License for more details.
+-
+-   You should have received a copy of the GNU Lesser General Public
+-   License along with the GNU C Library; if not, see
+-   <http://www.gnu.org/licenses/>.  */
+-
+-#if IS_IN(libc)
+-# define MEMSET __memset_vector
+-# undef libc_hidden_builtin_def
+-# define libc_hidden_builtin_def(name)
+-#include <sysdeps/riscv/rvv/memset.S>
+-#endif
+Index: glibc/sysdeps/riscv/preconfigure
+===================================================================
+--- glibc.orig/sysdeps/riscv/preconfigure
++++ glibc/sysdeps/riscv/preconfigure
+@@ -60,7 +60,6 @@ riscv*)
+ 	version=`$CC $CFLAGS $CPPFLAGS -E -dM -xc /dev/null | sed -n 's/^#define __GNUC__ \(.*\)/\1/p'`
+ 	test $version -lt 15 && as_fn_error 1 "glibc requires GCC 15 or later for the V extension" "$LINENO" 5
+ 	test $vector -lt "1000000" && as_fn_error 1 "glibc requires at least RVV 1.0 for the V extension" "$LINENO" 5
+-	float_machine=rvv
+     fi
+ 
+     base_machine=riscv
+Index: glibc/sysdeps/riscv/preconfigure.ac
+===================================================================
+--- glibc.orig/sysdeps/riscv/preconfigure.ac
++++ glibc/sysdeps/riscv/preconfigure.ac
+@@ -60,7 +60,6 @@ riscv*)
+ 	version=`$CC $CFLAGS $CPPFLAGS -E -dM -xc /dev/null | sed -n 's/^#define __GNUC__ \(.*\)/\1/p'`
+ 	test $version -lt 15 && AC_MSG_ERROR([glibc requires GCC 15 or later for the V extension], [1])
+ 	test $vector -lt "1000000" && AC_MSG_ERROR([glibc requires at least RVV 1.0 for the V extension], [1])
+-	float_machine=rvv
+     fi
+ 
+     base_machine=riscv
+Index: glibc/sysdeps/riscv/rv32/rvv/Implies
+===================================================================
+--- glibc.orig/sysdeps/riscv/rv32/rvv/Implies
++++ /dev/null
+@@ -1,2 +0,0 @@
+-riscv/rv32/rvd
+-riscv/rvv
+Index: glibc/sysdeps/riscv/rv64/rvv/Implies
+===================================================================
+--- glibc.orig/sysdeps/riscv/rv64/rvv/Implies
++++ /dev/null
+@@ -1,2 +0,0 @@
+-riscv/rv64/rvd
+-riscv/rvv
+Index: glibc/sysdeps/riscv/rvv/memset.S
+===================================================================
+--- glibc.orig/sysdeps/riscv/rvv/memset.S
++++ /dev/null
+@@ -1,53 +0,0 @@
+-/* RISC-V RVV based memset.
+-   Copyright (C) 2025-2026 Free Software Foundation, Inc.
+-   This file is part of the GNU C Library.
+-
+-   The GNU C Library is free software; you can redistribute it and/or
+-   modify it under the terms of the GNU Lesser General Public
+-   License as published by the Free Software Foundation; either
+-   version 2.1 of the License, or (at your option) any later version.
+-
+-   The GNU C Library is distributed in the hope that it will be useful,
+-   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-   Lesser General Public License for more details.
+-
+-   You should have received a copy of the GNU Lesser General Public
+-   License along with the GNU C Library; if not, see
+-   <http://www.gnu.org/licenses/>.  */
+-
+-#include <sysdep.h>
+-#include <sys/asm.h>
+-
+-#ifndef MEMSET
+-# define MEMSET memset
+-#endif
+-
+-#define dst a0
+-#define value a1
+-#define num a2
+-
+-#define ivl a3
+-#define dst_ptr a5
+-
+-#define ELEM_LMUL_SETTING m8
+-#define vdata v0
+-
+-ENTRY (MEMSET)
+-.option push
+-.option arch, +v
+-    mv dst_ptr, dst
+-
+-    vsetvli ivl, num, e8, ELEM_LMUL_SETTING, ta, ma
+-    vmv.v.x vdata, value
+-L(loop):
+-    vse8.v vdata, (dst_ptr)
+-    sub num, num, ivl
+-    add dst_ptr, dst_ptr, ivl
+-    vsetvli ivl, num, e8, ELEM_LMUL_SETTING, ta, ma
+-    bnez num, L(loop)
+-
+-    ret
+-.option pop
+-END (MEMSET)
+-libc_hidden_builtin_def (memset)
+Index: glibc/sysdeps/unix/sysv/linux/riscv/multiarch/Makefile
+===================================================================
+--- glibc.orig/sysdeps/unix/sysv/linux/riscv/multiarch/Makefile
++++ glibc/sysdeps/unix/sysv/linux/riscv/multiarch/Makefile
+@@ -3,9 +3,6 @@ sysdep_routines += \
+   memcpy \
+   memcpy-generic \
+   memcpy_noalignment \
+-  memset \
+-  memset-generic \
+-  memset-vector \
+   # sysdep_routines
+ 
+ CFLAGS-memcpy_noalignment.c += -mno-strict-align
+Index: glibc/sysdeps/unix/sysv/linux/riscv/multiarch/ifunc-impl-list.c
+===================================================================
+--- glibc.orig/sysdeps/unix/sysv/linux/riscv/multiarch/ifunc-impl-list.c
++++ glibc/sysdeps/unix/sysv/linux/riscv/multiarch/ifunc-impl-list.c
+@@ -27,31 +27,17 @@ __libc_ifunc_impl_list (const char *name
+   size_t i = max;
+ 
+   bool fast_unaligned = false;
+-  bool rvv_enabled = false;
+ 
+-  struct riscv_hwprobe pairs[2] = {
+-    {.key = RISCV_HWPROBE_KEY_CPUPERF_0},
+-    {.key = RISCV_HWPROBE_KEY_IMA_EXT_0}
+-  };
+-
+-  if (__riscv_hwprobe (pairs, 2, 0, NULL, 0) == 0) {
+-    if ((pairs[0].value & RISCV_HWPROBE_MISALIGNED_MASK)
++  struct riscv_hwprobe pair = { .key = RISCV_HWPROBE_KEY_CPUPERF_0 };
++  if (__riscv_hwprobe (&pair, 1, 0, NULL, 0) == 0
++      && (pair.value & RISCV_HWPROBE_MISALIGNED_MASK)
+           == RISCV_HWPROBE_MISALIGNED_FAST)
+-      fast_unaligned = true;
+-
+-    if (pairs[1].value & RISCV_HWPROBE_IMA_V)
+-      rvv_enabled = true;
+-  }
++    fast_unaligned = true;
+ 
+   IFUNC_IMPL (i, name, memcpy,
+ 	      IFUNC_IMPL_ADD (array, i, memcpy, fast_unaligned,
+ 			      __memcpy_noalignment)
+ 	      IFUNC_IMPL_ADD (array, i, memcpy, 1, __memcpy_generic))
+ 
+-  IFUNC_IMPL (i, name, memset,
+-	      IFUNC_IMPL_ADD (array, i, memset, rvv_enabled,
+-			      __memset_vector)
+-	      IFUNC_IMPL_ADD (array, i, memset, 1, __memset_generic))
+-
+   return 0;
+ }
+Index: glibc/sysdeps/unix/sysv/linux/riscv/multiarch/memset.c
+===================================================================
+--- glibc.orig/sysdeps/unix/sysv/linux/riscv/multiarch/memset.c
++++ /dev/null
+@@ -1,58 +0,0 @@
+-/* Multiple versions of memset.
+-   All versions must be listed in ifunc-impl-list.c.
+-   Copyright (C) 2025-2026 Free Software Foundation, Inc.
+-   This file is part of the GNU C Library.
+-
+-   The GNU C Library is free software; you can redistribute it and/or
+-   modify it under the terms of the GNU Lesser General Public
+-   License as published by the Free Software Foundation; either
+-   version 2.1 of the License, or (at your option) any later version.
+-
+-   The GNU C Library is distributed in the hope that it will be useful,
+-   but WITHOUT ANY WARRANTY; without even the implied warranty of
+-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-   Lesser General Public License for more details.
+-
+-   You should have received a copy of the GNU Lesser General Public
+-   License along with the GNU C Library; if not, see
+-   <https://www.gnu.org/licenses/>.  */
+-
+-#if IS_IN (libc)
+-/* Redefine memset so that the compiler won't complain about the type
+-   mismatch with the IFUNC selector in strong_alias, below.  */
+-# undef memset
+-# define memset __redirect_memset
+-# include <stdint.h>
+-# include <string.h>
+-# include <ifunc-init.h>
+-# include <riscv-ifunc.h>
+-# include <sys/hwprobe.h>
+-
+-extern __typeof (__redirect_memset) __libc_memset;
+-
+-extern __typeof (__redirect_memset) __memset_generic attribute_hidden;
+-extern __typeof (__redirect_memset) __memset_vector attribute_hidden;
+-
+-static inline __typeof (__redirect_memset) *
+-select_memset_ifunc (uint64_t dl_hwcap, __riscv_hwprobe_t hwprobe_func)
+-{
+-  unsigned long long v;
+-
+-  if (__riscv_hwprobe_one (hwprobe_func, RISCV_HWPROBE_KEY_IMA_EXT_0, &v) == 0
+-      && (v & RISCV_HWPROBE_IMA_V) == RISCV_HWPROBE_IMA_V)
+-    return __memset_vector;
+-
+-  return __memset_generic;
+-}
+-
+-riscv_libc_ifunc (__libc_memset, select_memset_ifunc);
+-
+-# undef memset
+-strong_alias (__libc_memset, memset);
+-# ifdef SHARED
+-__hidden_ver1 (memset, __GI_memset, __redirect_memset)
+-  __attribute__ ((visibility ("hidden"))) __attribute_copy__ (memset);
+-# endif
+-#else
+-# include <string/memset.c>
+-#endif

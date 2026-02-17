@@ -64,7 +64,7 @@ define unsetenv
   unexport $(1)
   $(1) =
 endef
-$(foreach v, CPPFLAGS CFLAGS CXXFLAGS LDFLAGS, $(if $(filter environment,$(origin $(v))),$(eval $(call unsetenv, $(v)))))
+$(foreach v, CPPFLAGS CFLAGS CXXFLAGS LDFLAGS ELF_PACKAGE_METADATA, $(if $(filter environment,$(origin $(v))),$(eval $(call unsetenv, $(v)))))
 
 # export debhelper substitution variables
 export $(build-tree)
@@ -97,14 +97,14 @@ BASE_CC = gcc
 BASE_CXX = g++
 BASE_MIG = mig
 # If you override DEB_GCC_VERSION, consider adding DEB_CFLAGS_APPEND=-Wno-error.
-DEB_GCC_VERSION ?= -15
+DEB_GCC_VERSION ?=
 
 RUN_TESTSUITE = yes
 TIMEOUTFACTOR = 25
 
 # Set cross and native compiler names, including version.
-CC     = $(DEB_HOST_GNU_TYPE)-$(BASE_CC)$(DEB_GCC_VERSION)
-CXX    = $(DEB_HOST_GNU_TYPE)-$(BASE_CXX)$(DEB_GCC_VERSION)
+CC     = $(DEB_HOST_GNU_TYPE)-$(BASE_CC)$(DEB_GCC_VERSION) -D_DISTRO_EVADE_TIME_BITS
+CXX    = $(DEB_HOST_GNU_TYPE)-$(BASE_CXX)$(DEB_GCC_VERSION) -D_DISTRO_EVADE_TIME_BITS
 MIG    = $(DEB_HOST_GNU_TYPE)-$(BASE_MIG)
 BUILD_CC = $(DEB_BUILD_GNU_TYPE)-$(BASE_CC)
 BUILD_CXX = $(DEB_BUILD_GNU_TYPE)-$(BASE_CXX)
@@ -141,7 +141,7 @@ else
   ifeq ($(filter stage2,$(DEB_BUILD_PROFILES)),)
     DEB_ARCH_REGULAR_PACKAGES += libc-devtools
   endif
-  DEB_INDEP_REGULAR_PACKAGES = glibc-doc glibc-source libc-l10n locales
+  DEB_INDEP_REGULAR_PACKAGES = glibc-doc glibc-source locales
   ifneq ($(filter noudeb,$(DEB_BUILD_PROFILES)),)
     DEB_UDEB_PACKAGES =
   else
@@ -202,8 +202,7 @@ build-arch: $(stamp)info \
 	build-arch-post-check
 
 ifeq ($(filter stage1,$(DEB_BUILD_PROFILES)),)
-build-arch: $(stamp)build_C.utf8 \
-	$(stamp)build_locales-all
+build-arch: $(stamp)build_locales-all
 endif
 
 build-indep: $(stamp)source $(stamp)build_libc

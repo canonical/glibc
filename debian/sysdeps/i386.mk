@@ -1,5 +1,6 @@
 # configuration options for all flavours
-extra_config_options = --enable-multi-arch
+extra_config_options = --enable-multi-arch --enable-cet=no
+libc_extra_cflags = -mno-tls-direct-seg-refs
 CC = $(DEB_HOST_GNU_TYPE)-$(BASE_CC)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 CXX = $(DEB_HOST_GNU_TYPE)-$(BASE_CXX)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 
@@ -11,7 +12,8 @@ GLIBC_PASSES += amd64
 DEB_ARCH_MULTILIB_PACKAGES += libc6-amd64 libc6-dev-amd64
 libc6-amd64_shlib_dep = libc6-amd64 (>= $(shlib_dep_ver))
 amd64_configure_target = x86_64-linux-gnu
-amd64_extra_config_options = $(extra_config_options)
+amd64_extra_config_options = $(extra_config_options) --enable-cet=yes
+amd64_extra_cflags = -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer
 # __x86_64__ is defined here because Makeconfig uses -undef and the
 # /usr/include/asm wrappers need that symbol.
 amd64_CC = $(CC) -m64 -D__x86_64__
@@ -42,6 +44,7 @@ GLIBC_PASSES += x32
 DEB_ARCH_MULTILIB_PACKAGES += libc6-x32 libc6-dev-x32
 libc6-x32_shlib_dep = libc6-x32 (>= $(shlib_dep_ver))
 x32_configure_target = x86_64-linux-gnux32
+x32_extra_config_options = --enable-cet=yes
 x32_CC = $(CC) -mx32
 x32_CXX = $(CXX) -mx32
 x32_mvec = yes
