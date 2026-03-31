@@ -2,6 +2,10 @@
 # PASS_VAR, we need to call all variables as $(call xx,VAR)
 # This little bit of magic makes it possible:
 xx=$(if $($(curpass)_$(1)),$($(curpass)_$(1)),$($(1)))
+
+# $(curpass) aware function to query dpkg build flags
+dpkg_host_buildflags = $(shell $(if $(filter libc,$(curpass)),,DEB_HOST_ARCH=$(curpass) )dpkg-buildflags --get $(1))
+
 define generic_multilib_extra_pkg_install
 set -e; \
 mkdir -p debian/$(1)/usr/include/sys; \
@@ -94,7 +98,7 @@ endif
 	    echo "No.  Forcing cross-compile by setting build to $$configure_build."; \
 	  fi; \
 	fi; \
-	echo -n "Build started: " ; date --rfc-email; \
+	echo -n "Build started: " ; date --rfc-2822; \
 	echo "---------------"; \
 	cd $(DEB_BUILDDIR) && \
 		CC="$(call xx,CC) -U_FILE_OFFSET_BITS -U_TIME_BITS" \
@@ -114,7 +118,6 @@ endif
 		--enable-bind-now \
 		--enable-fortify-source \
 		--enable-stackguard-randomization \
-		--enable-stack-protector=strong \
 		--with-pkgversion="Ubuntu GLIBC $(DEB_VERSION)" \
 		--with-default-link=no \
 		--with-bugurl="https://bugs.launchpad.net/ubuntu/+source/glibc/+bugs" \
@@ -122,7 +125,10 @@ endif
 		$(if $(filter $(pt_chown),yes),--enable-pt_chown) \
 		$(if $(filter $(threads),no),--disable-nscd) \
 		$(if $(filter $(call xx,mvec),no),--disable-mathvec) \
-		$(if $(filter -Wno-error,$(shell dpkg-buildflags --get CFLAGS)),--disable-werror) \
+		$(if $(filter -Wno-error,$(call dpkg_host_buildflags, CFLAGS)),--disable-werror) \
+		$(if $(filter -fstack-protector,$(call dpkg_host_buildflags, CFLAGS)),--enable-stack-protector=yes) \
+		$(if $(filter -fstack-protector-all,$(call dpkg_host_buildflags, CFLAGS)),--enable-stack-protector=all) \
+		$(if $(filter -fstack-protector-strong,$(call dpkg_host_buildflags, CFLAGS)),--enable-stack-protector=strong) \
 		$(call xx,with_headers) $(call xx,extra_config_options)
 	touch $@
 
@@ -135,7 +141,7 @@ ifneq ($(filter stage1,$(DEB_BUILD_PROFILES)),)
 else
 	$(MAKE) -C $(DEB_BUILDDIR) $(NJOBS)
 	echo "---------------"
-	echo -n "Build ended: " ; date --rfc-email
+	echo -n "Build ended: " ; date --rfc-2822
 endif
 	touch $@
 
