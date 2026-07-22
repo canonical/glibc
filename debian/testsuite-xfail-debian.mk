@@ -37,6 +37,10 @@ test-xfail-tst-pthread-getattr = yes
 test-xfail-tst-strerror = yes
 test-xfail-tst-strsignal = yes
 
+# These are failing because of rust-coreutils
+test-xfail-tst-spawn-chdir = yes
+test-xfail-tst-spawn-chdir-pidfd = yes
+
 ######################################################################
 # alpha
 ######################################################################

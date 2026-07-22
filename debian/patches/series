@@ -100,3 +100,13 @@ ubuntu/localedata/ug_CN@latin.diff
 ubuntu/local-pldd-root.diff
 ubuntu/apparmor/0002-tests-handle-AppArmor-userns-mitigation.patch
 ubuntu/open-tree-redefined.patch
+CVE-2026-4046.patch
+CVE-2026-5450.patch
+CVE-2026-5928.patch
+CVE-2026-6238-pre1.patch
+CVE-2026-6238-pre2.patch
+CVE-2026-6238-pre3.patch
+CVE-2026-6238-pre4.patch
+CVE-2026-5435.patch
+CVE-2026-6238-1.patch
+CVE-2026-6238-2.patch
