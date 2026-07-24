@@ -1,3 +1,40 @@
+glibc (2.35-0ubuntu3.14) jammy-security; urgency=medium
+
+  * SECURITY UPDATE: assertion failure via IBM1390 or IBM1399 charsets
+    - debian/patches/CVE-2026-4046.patch: Use pending character state in
+      IBM1390, IBM1399 character sets in iconvdata/Makefile,
+      iconvdata/ibm1364.c, iconvdata/tst-bug33980.c.
+    - CVE-2026-4046
+  * SECURITY UPDATE: out-of-bounds write in deprecated debugging function
+    - debian/patches/CVE-2026-5435.patch: resolv: More types as unknown in
+      ns_sprintrrf in resolv/ns_print.c.
+    - CVE-2026-5435
+  * SECURITY UPDATE: one byte heap buffer overflow in scanf %mc
+    - debian/patches/CVE-2026-5450.patch: stdio-common: Fix buffer overflow in
+      scanf %mc [BZ #34008] in stdio-common/Makefile, stdio-common/tst-vfscanf-
+      bz34008.c, stdio-common/vfscanf-internal.c.
+    - CVE-2026-5450
+  * SECURITY UPDATE: crash or info disclosure in ungetwc function
+    - debian/patches/CVE-2026-5928.patch: libio: Fix ungetwc operating on byte
+      stream in libio/Makefile, libio/bug-wgenops-bz33998.c, libio/wgenops.c.
+    - CVE-2026-5928
+  * SECURITY UPDATE: crash in deprecated debugging functions
+    - debian/patches/CVE-2026-6238-pre1.patch: resolv: Declare __p_class_syms,
+      __p_type_syms for internal use in include/resolv.h, resolv/res_debug.c.
+    - debian/patches/CVE-2026-6238-pre2.patch: resolv: Fix ns_sprintrrf
+      formatting of class, type values in resolv/ns_print.c.
+    - debian/patches/CVE-2026-6238-pre3.patch: resolv: Improve formatting of
+      unknown records in ns_sprintrrf in resolv/ns_print.c.
+    - debian/patches/CVE-2026-6238-pre4.patch: resolv: Check for inet_ntop
+      failure in ns_sprintrrf in resolv/ns_print.c.
+    - debian/patches/CVE-2026-6238-1.patch: resolv: Fix buffer overreads in
+      ns_sprintrrf in resolv/ns_print.c.
+    - debian/patches/CVE-2026-6238-2.patch: resolv: Add test case tst-
+      ns_sprintrr in resolv/Makefile, resolv/tst-ns_sprintrr.c.
+    - CVE-2026-6238
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Fri, 24 Jul 2026 08:11:17 -0400
+
 glibc (2.35-0ubuntu3.13) jammy-security; urgency=medium
 
   * SECURITY UPDATE: use-after-free in wordexp_t fields
