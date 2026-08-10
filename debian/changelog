@@ -1,3 +1,28 @@
+glibc (2.43-3) unstable; urgency=medium
+
+  [ Samuel Thibault ]
+  * debian/testsuite-xfail-debian.mk: Update hurd results.
+  * debian/patches/hurd-i386/submitted-path_mounted.diff: Renamed to
+    git-path_mounted.diff.
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - debian/patches/hurd-i386/local-disable-ioctls.diff: rebased.
+    - debian/patches/hurd-i386/submitted-AF_LINK.diff: upstreamed.
+    - debian/patches/hurd-i386/submitted-AF_ROUTE.diff: upstreamed.
+    - Fix a buffer overread in ns_sprintrrf with corrupted RDATA field
+      (CVE-2026-6238).  Closes: #1135231.
+    - Fix an out-of-bounds write in ns_sprintrrf when printing TSIG records
+      (CVE-2026-5435).  Closes: #1135230.
+    - Fix stack overflow in wordexp tilde expansion (CVE-2026-6791).
+    - Cache cpuid results in ld.so for Intel CPUs.
+    - Restore optimized memchr for POWER10.
+  * debian/control.in/libc, debian/rules.d/debhelper.mk: drop the libc6-dev
+    dependency on rpcsvc-proto.
+  * debian/watch: set Git-Mode to shallow.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Mon, 10 Aug 2026 14:19:03 +0200
+
 glibc (2.43-2) experimental; urgency=medium
 
   [ Samuel Thibault ]
@@ -42,6 +67,66 @@ glibc (2.43-1) experimental; urgency=medium
 
  -- Aurelien Jarno <aurel32@debian.org>  Wed, 28 Jan 2026 22:35:15 +0100
 
+glibc (2.42-17) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix buffer overflow in scanf %mc (CVE-2026-5450).  Closes: #1134543.
+    - Fix ungetwc operating on byte stream (CVE-2026-5928).  Closes: #1134544.
+    - Save/restore VFP registers inPLT trampolines on arm.  Closes: #1133139.
+    - Suppress iconv intermediate errors with //TRANSLIT.
+    - debian/patches/hurd-i386/git-run-iconv-test.sh.diff: rebased.
+  * debian/rules.d/build.mk: append extra_cflags to CFLAGS and ASFLAGS.
+  * debian/control.in/libc: stop suggesting libnss-nisplus.
+  * debian/debhelper.in/libc-bin.lintian-overrides: add a
+    statically-linked-binary override for the ldconfig binary.
+  * debian/control.in/main: build-depends on libselinux-dev instead of
+    libselinux1-dev.
+
+  [ Miao Wang ]
+  * debian/libc6.symbols.loong64: add.
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-SO_TIMESTAMP.diff: Add SO_TIMESTAMP macro.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 18 Jun 2026 21:48:16 +0200
+
+glibc (2.42-16) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/sysdeps/mips*.mk: revert change to match the dpkg architecture
+    name.
+  * debian/rules.d/build.mk, debian/sysdeps/mips*.mk: add a way to define the
+    debian architecture corresponding to a multilib build. Use it when it
+    doesn't match the name of the pass and package like on mips*.
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix build against linux 7.0 headers.  Closes: #1135405.
+
+  [ liu jianqiang ]
+  * debian/debhelper.in/locales.config: handle leading spaces in
+    /etc/locale.gen configuration.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Thu, 07 May 2026 00:25:31 +0200
+
+glibc (2.42-15) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix random failure of tst-link-map-contiguous-ldso.
+    - Fix tst-rseq with Linux 7.0.
+    - Fix a possible crash due to an assertion failure when converting inputs
+      from the IBM139x character sets (CVE-2026-4046).  Closes: #1132499.
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-MSG_EXAMINE.diff: alterations to MSG_EXAMINE
+    interface.
+  * debian/patches/hurd-i386/git-interrupt-EINTR.diff: Interrupted RPC returning
+    EINTR when server has actually changed state.
+  * debian/patches/hurd-i386/git-SEM_FAILED.diff: Fix SEM_FAILED type.
+  * debian/patches/hurd-i386/git-tst-fix.diff: Fix test build.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 19 Apr 2026 15:41:41 +0200
+
 glibc (2.42-14) unstable; urgency=medium
 
   [ Samuel Thibault ]
@@ -62,7 +147,7 @@ glibc (2.42-14) unstable; urgency=medium
   * debian/testsuite-xfail-debian.mk: Update for 2.44.
 
   [ Aurelien Jarno ]
-  * debian/sysdeps/mips*.mk: rename extra passes to matche the dpkg
+  * debian/sysdeps/mips*.mk: rename extra passes to match the dpkg
     architecture name.
   * debian/rules.d/build.mk: add a makefile function that queries the dpkg
     build flags for the current pass.

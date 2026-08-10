@@ -1,4 +1,4 @@
-GIT update of https://sourceware.org/git/glibc.git/release/2.43/master from glibc-2.43 to dd9945c0ba40d2dbc9eb7c99291ba6b69bd66718
+GIT update of https://sourceware.org/git/glibc.git/release/2.43/master from glibc-2.43 to bc95068f5f9d7f57d0f01757fed0900893b122b8
 
 diff --git a/ADVISORIES b/ADVISORIES
 new file mode 100644
@@ -744,6 +744,561 @@ index b8f8a829ca..0000000000
 -  scripts/process-advisories.sh news
 -
 -and copy the content into the NEWS file.
+diff --git a/elf/Makefile b/elf/Makefile
+index 01cc51636e..11029be0ae 100644
+--- a/elf/Makefile
++++ b/elf/Makefile
+@@ -97,12 +97,6 @@ ifeq (yesyes,$(build-shared)$(run-built-tests))
+ tests-special += $(objpfx)list-tunables.out
+ endif
+ 
+-# Make sure that the compiler does not insert any library calls in tunables
+-# code paths.
+-ifeq (yes,$(have-loop-to-function))
+-CFLAGS-dl-tunables.c += -fno-tree-loop-distribute-patterns
+-endif
+-
+ all-dl-routines = $(dl-routines) $(sysdep-dl-routines)
+ # But they are absent from the shared libc, because that code is in ld.so.
+ elide-routines.os = \
+diff --git a/elf/dl-reloc-static-pie.c b/elf/dl-reloc-static-pie.c
+index bdff2b5ee2..63ce609024 100644
+--- a/elf/dl-reloc-static-pie.c
++++ b/elf/dl-reloc-static-pie.c
+@@ -25,6 +25,7 @@
+ 
+ #include <dl-machine.h>
+ #include <dl-debug.h>
++#include <dl-symbol-redir-ifunc.h>
+ 
+ #define RESOLVE_MAP(map, scope, sym, version, flags) map
+ #include "dynamic-link.h"
+diff --git a/elf/dl-tunables.c b/elf/dl-tunables.c
+index 37ade374c6..bdb1de4ceb 100644
+--- a/elf/dl-tunables.c
++++ b/elf/dl-tunables.c
+@@ -37,16 +37,6 @@
+ #define TUNABLES_INTERNAL 1
+ #include "dl-tunables.h"
+ 
+-/* The function might be called before the process is self-relocated.  */
+-static size_t
+-__attribute_optimization_barrier__
+-_dl_strlen (const char *s)
+-{
+-  const char *p = s;
+-  for (; *s != '\0'; s++);
+-  return s - p;
+-}
+-
+ static char **
+ get_next_env (char **envp, char **name, char **val, char ***prev_envp)
+ {
+@@ -335,10 +325,8 @@ __tunables_init (char **envp)
+ 	  if (tunable_is_name (name, envname))
+ 	    {
+ 	      /* The environment variable is always null-terminated.  */
+-	      size_t envvallen = _dl_strlen (envval);
+-
+ 	      tunables_env_alias[i] =
+-		(struct tunable_toset_t) { cur, envval, envvallen };
++		(struct tunable_toset_t) { cur, envval, strlen (envval) };
+ 	      break;
+ 	    }
+ 	}
+diff --git a/elf/tst-glibc-hwcaps-prepend-cache.c b/elf/tst-glibc-hwcaps-prepend-cache.c
+index 8a80ceed3e..98bd1ef99e 100644
+--- a/elf/tst-glibc-hwcaps-prepend-cache.c
++++ b/elf/tst-glibc-hwcaps-prepend-cache.c
+@@ -46,7 +46,7 @@ do_test (void)
+ 
+   {
+     /* Install the default implementation of libmarkermod1.so.  */
+-    char *conf_path = xasprintf ("%s/ld.so.conf", support_sysconfdir_prefix);
++    char *conf_path = xasprintf ("%s/ld.so.conf.d/hwcaps.conf", support_sysconfdir_prefix);
+     xmkdirp (support_sysconfdir_prefix, 0777);
+     support_write_file_string (conf_path, "/glibc-test/lib\n");
+     free (conf_path);
+diff --git a/elf/tst-link-map-contiguous-ldso.c b/elf/tst-link-map-contiguous-ldso.c
+index 9f97b8b95a..4d04d37581 100644
+--- a/elf/tst-link-map-contiguous-ldso.c
++++ b/elf/tst-link-map-contiguous-ldso.c
+@@ -18,15 +18,73 @@
+ 
+ #include <dlfcn.h>
+ #include <gnu/lib-names.h>
++#include <inttypes.h>
+ #include <link.h>
+ #include <stdbool.h>
+ #include <stdio.h>
+ #include <support/check.h>
++#include <support/support.h>
+ #include <support/xdlfcn.h>
+ #include <support/xunistd.h>
++#include <support/xstdio.h>
+ #include <sys/mman.h>
+ #include <unistd.h>
+ 
++/* Slow path in case we cannot find a gap with mmap (when the runtime has
++   mapped all the pages in the gap for some reason).  */
++static bool
++find_gap_with_proc_self_map (const struct link_map *l)
++{
++  int pagesize = getpagesize ();
++
++  support_need_proc ("Reads /proc/self/maps to find gap in ld.so mapping");
++
++  /* Parse /proc/self/maps and find all the mappings in the ld.so range
++     but not from ld.so.  */
++  FILE *f = xfopen ("/proc/self/maps", "r");
++  char *line = NULL, *path_ldso = NULL;
++  size_t len;
++  bool found = false;
++  while (xgetline (&line, &len, f))
++    {
++      uintptr_t from, to;
++      char *path = NULL;
++      int r = sscanf (line, "%" SCNxPTR "-%" SCNxPTR "%*s%*s%*s%*s%ms",
++                      &from, &to, &path);
++
++      TEST_VERIFY (r == 2 || r == 3);
++      TEST_COMPARE (from % pagesize, 0);
++      TEST_COMPARE (to % pagesize, 0);
++
++      if (path_ldso == NULL && l->l_map_start == from)
++        {
++          TEST_COMPARE (r, 3);
++          path_ldso = path;
++          continue;
++        }
++
++      if (from > l->l_map_start && to < l->l_map_end
++          && (r == 2 || (path_ldso != NULL && strcmp (path, path_ldso))))
++        {
++          if (r == 2)
++            printf ("info: anonymous mapping found at 0x%" PRIxPTR " - 0x%"
++                    PRIxPTR "\n", from, to);
++          else
++            printf ("info: object \"%s\" found at 0x%" PRIxPTR " - 0x%"
++                    PRIxPTR "\n", path, from, to);
++
++          found = true;
++        }
++
++      free (path);
++    }
++
++  free (path_ldso);
++  free (line);
++  xfclose (f);
++  return found;
++}
++
+ static int
+ do_test (void)
+ {
+@@ -64,16 +122,18 @@ do_test (void)
+               if ((void *) dlfo.dlfo_link_map != (void *) l)
+                 {
+                   printf ("info: object \"%s\" found at %p\n",
+-                          dlfo.dlfo_link_map->l_name, ptr);
++                          dlfo.dlfo_link_map->l_name, expected);
+                   gap_found = true;
+                 }
+             }
+           else
+             TEST_COMPARE (dlfo_ret, -1);
++
+           xmunmap (ptr, 1);
+           addr += pagesize;
+         }
+-      if (!gap_found)
++
++      if (!gap_found && !find_gap_with_proc_self_map (l))
+         FAIL ("no ld.so gap found");
+     }
+   else
+diff --git a/iconv/Makefile b/iconv/Makefile
+index 51ffab9efc..69555cbe57 100644
+--- a/iconv/Makefile
++++ b/iconv/Makefile
+@@ -139,7 +139,8 @@ $(objpfx)test-iconvconfig.out: $(objpfx)iconvconfig
+ 	 rm -f $$tmp) > $@; \
+ 	$(evaluate-test)
+ 
+-$(objpfx)tst-iconv_prog.out: tst-iconv_prog.sh $(objpfx)iconv_prog
++$(objpfx)tst-iconv_prog.out: tst-iconv_prog.sh $(objpfx)iconv_prog \
++  $(gen-locales)
+ 	$(BASH) $< $(common-objdir) '$(test-wrapper-env)' \
+ 		 '$(run-program-env)' '$(rpath-link)' > $@; \
+ 	$(evaluate-test)
+diff --git a/iconv/loop.c b/iconv/loop.c
+index 27dea1f5d6..81841d0d2d 100644
+--- a/iconv/loop.c
++++ b/iconv/loop.c
+@@ -144,8 +144,10 @@
+     if (irreversible == NULL)						      \
+       {									      \
+ 	/* This means we are in call from __gconv_transliterate.  In this     \
+-	   case we are not doing any error recovery ourselves.  */	      \
+-	result = __gconv_mark_illegal_input (step_data);		      \
++	   case we are not doing any error recovery ourselves.  Do not create \
++	   a persistent error state.  If __gconv_transliterate exhausts all   \
++	   alternatives, it will call __gconv_mark_illegal_input itself.  */  \
++	result = __GCONV_ILLEGAL_INPUT;					      \
+ 	break;								      \
+       }									      \
+ 									      \
+diff --git a/iconv/tst-iconv_prog.sh b/iconv/tst-iconv_prog.sh
+index f6c7c265a8..ab6e14c685 100644
+--- a/iconv/tst-iconv_prog.sh
++++ b/iconv/tst-iconv_prog.sh
+@@ -29,10 +29,10 @@ LIBPATH=$codir:$codir/iconvdata
+ 
+ # How the start the iconv(1) program.  $from is not defined/expanded yet.
+ ICONV='
++$test_wrapper_env $run_program_env
+ $codir/elf/ld.so --library-path $library_path:$LIBPATH --inhibit-rpath ${from}.so
+ $codir/iconv/iconv_prog
+ '
+-ICONV="$test_wrapper_env $run_program_env $ICONV"
+ 
+ TIMEOUTFACTOR=${TIMEOUTFACTOR:-1}
+ 
+@@ -220,6 +220,7 @@ testarray=(
+ "\x00\x00;;INVALID;UTF-8;1"
+ "\x00\x00;;UTF-8;INVALID;1"
+ "\xc3\xa9;;UTF-8;ASCII//TRANSLIT;0"
++"X\xc2\xbdY;;UTF-8;ASCII//TRANSLIT;0"
+ )
+ 
+ # Requires $twobyte input, $c flag, $from, and $to to be set; sets $ret
+@@ -280,12 +281,21 @@ check_errtest_result ()
+   fi
+ }
+ 
+-for testcommand in "${testarray[@]}"; do
+-  twobyte="$(echo "$testcommand" | cut -d";" -f 1)"
+-  c="$(echo "$testcommand" | cut -d";" -f 2)"
+-  from="$(echo "$testcommand" | cut -d";" -f 3)"
+-  to="$(echo "$testcommand" | cut -d";" -f 4)"
+-  eret="$(echo "$testcommand" | cut -d";" -f 5)"
+-  execute_test
+-  check_errtest_result
+-done
++run_test_array ()
++{
++  for testcommand in "${testarray[@]}"; do
++    twobyte="$(echo "$testcommand" | cut -d";" -f 1)"
++    c="$(echo "$testcommand" | cut -d";" -f 2)"
++    from="$(echo "$testcommand" | cut -d";" -f 3)"
++    to="$(echo "$testcommand" | cut -d";" -f 4)"
++    eret="$(echo "$testcommand" | cut -d";" -f 5)"
++    execute_test
++    check_errtest_result
++  done
++}
++
++echo "info: testing C locale"
++run_test_array
++echo "info: testing en_US.UTF-8 locale"
++run_program_env="$run_program_env LC_ALL=en_US.UTF-8"
++run_test_array
+diff --git a/iconvdata/Makefile b/iconvdata/Makefile
+index 26e888b443..fbb0067302 100644
+--- a/iconvdata/Makefile
++++ b/iconvdata/Makefile
+@@ -76,7 +76,7 @@ tests = bug-iconv1 bug-iconv2 tst-loading tst-e2big tst-iconv4 bug-iconv4 \
+ 	tst-iconv6 bug-iconv5 bug-iconv6 tst-iconv7 bug-iconv8 bug-iconv9 \
+ 	bug-iconv10 bug-iconv11 bug-iconv12 tst-iconv-big5-hkscs-to-2ucs4 \
+ 	bug-iconv13 bug-iconv14 bug-iconv15 \
+-	tst-iconv-iso-2022-cn-ext
++	tst-iconv-iso-2022-cn-ext tst-bug33980
+ ifeq ($(have-thread-library),yes)
+ tests += bug-iconv3
+ endif
+@@ -333,6 +333,8 @@ $(objpfx)bug-iconv15.out: $(addprefix $(objpfx), $(gconv-modules)) \
+ 			  $(addprefix $(objpfx),$(modules.so))
+ $(objpfx)tst-iconv-iso-2022-cn-ext.out: $(addprefix $(objpfx), $(gconv-modules)) \
+ 					$(addprefix $(objpfx),$(modules.so))
++$(objpfx)tst-bug33980.out: $(addprefix $(objpfx), $(gconv-modules)) \
++			   $(addprefix $(objpfx),$(modules.so))
+ 
+ $(objpfx)iconv-test.out: run-iconv-test.sh \
+ 			 $(addprefix $(objpfx), $(gconv-modules)) \
+diff --git a/iconvdata/ibm1364.c b/iconvdata/ibm1364.c
+index 4f41f22c12..8df66ea048 100644
+--- a/iconvdata/ibm1364.c
++++ b/iconvdata/ibm1364.c
+@@ -67,12 +67,29 @@
+ 
+ /* Since this is a stateful encoding we have to provide code which resets
+    the output state to the initial state.  This has to be done during the
+-   flushing.  */
++   flushing.  For the to-internal direction (FROM_DIRECTION is true),
++   there may be a pending character that needs flushing.  */
+ #define EMIT_SHIFT_TO_INIT \
+   if ((data->__statep->__count & ~7) != sb)				      \
+     {									      \
+       if (FROM_DIRECTION)						      \
+-	data->__statep->__count &= 7;					      \
++	{								      \
++	  uint32_t ch = data->__statep->__count >> 7;			      \
++	  if (__glibc_unlikely (ch != 0))				      \
++	    {								      \
++	      if (__glibc_unlikely (outend - outbuf < 4))		      \
++		status = __GCONV_FULL_OUTPUT;				      \
++	      else							      \
++		{							      \
++		  put32 (outbuf, ch);					      \
++		  outbuf += 4;						      \
++		  /* Clear character and db bit.  */			      \
++		  data->__statep->__count &= 7;				      \
++		}							      \
++	    }								      \
++	  else								      \
++	    data->__statep->__count &= 7;				      \
++	}								      \
+       else								      \
+ 	{								      \
+ 	  /* We are not in the initial state.  To switch back we have	      \
+@@ -99,11 +116,13 @@
+     *curcsp = save_curcs
+ 
+ 
+-/* Current codeset type.  */
++/* Current codeset type.  The bit is stored in the __count variable of
++   the conversion state.  If the db bit is set, bit 7 and above store
++   a pending UCS-4 code point if non-zero.  */
+ enum
+ {
+-  sb = 0,
+-  db = 64
++  sb = 0,			/* Single byte mode.  */
++  db = 64			/* Double byte mode.  */
+ };
+ 
+ 
+@@ -119,21 +138,29 @@ enum
+       }									      \
+     else								      \
+       {									      \
+-	/* This is a combined character.  Make sure we have room.  */	      \
+-	if (__glibc_unlikely (outptr + 8 > outend))			      \
+-	  {								      \
+-	    result = __GCONV_FULL_OUTPUT;				      \
+-	    break;							      \
+-	  }								      \
+-									      \
+ 	const struct divide *cmbp					      \
+ 	  = &DB_TO_UCS4_COMB[ch - __TO_UCS4_COMBINED_MIN];		      \
+ 	assert (cmbp->res1 != 0 && cmbp->res2 != 0);			      \
+ 									      \
+ 	put32 (outptr, cmbp->res1);					      \
+ 	outptr += 4;							      \
+-	put32 (outptr, cmbp->res2);					      \
+-	outptr += 4;							      \
++									      \
++	/* See whether we have room for the second character.  */	      \
++	if (outend - outptr >= 4)					      \
++	  {								      \
++	    put32 (outptr, cmbp->res2);					      \
++	    outptr += 4;						      \
++	  }								      \
++	else								      \
++	  {								      \
++	    /* Otherwise store only the first character now, and	      \
++	       put the second one into the queue.  */			      \
++	    curcs |= cmbp->res2 << 7;					      \
++	    inptr += 2;							      \
++	    /* Tell the caller why we terminate the loop.  */		      \
++	    result = __GCONV_FULL_OUTPUT;				      \
++	    break;							      \
++	  }								      \
+       }									      \
+   }
+ #else
+@@ -153,7 +180,20 @@ enum
+ #define LOOPFCT 		FROM_LOOP
+ #define BODY \
+   {									      \
+-    uint32_t ch = *inptr;						      \
++    uint32_t ch;							      \
++									      \
++    ch = curcs >> 7;							      \
++    if (__glibc_unlikely (ch != 0))					      \
++      {									      \
++	put32 (outptr, ch);						      \
++	outptr += 4;							      \
++	/* Remove the pending character, but preserve state bits.  */	      \
++	curcs &= (1 << 7) - 1;						      \
++	continue;							      \
++      }									      \
++									      \
++    /* Otherwise read the next input byte.  */				      \
++    ch = *inptr;							      \
+ 									      \
+     if (__builtin_expect (ch, 0) == SO)					      \
+       {									      \
+diff --git a/iconvdata/tst-bug33980.c b/iconvdata/tst-bug33980.c
+new file mode 100644
+index 0000000000..c9693e0efe
+--- /dev/null
++++ b/iconvdata/tst-bug33980.c
+@@ -0,0 +1,153 @@
++/* Test for bug 33980: combining characters in IBM1390/IBM1399.
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <alloc_buffer.h>
++#include <errno.h>
++#include <iconv.h>
++#include <stdbool.h>
++#include <string.h>
++
++#include <support/check.h>
++#include <support/next_to_fault.h>
++#include <support/support.h>
++
++/* Run iconv in a loop with a small output buffer of OUTBUFSIZE bytes
++   starting at OUTBUF.  OUTBUF should be right before an unmapped page
++   so that writing past the end will fault.  Skip SHIFT bytes at the
++   start of the input and output, to exercise different buffer
++   alignment.  TRUNCATE indicates skipped bytes at the end of
++   input (0 and 1 a valid).  */
++static void
++test_one (const char *encoding, unsigned int shift, unsigned int truncate,
++          char *outbuf, size_t outbufsize)
++{
++  /* In IBM1390 and IBM1399, the DBCS code 0xECB5 expands to two
++     Unicode code points when translated.  */
++  static char input[] =
++    {
++      /* 8 letters X.  */
++      0xe7, 0xe7, 0xe7, 0xe7, 0xe7, 0xe7, 0xe7, 0xe7,
++      /* SO, 0xECB5, SI: shift to DBCS, special character, shift back.  */
++      0x0e, 0xec, 0xb5, 0x0f
++    };
++
++  /* Expected output after UTF-8 conversion.  */
++  static char expected[] =
++    {
++      'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X',
++      /* U+304B (HIRAGANA LETTER KA).  */
++      0xe3, 0x81, 0x8b,
++      /* U+309A (COMBINING KATAKANA-HIRAGANA SEMI-VOICED SOUND MARK).  */
++      0xe3, 0x82, 0x9a
++    };
++
++  iconv_t cd = iconv_open ("UTF-8", encoding);
++  TEST_VERIFY_EXIT (cd != (iconv_t) -1);
++
++  char result_storage[64];
++  struct alloc_buffer result_buf
++    = alloc_buffer_create (result_storage, sizeof (result_storage));
++
++  char *inptr = &input[shift];
++  size_t inleft = sizeof (input) - shift - truncate;
++
++  while (inleft > 0)
++    {
++      char *outptr = outbuf;
++      size_t outleft = outbufsize;
++      size_t inleft_before = inleft;
++
++      size_t ret = iconv (cd, &inptr, &inleft, &outptr, &outleft);
++      size_t produced = outptr - outbuf;
++      alloc_buffer_copy_bytes (&result_buf, outbuf, produced);
++
++      if (ret == (size_t) -1 && errno == E2BIG)
++        {
++          if (produced == 0 && inleft == inleft_before)
++            {
++              /* Output buffer too small to make progress.  This is
++                 expected for very small output buffer sizes.  */
++              TEST_VERIFY_EXIT (outbufsize < 3);
++              break;
++            }
++          continue;
++        }
++      if (ret == (size_t) -1)
++        FAIL_EXIT1 ("%s (outbufsize %zu): iconv: %m", encoding, outbufsize);
++      break;
++    }
++
++  /* Flush any pending state (e.g. a buffered combined character).
++     With outbufsize < 3, we could not store the first character, so
++     the second character did not become pending, and there is nothing
++     to flush.  */
++  {
++    char *outptr = outbuf;
++    size_t outleft = outbufsize;
++
++    size_t ret = iconv (cd, NULL, NULL, &outptr, &outleft);
++    TEST_VERIFY_EXIT (ret == 0);
++    size_t produced = outptr - outbuf;
++    alloc_buffer_copy_bytes (&result_buf, outbuf, produced);
++
++    /* Second flush does not provide more data.  */
++    outptr = outbuf;
++    outleft = outbufsize;
++    ret = iconv (cd, NULL, NULL, &outptr, &outleft);
++    TEST_VERIFY_EXIT (ret == 0);
++    TEST_VERIFY (outptr == outbuf);
++  }
++
++  TEST_VERIFY_EXIT (!alloc_buffer_has_failed (&result_buf));
++  size_t result_used
++    = sizeof (result_storage) - alloc_buffer_size (&result_buf);
++
++  if (outbufsize >= 3)
++    {
++      TEST_COMPARE (inleft, 0);
++      TEST_COMPARE (result_used, sizeof (expected) - shift);
++      TEST_COMPARE_BLOB (result_storage, result_used,
++                         &expected[shift], sizeof (expected) - shift);
++    }
++  else
++    /* If the buffer is too small, only the leading X could be converted.  */
++    TEST_COMPARE (result_used, 8 - shift);
++
++  TEST_VERIFY_EXIT (iconv_close (cd) == 0);
++}
++
++static int
++do_test (void)
++{
++  struct support_next_to_fault ntf
++    = support_next_to_fault_allocate (8);
++
++  for (int shift = 0; shift <= 8; ++shift)
++    for (int truncate = 0; truncate < 2; ++truncate)
++      for (size_t outbufsize = 1; outbufsize <= 8; outbufsize++)
++        {
++          char *outbuf = ntf.buffer + ntf.length - outbufsize;
++          test_one ("IBM1390", shift, truncate, outbuf, outbufsize);
++          test_one ("IBM1399", shift, truncate, outbuf, outbufsize);
++        }
++
++  support_next_to_fault_free (&ntf);
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/include/bits/stdio2-decl.h b/include/bits/stdio2-decl.h
 index 9758bf4b55..97c2236f24 100644
 --- a/include/bits/stdio2-decl.h
@@ -757,6 +1312,124 @@ index 9758bf4b55..97c2236f24 100644
 +extern int __vfprintf_chk (FILE *, int, const char *, __gnuc_va_list);
  libc_hidden_ldbl_proto (__vfprintf_chk)
  #endif
+diff --git a/include/resolv.h b/include/resolv.h
+index 4dbbac3800..d5ad9994b9 100644
+--- a/include/resolv.h
++++ b/include/resolv.h
+@@ -70,6 +70,11 @@ libc_hidden_proto (__libc_res_nameinquery)
+ extern __typeof (__res_queriesmatch) __libc_res_queriesmatch;
+ libc_hidden_proto (__libc_res_queriesmatch)
+ 
++extern const struct res_sym __p_class_syms[];
++libresolv_hidden_proto (__p_class_syms)
++extern const struct res_sym __p_type_syms[];
++libresolv_hidden_proto (__p_type_syms)
++
+ /* Variant of res_hnok which operates on binary (but uncompressed) names.  */
+ bool __res_binary_hnok (const unsigned char *dn) attribute_hidden;
+ 
+diff --git a/io/fcntl.c b/io/fcntl.c
+index c13546e4fd..4fbc522624 100644
+--- a/io/fcntl.c
++++ b/io/fcntl.c
+@@ -18,6 +18,10 @@
+ #include <errno.h>
+ #include <fcntl.h>
+ 
++#ifndef __O_CLOEXEC
++# error __O_CLOEXEC not defined by fcntl.h/cloexec.h
++#endif
++
+ /* Perform file control operations on FD.  */
+ int
+ __fcntl (int fd, int cmd, ...)
+diff --git a/libio/Makefile b/libio/Makefile
+index 4f4dd9f275..5995adf5dd 100644
+--- a/libio/Makefile
++++ b/libio/Makefile
+@@ -84,6 +84,7 @@ tests = \
+   bug-ungetwc1 \
+   bug-ungetwc2 \
+   bug-wfflush \
++  bug-wgenops-bz33998 \
+   bug-wmemstream1 \
+   bug-wsetpos \
+   test-fmemopen \
+diff --git a/libio/bug-wgenops-bz33998.c b/libio/bug-wgenops-bz33998.c
+new file mode 100644
+index 0000000000..cc4067da99
+--- /dev/null
++++ b/libio/bug-wgenops-bz33998.c
+@@ -0,0 +1,54 @@
++/* Regression test for ungetwc operating on byte stream (BZ #33998)
++   Copyright (C) 2026 The GNU Toolchain Authors.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "support/temp_file.h"
++#include "support/xstdio.h"
++#include "support/xunistd.h"
++#include <stdlib.h>
++#include <unistd.h>
++#include <sys/mman.h>
++#include <stdio.h>
++#include <wchar.h>
++#include <support/check.h>
++
++static int
++do_test (void)
++{
++  char *filename;
++  int fd = create_temp_file ("tst-bz33998-", &filename);
++  TEST_VERIFY (fd != -1);
++  xwrite (fd, "A", sizeof ("A")); // write "A\0" by design
++  xclose (fd);
++
++  FILE *fp = xfopen (filename, "r+");
++  TEST_COMPARE (getwc (fp), L'A');
++  /* If the bug is fixed, then ungetwc should not touch byte stream.
++     If the bug is not fixed, ungetwc firstly match last read char, L'A',
++     failed, then the pbackfail branch, matching last read char in byte
++     stream, that is, '\0' (initialized when setup wide stream). */
++  char *old_read_ptr = fp->_IO_read_ptr;
++  TEST_COMPARE (ungetwc (L'\0', fp), L'\0');
++  TEST_VERIFY (fp->_IO_read_ptr == old_read_ptr);
++
++  xfclose (fp);
++  free (filename);
++
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/libio/wgenops.c b/libio/wgenops.c
+index 7a8466ea44..7c47459828 100644
+--- a/libio/wgenops.c
++++ b/libio/wgenops.c
+@@ -108,8 +108,8 @@ _IO_wdefault_pbackfail (FILE *fp, wint_t c)
+ {
+   if (fp->_wide_data->_IO_read_ptr > fp->_wide_data->_IO_read_base
+       && !_IO_in_backup (fp)
+-      && (wint_t) fp->_IO_read_ptr[-1] == c)
+-    --fp->_IO_read_ptr;
++      && (wint_t) fp->_wide_data->_IO_read_ptr[-1] == c)
++    --fp->_wide_data->_IO_read_ptr;
+   else
+     {
+       /* Need to handle a filebuf in write mode (switch to read mode). FIXME!*/
 diff --git a/malloc/arena.c b/malloc/arena.c
 index 5bfcd7f972..d83b4db068 100644
 --- a/malloc/arena.c
@@ -818,6 +1491,55 @@ index a49e211925..771e7d40b7 100644
        if (__glibc_unlikely (mp_.thp_pagesize != 0))
  	{
  	  uintptr_t lastbrk = (uintptr_t) MORECORE (0);
+diff --git a/math/auto-libm-test-in b/math/auto-libm-test-in
+index 2001baa605..82f0aface8 100644
+--- a/math/auto-libm-test-in
++++ b/math/auto-libm-test-in
+@@ -6483,6 +6483,8 @@ fma 0x1.000002p-126 -0x1.000002p-26 0x1p103
+ fma 0x1.000002p-126 0x1.000002p-26 -0x1p103
+ fma 0x1.000002p-126 -0x1.000002p-26 -0x1p103
+ 
++fma 0x1.000008p+0 0x1.000008p+0 0x1p+11
++
+ fma 0x1.7fp+13 0x1.0000000000001p+0 0x1.ffep-48
+ fma 0x1.fffp+0 0x1.0000000000001p+0 -0x1.fffp+0
+ fma 0x1.0000002p+0 0x1.ffffffcp-1 0x1p-300
+diff --git a/math/auto-libm-test-out-fma b/math/auto-libm-test-out-fma
+index 438fcb61da..ba1fdc7472 100644
+--- a/math/auto-libm-test-out-fma
++++ b/math/auto-libm-test-out-fma
+@@ -13364,6 +13364,31 @@ fma 0x1.000002p-126 -0x1.000002p-26 -0x1p103
+ = fma tonearest ibm128 0x4.000008p-128 -0x4.000008p-28 -0x8p+100 : -0x8p+100 : inexact
+ = fma towardzero ibm128 0x4.000008p-128 -0x4.000008p-28 -0x8p+100 : -0x8p+100 : inexact
+ = fma upward ibm128 0x4.000008p-128 -0x4.000008p-28 -0x8p+100 : -0x8p+100 : inexact
++fma 0x1.000008p+0 0x1.000008p+0 0x1p+11
++= fma downward binary32 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.01p+8 : inexact
++= fma tonearest binary32 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.01p+8 : inexact
++= fma towardzero binary32 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.01p+8 : inexact
++= fma upward binary32 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.01001p+8 : inexact
++= fma downward binary64 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001p+8 : inexact
++= fma tonearest binary64 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001p+8 : inexact
++= fma towardzero binary64 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001p+8 : inexact
++= fma upward binary64 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000008p+8 : inexact
++= fma downward intel96 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma tonearest intel96 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma towardzero intel96 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma upward intel96 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma downward m68k96 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma tonearest m68k96 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma towardzero m68k96 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma upward m68k96 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma downward binary128 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma tonearest binary128 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma towardzero binary128 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma upward binary128 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma downward ibm128 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma tonearest ibm128 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma towardzero ibm128 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
++= fma upward ibm128 0x1.000008p+0 0x1.000008p+0 0x8p+8 : 0x8.0100001000004p+8 :
+ fma 0x1.7fp+13 0x1.0000000000001p+0 0x1.ffep-48
+ = fma downward binary64 0x2.fep+12 0x1.0000000000001p+0 0x1.ffep-48 : 0x2.fe00000000002p+12 : inexact
+ = fma tonearest binary64 0x2.fep+12 0x1.0000000000001p+0 0x1.ffep-48 : 0x2.fe00000000002p+12 : inexact
 diff --git a/math/libm-test-ceil.inc b/math/libm-test-ceil.inc
 index a471b43932..48be68cf91 100644
 --- a/math/libm-test-ceil.inc
@@ -8673,10 +9395,18 @@ index 4bec5f448e..4d2a856496 100644
  #, c-format
  msgid "%s: pre-%d clients may mishandle distant timestamps"
 diff --git a/posix/Makefile b/posix/Makefile
-index 71a1906168..f377948462 100644
+index 71a1906168..b6fb54364a 100644
 --- a/posix/Makefile
 +++ b/posix/Makefile
-@@ -499,7 +499,7 @@ tests-special += \
+@@ -357,6 +357,7 @@ tests-internal := \
+ tests-container := \
+   bug-ga2 \
+   tst-vfork3 \
++  tst-wordexp-tilde \
+   # tests-container
+ 
+ tests-time64 := \
+@@ -499,7 +500,7 @@ tests-special += \
    $(objpfx)tst-pcre-mem.out \
    $(objpfx)tst-rxspencer-no-utf8-mem.out \
    $(objpfx)tst-vfork3-mem.out \
@@ -8698,11 +9428,331 @@ index 8e541ff985..933ac6fee7 100644
  
    /* If we are not running multiple threads, we do not have to
       preserve lock state.  If fork runs from a signal handler, only
+diff --git a/posix/tst-wordexp-tilde.c b/posix/tst-wordexp-tilde.c
+new file mode 100644
+index 0000000000..1661603681
+--- /dev/null
++++ b/posix/tst-wordexp-tilde.c
+@@ -0,0 +1,244 @@
++/* Test wordexp tilde expansion with large usernames (BZ 34091).
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <pwd.h>
++#include <stdio.h>
++#include <string.h>
++#include <wordexp.h>
++#include <stdlib.h>
++#include <sys/resource.h>
++
++#include <support/check.h>
++#include <support/support.h>
++#include <support/xunistd.h>
++#include <support/namespace.h>
++
++typedef void (*func_callback_t)(void);
++
++static void
++subprocess_small_stack (void *closure)
++{
++  struct rlimit rl;
++  TEST_COMPARE (getrlimit (RLIMIT_STACK, &rl), 0);
++  rl.rlim_cur = 512 * 1024;
++  TEST_COMPARE (setrlimit (RLIMIT_STACK, &rl), 0);
++
++  func_callback_t func_test = closure;
++  func_test ();
++}
++
++/* Build a string "~<padding>/tail" where <padding> is LEN bytes of the
++   character CH.  The caller must free the result.  */
++static char *
++make_tilde_input (char ch, size_t len, const char *tail)
++{
++  /* ~  +  len  +  /  +  tail  +  \0 */
++  size_t taillen = tail != NULL ? strlen (tail) : 0;
++  size_t total = 1 + len + 1 + taillen + 1;
++  char *buf = xmalloc (total);
++  buf[0] = '~';
++  memset (buf + 1, ch, len);
++  buf[1 + len] = '/';
++  if (tail != NULL)
++    memcpy (buf + 1 + len + 1, tail, taillen);
++  buf[total - 1] = '\0';
++  return buf;
++}
++
++/* Test 1: A very long username must not crash.  The username will not match
++   any real user, so wordexp returns ~<long>/rest.  */
++static void
++test_long_username (void)
++{
++  printf ("info: test_long_username_no_crash\n");
++
++  static const char REST[] = "rest";
++
++  /* 1 MiB username — well beyond any reasonable stack frame.  */
++  const size_t long_len = 1024 * 1024;
++  char *input = make_tilde_input ('A', long_len, REST);
++
++  wordexp_t we = { 0 };
++  int ret = wordexp (input, &we, 0);
++  /* The (non-existent) username is invalid, so wordexp falls back to
++     literal output: ~AAA…/rest.  */
++  TEST_COMPARE (ret, 0);
++  TEST_COMPARE (we.we_wordc, 1);
++
++  /* Verify prefix: '~' followed by long_len 'A's.  */
++  const char *result = we.we_wordv[0];
++  TEST_COMPARE (result[0], '~');
++  TEST_COMPARE (strlen (result),
++	        1 /* ~ */ + long_len + sizeof (REST));
++  for (size_t j = 1; j <= long_len; j++)
++    if (result[j] != 'A')
++      {
++	printf ("  mismatch at position %zu: expected 'A', got '%c'\n",
++		j, result[j]);
++	support_record_failure ();
++	break;
++      }
++  /* Verify the tail after the username.  */
++  TEST_COMPARE_STRING (result + 1 + long_len, "/rest");
++
++  wordfree (&we);
++  free (input);
++}
++
++/* Test 2: A username that just exceeds the default scratch_buffer inline
++   size (1024 bytes) exercises the scratch_buffer_set_array_size growth path
++   without being excessively large.  */
++static void
++test_scratch_buffer_growth (void)
++{
++  printf ("info: test_scratch_buffer_growth\n");
++
++  const size_t len = 2048;
++  char *input = make_tilde_input ('x', len, NULL);
++
++  wordexp_t we = { 0 };
++  int ret = wordexp (input, &we, 0);
++  TEST_COMPARE (ret, 0);
++  TEST_COMPARE (we.we_wordc, 1);
++
++  /* ~xxx…/ — the trailing slash makes a separate empty component, but
++     wordexp merges it into the single token ~xxx…/.  */
++  const char *result = we.we_wordv[0];
++  TEST_COMPARE (result[0], '~');
++  for (size_t j = 1; j <= len; j++)
++    if (result[j] != 'x')
++      {
++	printf ("  mismatch at position %zu\n", j);
++	support_record_failure ();
++	break;
++      }
++  TEST_COMPARE (result[1 + len], '/');
++
++  wordfree (&we);
++  free (input);
++}
++
++/* Test 3: ~root still resolves to the correct home directory through the
++   __getpwnam_r path.  */
++static void
++test_known_user (void)
++{
++  printf ("info: test_known_user\n");
++
++  /* Look up root's home directory for comparison.  */
++  struct passwd *pw = getpwnam ("root");
++  if (pw == NULL || pw->pw_dir == NULL)
++    {
++      printf ("  SKIP: cannot look up root\n");
++      return;
++    }
++
++  char *expected = xasprintf ("%s/file", pw->pw_dir);
++
++  wordexp_t we = { 0 };
++  TEST_COMPARE (wordexp ("~root/file", &we, 0), 0);
++  TEST_COMPARE (we.we_wordc, 1);
++  TEST_COMPARE_STRING (we.we_wordv[0], expected);
++
++  wordfree (&we);
++  free (expected);
++}
++
++/* Test 4: Bare tilde expands to $HOME.  */
++static void
++test_bare_tilde (void)
++{
++  printf ("info: test_bare_tilde\n");
++
++  const char *home = getenv ("HOME");
++  if (home == NULL)
++    {
++      printf ("  SKIP: HOME is not set\n");
++      return;
++    }
++
++  wordexp_t we = { 0 };
++  TEST_COMPARE (wordexp ("~", &we, 0), 0);
++  TEST_COMPARE (we.we_wordc, 1);
++  TEST_COMPARE_STRING (we.we_wordv[0], home);
++
++  wordfree (&we);
++}
++
++/* Test 5: Short non-existent username falls back to literal ~username output,
++   exercising the invalid-login-name path.  */
++static void
++test_unknown_user (void)
++{
++  printf ("info: test_unknown_user\n");
++
++  /* Pick a username that is extremely unlikely to exist.  */
++  wordexp_t we = { 0 };
++  TEST_COMPARE (wordexp ("~no_such_user_xyzzy42", &we, 0), 0);
++  TEST_COMPARE (we.we_wordc, 1);
++  TEST_COMPARE_STRING (we.we_wordv[0], "~no_such_user_xyzzy42");
++
++  wordfree (&we);
++}
++
++/* Test 6: Tilde with username and WRDE_APPEND — exercises parse_tilde's
++   interaction with the WRDE_APPEND word list.  */
++static void
++test_tilde_with_append (void)
++{
++  printf ("info: test_tilde_with_append\n");
++
++  const char *home = getenv ("HOME");
++  if (home == NULL)
++    {
++      printf ("  SKIP: HOME is not set\n");
++      return;
++    }
++
++  wordexp_t we = { 0 };
++  TEST_COMPARE (wordexp ("first", &we, 0), 0);
++
++  TEST_COMPARE (wordexp ("~/path", &we, WRDE_APPEND), 0);
++  TEST_COMPARE (we.we_wordc, 2);
++  TEST_COMPARE_STRING (we.we_wordv[0], "first");
++
++  char *expected = xasprintf ("%s/path", home);
++  TEST_COMPARE_STRING (we.we_wordv[1], expected);
++
++  wordfree (&we);
++  free (expected);
++}
++
++static int
++do_test (void)
++{
++  test_known_user ();
++  test_bare_tilde ();
++  test_unknown_user ();
++  test_tilde_with_append ();
++
++  support_isolate_in_subprocess (subprocess_small_stack,
++				 test_long_username);
++
++  support_isolate_in_subprocess (subprocess_small_stack,
++				 test_scratch_buffer_growth);
++
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/posix/tst-wordexp-tilde.root/etc/group b/posix/tst-wordexp-tilde.root/etc/group
+new file mode 100644
+index 0000000000..1dbf9013ee
+--- /dev/null
++++ b/posix/tst-wordexp-tilde.root/etc/group
+@@ -0,0 +1 @@
++root:x:0:
+diff --git a/posix/tst-wordexp-tilde.root/etc/nsswitch.conf b/posix/tst-wordexp-tilde.root/etc/nsswitch.conf
+new file mode 100644
+index 0000000000..098a8d5938
+--- /dev/null
++++ b/posix/tst-wordexp-tilde.root/etc/nsswitch.conf
+@@ -0,0 +1,3 @@
++passwd: files
++group:  files
++shadow: files
+diff --git a/posix/tst-wordexp-tilde.root/etc/passwd b/posix/tst-wordexp-tilde.root/etc/passwd
+new file mode 100644
+index 0000000000..eb85a552ad
+--- /dev/null
++++ b/posix/tst-wordexp-tilde.root/etc/passwd
+@@ -0,0 +1 @@
++root:x:0:0:root:/root:/bin/sh
+diff --git a/posix/wordexp.c b/posix/wordexp.c
+index 4a8541add4..f0f69ee85d 100644
+--- a/posix/wordexp.c
++++ b/posix/wordexp.c
+@@ -335,17 +335,29 @@ parse_tilde (char **word, size_t *word_length, size_t *max_length,
+   else
+     {
+       /* Look up user name in database to get home directory */
+-      char *user = strndupa (&words[1 + *offset], i - (1 + *offset));
+-      struct passwd pwd, *tpwd;
+-      int result;
++      size_t userlen = i - (1 + *offset);
++      /* tmpbuf contains both the user and the __getpwnam_r working area.  */
+       struct scratch_buffer tmpbuf;
+       scratch_buffer_init (&tmpbuf);
++      if (!scratch_buffer_set_array_size (&tmpbuf, userlen + 1, 1))
++	return WRDE_NOSPACE;
++      char *user = tmpbuf.data;
++      memcpy (user, &words[1 + *offset], userlen);
++      user[userlen] = '\0';
+ 
+-      while ((result = __getpwnam_r (user, &pwd, tmpbuf.data, tmpbuf.length,
++      struct passwd pwd, *tpwd;
++      int result;
++      while ((result = __getpwnam_r (user,
++				     &pwd,
++				     tmpbuf.data + userlen + 1,
++				     tmpbuf.length - userlen - 1,
+ 				     &tpwd)) != 0
+ 	     && errno == ERANGE)
+-	if (!scratch_buffer_grow (&tmpbuf))
+-	  return WRDE_NOSPACE;
++	{
++	  if (!scratch_buffer_grow_preserve (&tmpbuf))
++	    return WRDE_NOSPACE;
++	  user = tmpbuf.data;
++	}
+ 
+       if (result == 0 && tpwd != NULL && pwd.pw_dir)
+ 	*word = w_addstr (*word, word_length, max_length, pwd.pw_dir);
 diff --git a/resolv/Makefile b/resolv/Makefile
-index b74c8f325e..79a1b9647f 100644
+index b74c8f325e..130d8b51e0 100644
 --- a/resolv/Makefile
 +++ b/resolv/Makefile
-@@ -107,8 +107,10 @@ tests += \
+@@ -101,14 +101,17 @@ tests += \
+   tst-ns_name \
+   tst-ns_name_compress \
+   tst-ns_name_pton \
++  tst-ns_sprintrr \
+   tst-res_hconf_reorder \
+   tst-res_hnok \
+   tst-resolv-aliases \
    tst-resolv-basic \
    tst-resolv-binary \
    tst-resolv-byaddr \
@@ -8713,7 +9763,7 @@ index b74c8f325e..79a1b9647f 100644
    tst-resolv-network \
    tst-resolv-noaaaa \
    tst-resolv-noaaaa-vc \
-@@ -118,6 +120,7 @@ tests += \
+@@ -118,6 +121,7 @@ tests += \
    tst-resolv-semi-failure \
    tst-resolv-short-response \
    tst-resolv-trailing \
@@ -8721,7 +9771,7 @@ index b74c8f325e..79a1b9647f 100644
  
  # This test calls __res_context_send directly, which is not exported
  # from libresolv.
-@@ -301,6 +304,8 @@ $(objpfx)tst-resolv-aliases: $(objpfx)libresolv.so $(shared-thread-library)
+@@ -301,6 +305,8 @@ $(objpfx)tst-resolv-aliases: $(objpfx)libresolv.so $(shared-thread-library)
  $(objpfx)tst-resolv-basic: $(objpfx)libresolv.so $(shared-thread-library)
  $(objpfx)tst-resolv-binary: $(objpfx)libresolv.so $(shared-thread-library)
  $(objpfx)tst-resolv-byaddr: $(objpfx)libresolv.so $(shared-thread-library)
@@ -8730,7 +9780,7 @@ index b74c8f325e..79a1b9647f 100644
  $(objpfx)tst-resolv-edns: $(objpfx)libresolv.so $(shared-thread-library)
  $(objpfx)tst-resolv-network: $(objpfx)libresolv.so $(shared-thread-library)
  $(objpfx)tst-resolv-res_init: $(objpfx)libresolv.so
-@@ -310,6 +315,8 @@ $(objpfx)tst-resolv-res_init-thread: $(objpfx)libresolv.so \
+@@ -310,6 +316,8 @@ $(objpfx)tst-resolv-res_init-thread: $(objpfx)libresolv.so \
    $(shared-thread-library)
  $(objpfx)tst-resolv-invalid-cname: $(objpfx)libresolv.so \
    $(shared-thread-library)
@@ -8739,6 +9789,267 @@ index b74c8f325e..79a1b9647f 100644
  $(objpfx)tst-resolv-noaaaa: $(objpfx)libresolv.so $(shared-thread-library)
  $(objpfx)tst-resolv-noaaaa-vc: $(objpfx)libresolv.so $(shared-thread-library)
  $(objpfx)tst-resolv-nondecimal: $(objpfx)libresolv.so $(shared-thread-library)
+@@ -332,5 +340,6 @@ $(objpfx)tst-ns_name: $(objpfx)libresolv.so
+ $(objpfx)tst-ns_name.out: tst-ns_name.data
+ $(objpfx)tst-ns_name_compress: $(objpfx)libresolv.so
+ $(objpfx)tst-ns_name_pton: $(objpfx)libresolv.so
++$(objpfx)tst-ns_sprintrr: $(objpfx)libresolv.so
+ $(objpfx)tst-res_hnok: $(objpfx)libresolv.so
+ $(objpfx)tst-p_secstodate: $(objpfx)libresolv.so
+diff --git a/resolv/ns_print.c b/resolv/ns_print.c
+index cef2212fd2..f9dd086804 100644
+--- a/resolv/ns_print.c
++++ b/resolv/ns_print.c
+@@ -78,6 +78,24 @@ ns_sprintrr(const ns_msg *handle, const ns_rr *rr,
+ }
+ libresolv_hidden_def (ns_sprintrr)
+ 
++/* Writes the class/type symbol NUMBER to *BUF, using the name from
++   *SYMS if possible.  If NUMBER is not found in *SYMS, print the
++   number with PREFIX.  */
++static int
++addsym (const struct res_sym *syms, int number, const char *prefix,
++	char **buf, size_t *buflen)
++{
++  for (; syms->name != NULL; syms++)
++    if (number == syms->number)
++      {
++	T (addstr (" ", 1, buf, buflen));
++	return addstr (syms->name, strlen (syms->name), buf, buflen);
++      }
++  char tmp[20];
++  int len = snprintf (tmp, sizeof (tmp), " %s%d", prefix, number);
++  return addstr (tmp, len, buf, buflen);
++}
++
+ /*%
+  *	Convert the fields of an RR into presentation format.
+  *
+@@ -97,7 +115,6 @@ ns_sprintrrf(const u_char *msg, size_t msglen,
+ 
+ 	const char *comment;
+ 	char tmp[100];
+-	char errbuf[40];
+ 	int len, x;
+ 
+ 	/*
+@@ -128,11 +145,21 @@ ns_sprintrrf(const u_char *msg, size_t msglen,
+ 	/*
+ 	 * TTL, Class, Type.
+ 	 */
+-	T(x = ns_format_ttl(ttl, buf, buflen));
+-	addlen(x, &buf, &buflen);
+-	len = SPRINTF((tmp, " %s %s", p_class(class), p_type(type)));
+-	T(addstr(tmp, len, &buf, &buflen));
+-	T(spaced = addtab(x + len, 16, spaced, &buf, &buflen));
++	{
++	  char *start = buf;
++
++	  T (x = ns_format_ttl (ttl, buf, buflen));
++	  addlen (x, &buf, &buflen);
++	  T (addsym (__p_class_syms, class, "CLASS", &buf, &buflen));
++	  if (type == ns_t_a6)
++	    /* A6 is not part of __p_type_syms, which is exported.
++	       Adding A6 there would change its size.  Handle it here.  */
++	    T (addstr (" A6", 3, &buf, &buflen));
++	  else
++	    T (addsym (__p_type_syms, type, "TYPE", &buf, &buflen));
++
++	  T (spaced = addtab(buf - start, 16, spaced, &buf, &buflen));
++	}
+ 
+ 	/*
+ 	 * RData.
+@@ -140,8 +167,9 @@ ns_sprintrrf(const u_char *msg, size_t msglen,
+ 	switch (type) {
+ 	case ns_t_a:
+ 	  if (rdlen != (size_t)NS_INADDRSZ)
+-			goto formerr;
+-		(void) inet_ntop(AF_INET, rdata, buf, buflen);
++		  goto formerr;
++		if (inet_ntop (AF_INET, rdata, buf, buflen) == NULL)
++		  return -1;
+ 		addlen(strlen(buf), &buf, &buflen);
+ 		break;
+ 
+@@ -307,16 +335,18 @@ ns_sprintrrf(const u_char *msg, size_t msglen,
+ 	    }
+ 
+ 	case ns_t_aaaa:
+-	  if (rdlen != (size_t)NS_IN6ADDRSZ)
+-			goto formerr;
+-		(void) inet_ntop(AF_INET6, rdata, buf, buflen);
++		if (rdlen != (size_t)NS_IN6ADDRSZ)
++		  goto formerr;
++		if (inet_ntop (AF_INET6, rdata, buf, buflen) == NULL)
++		  return -1;
+ 		addlen(strlen(buf), &buf, &buflen);
+ 		break;
+ 
+ 	case ns_t_loc: {
+ 		char t[255];
+ 
+-		/* XXX protocol format checking? */
++		if (rdlen != 16)
++		  goto formerr;
+ 		(void) loc_ntoa(rdata, t);
+ 		T(addstr(t, strlen(t), &buf, &buflen));
+ 		break;
+@@ -400,7 +430,8 @@ ns_sprintrrf(const u_char *msg, size_t msglen,
+ 			goto formerr;
+ 
+ 		/* Address. */
+-		(void) inet_ntop(AF_INET, rdata, buf, buflen);
++		if (inet_ntop (AF_INET, rdata, buf, buflen) == NULL)
++		  return -1;
+ 		addlen(strlen(buf), &buf, &buflen);
+ 		rdata += NS_INADDRSZ;
+ 
+@@ -434,96 +465,6 @@ ns_sprintrrf(const u_char *msg, size_t msglen,
+ 		break;
+ 	    }
+ 
+-	case ns_t_cert: {
+-		u_int c_type, key_tag, alg;
+-		int n;
+-		unsigned int siz;
+-		char base64_cert[8192], tmp[40];
+-		const char *leader;
+-
+-		c_type  = ns_get16(rdata); rdata += NS_INT16SZ;
+-		key_tag = ns_get16(rdata); rdata += NS_INT16SZ;
+-		alg = (u_int) *rdata++;
+-
+-		len = SPRINTF((tmp, "%d %d %d ", c_type, key_tag, alg));
+-		T(addstr(tmp, len, &buf, &buflen));
+-		siz = (edata-rdata)*4/3 + 4; /* "+4" accounts for trailing \0 */
+-		if (siz > sizeof(base64_cert) * 3/4) {
+-			const char *str = "record too long to print";
+-			T(addstr(str, strlen(str), &buf, &buflen));
+-		}
+-		else {
+-			len = b64_ntop(rdata, edata-rdata, base64_cert, siz);
+-
+-			if (len < 0)
+-				goto formerr;
+-			else if (len > 15) {
+-				T(addstr(" (", 2, &buf, &buflen));
+-				leader = "\n\t\t";
+-				spaced = 0;
+-			}
+-			else
+-				leader = " ";
+-
+-			for (n = 0; n < len; n += 48) {
+-				T(addstr(leader, strlen(leader),
+-					 &buf, &buflen));
+-				T(addstr(base64_cert + n, MIN(len - n, 48),
+-					 &buf, &buflen));
+-			}
+-			if (len > 15)
+-				T(addstr(" )", 2, &buf, &buflen));
+-		}
+-		break;
+-	    }
+-
+-	case ns_t_tkey: {
+-		/* KJD - need to complete this */
+-		u_long t;
+-		int mode, err, keysize;
+-
+-		/* Algorithm name. */
+-		T(addname(msg, msglen, &rdata, origin, &buf, &buflen));
+-		T(addstr(" ", 1, &buf, &buflen));
+-
+-		/* Inception. */
+-		t = ns_get32(rdata);  rdata += NS_INT32SZ;
+-		len = SPRINTF((tmp, "%lu ", t));
+-		T(addstr(tmp, len, &buf, &buflen));
+-
+-		/* Expiration. */
+-		t = ns_get32(rdata);  rdata += NS_INT32SZ;
+-		len = SPRINTF((tmp, "%lu ", t));
+-		T(addstr(tmp, len, &buf, &buflen));
+-
+-		/* Mode , Error, Key Size. */
+-		/* Priority, Weight, Port. */
+-		mode = ns_get16(rdata);  rdata += NS_INT16SZ;
+-		err  = ns_get16(rdata);  rdata += NS_INT16SZ;
+-		keysize  = ns_get16(rdata);  rdata += NS_INT16SZ;
+-		len = SPRINTF((tmp, "%u %u %u ", mode, err, keysize));
+-		T(addstr(tmp, len, &buf, &buflen));
+-
+-		/* XXX need to dump key, print otherdata length & other data */
+-		break;
+-	    }
+-
+-	case ns_t_tsig: {
+-		/* BEW - need to complete this */
+-		int n;
+-
+-		T(len = addname(msg, msglen, &rdata, origin, &buf, &buflen));
+-		T(addstr(" ", 1, &buf, &buflen));
+-		rdata += 8; /*%< time */
+-		n = ns_get16(rdata); rdata += INT16SZ;
+-		rdata += n; /*%< sig */
+-		n = ns_get16(rdata); rdata += INT16SZ; /*%< original id */
+-		sprintf(buf, "%d", ns_get16(rdata));
+-		rdata += INT16SZ;
+-		addlen(strlen(buf), &buf, &buflen);
+-		break;
+-	    }
+-
+ 	case ns_t_a6: {
+ 		struct in6_addr a;
+ 		int pbyte, pbit;
+@@ -539,12 +480,14 @@ ns_sprintrrf(const u_char *msg, size_t msglen,
+ 
+ 		/* address suffix: provided only when prefix len != 128 */
+ 		if (pbit < 128) {
+-			if (rdata + pbyte >= edata) goto formerr;
++			unsigned int bytelen = sizeof(a) - pbyte;
++			if (edata - rdata < bytelen) goto formerr;
+ 			memset(&a, 0, sizeof(a));
+-			memcpy(&a.s6_addr[pbyte], rdata, sizeof(a) - pbyte);
+-			(void) inet_ntop(AF_INET6, &a, buf, buflen);
++			memcpy(&a.s6_addr[pbyte], rdata, bytelen);
++			if (inet_ntop (AF_INET6, &a, buf, buflen) == NULL)
++			  return -1;
+ 			addlen(strlen(buf), &buf, &buflen);
+-			rdata += sizeof(a) - pbyte;
++			rdata += bytelen;
+ 		}
+ 
+ 		/* prefix name: provided only when prefix len > 0 */
+@@ -557,25 +500,18 @@ ns_sprintrrf(const u_char *msg, size_t msglen,
+ 		break;
+ 	    }
+ 
+-	case ns_t_opt: {
+-		len = SPRINTF((tmp, "%u bytes", class));
+-		T(addstr(tmp, len, &buf, &buflen));
+-		break;
+-	    }
+-
+ 	default:
+-		snprintf (errbuf, sizeof (errbuf), "unknown RR type %d", type);
+-		comment = errbuf;
++		comment = "";
+ 		goto hexify;
+ 	}
+ 	return (buf - obuf);
+  formerr:
+-	comment = "RR format error";
++	comment = " ; RR format error";
+  hexify: {
+ 	int n, m;
+ 	char *p;
+ 
+-	len = SPRINTF((tmp, "\\# %u%s\t; %s", (unsigned)(edata - rdata),
++	len = SPRINTF((tmp, "\\# %u%s%s", (unsigned)(edata - rdata),
+ 		       rdlen != 0U ? " (" : "", comment));
+ 	T(addstr(tmp, len, &buf, &buflen));
+ 	while (rdata < edata) {
 diff --git a/resolv/nss_dns/dns-host.c b/resolv/nss_dns/dns-host.c
 index 6a60c87532..728dae615d 100644
 --- a/resolv/nss_dns/dns-host.c
@@ -8761,6 +10072,363 @@ index 6a60c87532..728dae615d 100644
  	      || __ns_name_ntop (name_buffer, hname, sizeof (hname)) < 0)
  	    {
  	      *h_errnop = NO_RECOVERY;
+diff --git a/resolv/res_debug.c b/resolv/res_debug.c
+index 73af0c72fe..6bf9962916 100644
+--- a/resolv/res_debug.c
++++ b/resolv/res_debug.c
+@@ -390,8 +390,6 @@ p_fqname(const u_char *cp, const u_char *msg, FILE *file) {
+  * that C_ANY is a qclass but not a class.  (You can ask for records of class
+  * C_ANY, but you can't have any records of that class in the database.)
+  */
+-extern const struct res_sym __p_class_syms[];
+-libresolv_hidden_proto (__p_class_syms)
+ const struct res_sym __p_class_syms[] = {
+   {C_IN,    (char *) "IN"},
+   {C_CHAOS, (char *) "CHAOS"},
+@@ -426,8 +424,6 @@ const struct res_sym __p_update_section_syms[] attribute_hidden = {
+  * Names of RR types and qtypes.  The list is incomplete because its
+  * size is part of the ABI.
+  */
+-extern const struct res_sym __p_type_syms[];
+-libresolv_hidden_proto (__p_type_syms)
+ const struct res_sym __p_type_syms[] = {
+   {ns_t_a,      (char *) "A",     (char *) "address"},
+   {ns_t_ns,     (char *) "NS",    (char *) "name server"},
+diff --git a/resolv/tst-ns_sprintrr.c b/resolv/tst-ns_sprintrr.c
+new file mode 100644
+index 0000000000..34739b5924
+--- /dev/null
++++ b/resolv/tst-ns_sprintrr.c
+@@ -0,0 +1,329 @@
++/* Tests for the ns_sprintrr function.
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <arpa/nameser.h>
++
++#include <alloc_buffer.h>
++#include <arpa/inet.h>
++#include <libc-diag.h>
++#include <stdbool.h>
++#include <string.h>
++#include <support/check.h>
++#include <support/next_to_fault.h>
++
++#include <stdio.h>
++
++/* Regions that test_one_record uses for input and output.  */
++static struct support_next_to_fault ntf_in;
++static struct support_next_to_fault ntf_out;
++
++/* This is used by test_one_record to construct the packet.   */
++static const char packet_prefix[] =
++  /* DNS response with one question, one answer record.  */
++  "AA\x81\x80\0\1\0\1\0\0\0\0"
++  /* Question: www.example.org/IN/ANY.  */
++  "\3www\7example\3org\0\0\xff\0\1"
++  /* Response: compression reference.  */
++  "\xc0\x0c";
++
++/* Use ns_sprintrr to format a DNS record (starting with
++   packet_prefix) of type RTYPE, with a record payload of RDATALEN
++   bytes starting at RDATA.  Check successful formatting against
++   EXPECTED.  Try various truncated input and output buffers to catch
++   overreads and buffer overflows, using ntf_in and ntf_out above.  */
++static void
++test_one_record (uint16_t rtype, const char *rdata, size_t rdatalen,
++                 const char *expected)
++{
++  struct rr_header
++  {
++    uint16_t typ;
++    uint16_t cls;
++    uint32_t ttl;
++    uint16_t rdatalen;
++    uint16_t pad;
++  } hdr =
++    {
++      .typ = htons (rtype),
++      .cls = htons (ns_c_in),
++      .ttl = htonl (86400),     /* One day.  */
++      .rdatalen = htons (rdatalen),
++    };
++  enum { hdrlen = offsetof (struct rr_header, pad) };
++  TEST_COMPARE (hdrlen, 10);
++
++  /* Construct the packet from packet_prefix, hdr, and rdata.  */
++  unsigned char packet[512];
++  size_t packetlen;
++  {
++    struct alloc_buffer buf = alloc_buffer_create (packet, sizeof (packet));
++    alloc_buffer_copy_bytes (&buf, packet_prefix, sizeof (packet_prefix) - 1);
++    alloc_buffer_copy_bytes (&buf, &hdr, hdrlen);
++    alloc_buffer_copy_bytes (&buf, rdata, rdatalen);
++    packetlen = sizeof (packet) - alloc_buffer_size (&buf);
++  }
++
++  /* Parse the record.   */
++  ns_msg msg;
++  TEST_COMPARE (ns_initparse (packet, packetlen, &msg), 0);
++  ns_rr rr;
++  TEST_COMPARE (ns_parserr (&msg, ns_s_an, 0, &rr), 0);
++
++  /* Try sizes up to this limit.  Go a bit beyond the expected size to
++     check for errors.  */
++  size_t max_result_size = strlen (expected) + 16;
++
++  bool success = false;
++  for (size_t result_size = 1; result_size <= max_result_size; ++result_size)
++    {
++      char *result_start = ntf_out.buffer + ntf_out.length - result_size;
++      memset (result_start, 'X', result_size);
++
++      /* ns_sprintrr was deprecated in 2.34.  */
++      DIAG_PUSH_NEEDS_COMMENT;
++      DIAG_IGNORE_NEEDS_COMMENT (4.9, "-Wdeprecated-declarations");
++      int ret = ns_sprintrr (&msg, &rr, NULL, NULL, result_start, result_size);
++      DIAG_POP_NEEDS_COMMENT;
++
++      if (ret > 0)
++        {
++          TEST_COMPARE_STRING (result_start, expected);
++          TEST_COMPARE (ret, strlen (expected));
++          success = true;
++        }
++      else
++        {
++          TEST_VERIFY (!success);
++          TEST_COMPARE (ret, -1);
++        }
++    }
++  TEST_VERIFY (success);
++
++  /* Test with truncated RDATA.   */
++  for (size_t rdata_size = 0; rdata_size <= rdatalen; ++rdata_size)
++    {
++      size_t truncated_packet_size = packetlen - rdatalen + rdata_size;
++      unsigned char *packet_start
++        = ((unsigned char *) ntf_in.buffer + ntf_in.length
++           - truncated_packet_size);
++      memcpy (packet_start, packet, truncated_packet_size);
++      /* Patch in the updated RDATA length field.  */
++      uint16_t new_rdatalen = htons (rdata_size);
++      memcpy (packet_start + truncated_packet_size - rdata_size - 2,
++              &new_rdatalen, 2);
++
++      ns_msg msg;
++      TEST_COMPARE (ns_initparse (packet_start, truncated_packet_size, &msg),
++                    0);
++      ns_rr rr;
++      TEST_COMPARE (ns_parserr (&msg, ns_s_an, 0, &rr), 0);
++
++      size_t result_size = strlen (expected) + 1;
++      char *result_start = ntf_out.buffer + ntf_out.length - result_size;
++      memset (result_start, 'X', result_size);
++
++      /* ns_sprintrr was deprecated in 2.34.  */
++      DIAG_PUSH_NEEDS_COMMENT;
++      DIAG_IGNORE_NEEDS_COMMENT (4.9, "-Wdeprecated-declarations");
++      int ret = ns_sprintrr (&msg, &rr, NULL, NULL, result_start, result_size);
++      DIAG_POP_NEEDS_COMMENT;
++
++      /* This flag indicates whether the output is syntactically
++         correct.  In some cases, truncation may still yield a valid
++         payload.  */
++      bool broken = rdata_size < rdatalen;
++      switch (rtype)
++        {
++        case ns_t_wks:
++          /* WKS records use all trailing bytes for the port bitmap.  */
++          broken = rdata_size < 5;
++          break;
++        case ns_t_nsap:
++          /* Uses all bytes that are available.  */
++          broken = false;
++          break;
++        case ns_t_txt:
++          /* Truncation produces a valid payload if it occurs right
++             after a complete string in the TXT payload.  */
++          broken = false;
++          for (size_t pos = 0; pos < rdata_size; )
++            {
++              unsigned int slen = rdata[pos] & 0xff;
++              if (pos + 1 + slen > rdata_size)
++                {
++                  broken = true;
++                  break;
++                }
++              pos += 1 + slen;
++            }
++          break;
++        case ns_t_isdn:
++          /* The second field is optional.  If it is present, it must
++             not be truncated.  */
++          broken = rdata_size < 6 || (rdata_size > 6 && rdata_size < rdatalen);
++          break;
++        case ns_t_a6:
++          /* The first A6 subtest contains a trailing domain name,
++             which is ignored and not formatted.  */
++          if (rdata_size > 0 && rdata[0] == 0)
++            broken = rdata_size < 17;
++          break;
++        case ns_t_cert:
++        case ns_t_tkey:
++        case ns_t_tsig:
++          /* Only generic printing, which does not validate anything.  */
++          broken = false;
++          break;
++        }
++
++      if (broken)
++        {
++          if (strstr (result_start, "RR format error") != NULL)
++            /* No further checks if an error indicator has been added
++               to the output.  */
++            ;
++          else
++            TEST_COMPARE (ret, -1);
++        }
++      else
++        TEST_VERIFY (ret > 0);
++    }
++}
++
++static int
++do_test (void)
++{
++  ntf_in = support_next_to_fault_allocate (512);
++  ntf_out = support_next_to_fault_allocate (256);
++
++#define T(rtype, rdata, expected) \
++  test_one_record (rtype, rdata, sizeof (rdata) - 1, expected)
++  T (ns_t_a, "\xc0\0\2\1", "www.example.org.\t1D IN A\t\t192.0.2.1");
++  T (ns_t_cname, "\4www1\4prod\xc0\x10",
++     "www.example.org.\t1D IN CNAME\twww1.prod.example.org.");
++  T (ns_t_hinfo, "\5first\6second",
++     "www.example.org.\t1D IN HINFO\t\"first\" \"second\"");
++  T (ns_t_isdn, "\5first\6second",
++     "www.example.org.\t1D IN ISDN\t\"first\" \"second\"");
++  /* Bug: Extra space at the end in the text representation of ISDN RRs.  */
++  T (ns_t_isdn, "\5first", "www.example.org.\t1D IN ISDN\t\"first\" ");
++  T (ns_t_soa,
++     "\2ns\xc0\x10\12hostmaster\xc0\x10"
++     "\0\0\0\1\0\0\0\2\0\0\0\3\0\0\0\4\0\0\0\5",
++     "www.example.org.\t1D IN SOA\tns.example.org. hostmaster.example.org. (\n"
++     "\t\t\t\t\t1\t\t; serial\n"
++     "\t\t\t\t\t2S\t\t; refresh\n"
++     "\t\t\t\t\t3S\t\t; retry\n"
++     "\t\t\t\t\t4S\t\t; expiry\n"
++     "\t\t\t\t\t5S )\t\t; minimum\n");
++  T (ns_t_mx, "\0\xa\2mx\xc0\x10",
++     "www.example.org.\t1D IN MX\t10 mx.example.org.");
++  T (ns_t_px, "\0\xa\3px1\xc0\x10\3px2\xc0\x10",
++     "www.example.org.\t1D IN PX\t10 px1.example.org. px2.example.org.");
++  T (ns_t_x25, "\4X.25",
++     "www.example.org.\t1D IN X25\t\"X.25\"");
++  T (ns_t_txt, "\1A\2BC\3DEF",
++     "www.example.org.\t1D IN TXT\t\"A\" \"BC\" \"DEF\"");
++  T (ns_t_nsap, "",
++     "www.example.org.\t1D IN NSAP\t");
++  T (ns_t_nsap, "\1",
++     "www.example.org.\t1D IN NSAP\t01");
++  T (ns_t_nsap, "\1\2",
++     "www.example.org.\t1D IN NSAP\t01.02");
++  T (ns_t_nsap, "\1\2\3",
++     "www.example.org.\t1D IN NSAP\t01.0203");
++  T (ns_t_nsap, "\1\2\3\4",
++     "www.example.org.\t1D IN NSAP\t01.0203.04");
++  T (ns_t_nsap,
++     "\1\2\3\4\5\6\7\10\11\12\13\14\15\16\17\20\21\22\23\24\25\26\27\30\31\32"
++     "\33\34\35\36\37\40\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\60\61"
++     "\62\63\64\65\66\67\70\71\72\73\74\75\76\77\100\101\102\103\104\105\106"
++     "\107\110\111\112\113\114\115\116\117\120\121\122\123\124\125\126\127"
++     "\130\131\132\133\134\135\136\137\140\141\142\143\144\145\146\147\150"
++     "\151\152\153\154\155\156\157\160\161\162\163\164\165\166\167\170\171"
++     "\172\173\174\175\176\177\200\201\202\203\204\205\206\207\210\211\212"
++     "\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233"
++     "\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254"
++     "\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275"
++     "\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316"
++     "\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337"
++     "\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360"
++     "\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377",
++     "www.example.org.\t1D IN NSAP\t"
++     "01.0203.0405.0607.0809.0A0B.0C0D.0E0F.1011.1213.1415.1617.1819.1A1B"
++     ".1C1D.1E1F.2021.2223.2425.2627.2829.2A2B.2C2D.2E2F.3031.3233.3435.3637"
++     ".3839.3A3B.3C3D.3E3F.4041.4243.4445.4647.4849.4A4B.4C4D.4E4F.5051.5253"
++     ".5455.5657.5859.5A5B.5C5D.5E5F.6061.6263.6465.6667.6869.6A6B.6C6D.6E6F"
++     ".7071.7273.7475.7677.7879.7A7B.7C7D.7E7F.8081.8283.8485.8687.8889.8A8B"
++     ".8C8D.8E8F.9091.9293.9495.9697.9899.9A9B.9C9D.9E9F.A0A1.A2A3.A4A5.A6A7"
++     ".A8A9.AAAB.ACAD.AEAF.B0B1.B2B3.B4B5.B6B7.B8B9.BABB.BCBD.BEBF.C0C1.C2C3"
++     ".C4C5.C6C7.C8C9.CACB.CCCD.CECF.D0D1.D2D3.D4D5.D6D7.D8D9.DADB.DCDD.DEDF"
++     ".E0E1.E2E3.E4E5.E6E7.E8E9.EAEB.ECED.EEEF.F0F1.F2F3.F4F5.F6F7.F8F9.FAFB"
++     ".FCFD.FEFF");
++  T (ns_t_aaaa, "\x20\x01\x0d\xb8\0\0\0\0\0\0\0\0\0\0\x12\x34",
++     "www.example.org.\t1D IN AAAA\t2001:db8::1234");
++  /* Example from RFC 1876.  The loc_ntoa format is different from the
++     official text representation.  */
++  T (ns_t_loc,
++     "\000\063\026\023\211\027\055\320\160\276\025\360\000\230\215\040",
++     "www.example.org.\t1D IN LOC"
++     "\t42 21 54.000 N 71 06 18.000 W -24.00m 30.00m 10000.00m 10.00m");
++  T (ns_t_naptr,
++     "\0\1\0\2\5flags\7service\2.*\5naptr\xc0\x10",
++     "www.example.org.\t1D IN NAPTR\t1 2 \"flags\" \"service\" \".*\""
++     " naptr.example.org.");
++  T (ns_t_srv,
++     "\0\1\0\2\0\x50\4www1\xc0\x10",
++     "www.example.org.\t1D IN SRV\t1 2 80 www1.example.org.");
++  T (ns_t_rp, "\3rp1\xc0\x10\3rp2\xc0\x10",
++     "www.example.org.\t1D IN RP\trp1.example.org. rp2.example.org.");
++  T (ns_t_wks, "\xc0\0\2\1\6\0\0\0\0\0\0\0\0\0\0\200",
++     "www.example.org.\t1D IN WKS\t192.0.2.1 6 ( \n\t\t\t\t80 )");
++  T (ns_t_cert, "\0\1\x04\xd2\0blob",
++     "www.example.org.\t1D IN CERT\t\\# 9 (\n"
++     "\t00 01 04 d2 00 62 6c 6f 62 )\t\t\t; .....blob");
++  T (ns_t_tkey, "\4algo\0\0\0\0\1\0\0\0\2\0\3\0\4"
++     "\0\5\xa1\xa2\xa3\xa4\xa5\0\3\xb1\xb2\xb3",
++     "www.example.org.\t1D IN TYPE249\t\\# 30 (\n"
++     "\t04 61 6c 67 6f 00 00 00 00 01 00 00 00 02 00 03 ; .algo...........\n"
++     "\t00 04 00 05 a1 a2 a3 a4 a5 00 03 b1 b2 b3 )\t; ..............");
++  T (ns_t_tsig, "\4algo\0"
++     "\0\20\xdd\xcd\x64\x10\xe9\x21\x34\x1a\x8e\xe0\xa1\x9a\x30\xfc\x3b\xd1"
++     "\0\2\0\3\0\5other",
++     "www.example.org.\t1D IN TSIG\t\\# 35 (\n"
++     "\t04 61 6c 67 6f 00 00 10 dd cd 64 10 e9 21 34 1a ; .algo.....d..!4.\n"
++     "\t8e e0 a1 9a 30 fc 3b d1 00 02 00 03 00 05 6f 74 ; ....0.;.......ot\n"
++     "\t68 65 72 )\t\t\t\t\t; her");
++  T (ns_t_a6,
++     "\0\x20\x01\x0d\xb8\0\0\0\0\0\0\0\0\0\0\x12\x34\6prefix\xc0\x10",
++     "www.example.org.\t1D IN A6\t0 2001:db8::1234");
++  T (ns_t_a6,
++     "\0\x20\x01\x0d\xb8\0\0\0\0\0\0\0\0\0\0\x12\x35",
++     "www.example.org.\t1D IN A6\t0 2001:db8::1235");
++  T (ns_t_a6, "\200\6prefix\xc0\x10",
++     "www.example.org.\t1D IN A6\t128  prefix.example.org.");
++  T (ns_t_a6, "\x20\0\0\0\0\0\0\0\0\0\0\x12\x36\6prefix\xc0\x10",
++     "www.example.org.\t1D IN A6\t32 ::1236 prefix.example.org.");
++#undef T
++
++  support_next_to_fault_free (&ntf_in);
++  support_next_to_fault_free (&ntf_out);
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/resolv/tst-resolv-dns-section.c b/resolv/tst-resolv-dns-section.c
 new file mode 100644
 index 0000000000..1171baef51
@@ -9190,6 +10858,139 @@ index 0000000000..0c802ab967
 +}
 +
 +#include <support/test-driver.c>
+diff --git a/scripts/abilist.awk b/scripts/abilist.awk
+index 6cc7af6ac8..7ea1edf8c0 100644
+--- a/scripts/abilist.awk
++++ b/scripts/abilist.awk
+@@ -38,7 +38,7 @@ $4 == "*UND*" { next }
+ $2 == "l" { next }
+ 
+ # If the target uses ST_OTHER, it will be output before the symbol name.
+-$2 == "g" || $2 == "w" && (NF == 7 || NF == 8) {
++$2 == "g" || $2 == "w" && (NF == 6 || NF == 7 || NF == 8) {
+   type = $3;
+   size = $5;
+   sub(/^0*/, "", size);
+diff --git a/stdio-common/Makefile b/stdio-common/Makefile
+index 210944837e..0c0085e607 100644
+--- a/stdio-common/Makefile
++++ b/stdio-common/Makefile
+@@ -349,6 +349,7 @@ tests := \
+   tst-vfprintf-user-type \
+   tst-vfprintf-width-i18n \
+   tst-vfprintf-width-prec-alloc \
++  tst-vfscanf-bz34008 \
+   tst-wc-printf \
+   tstdiomisc \
+   tstgetln \
+@@ -564,6 +565,9 @@ tst-printf-bz18872-ENV = MALLOC_TRACE=$(objpfx)tst-printf-bz18872.mtrace \
+ tst-vfprintf-width-prec-ENV = \
+   MALLOC_TRACE=$(objpfx)tst-vfprintf-width-prec.mtrace \
+   LD_PRELOAD=$(common-objpfx)/malloc/libc_malloc_debug.so
++tst-vfscanf-bz34008-ENV = \
++  MALLOC_CHECK_=3 \
++  LD_PRELOAD=$(common-objpfx)/malloc/libc_malloc_debug.so
+ tst-printf-bz25691-ENV = \
+   MALLOC_TRACE=$(objpfx)tst-printf-bz25691.mtrace \
+   LD_PRELOAD=$(common-objpfx)/malloc/libc_malloc_debug.so
+diff --git a/stdio-common/tst-vfscanf-bz34008.c b/stdio-common/tst-vfscanf-bz34008.c
+new file mode 100644
+index 0000000000..48371c8a3d
+--- /dev/null
++++ b/stdio-common/tst-vfscanf-bz34008.c
+@@ -0,0 +1,48 @@
++/* Regression test for vfscanf %Nmc out-of-bound write (BZ #34008)
++   Copyright (C) 2026 The GNU Toolchain Authors.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include "malloc/mcheck.h"
++#include <stddef.h>
++#include <stdio.h>
++#include <string.h>
++#include <wchar.h>
++#include <stdlib.h>
++#include <malloc.h>
++#include <support/check.h>
++
++#define WIDTH 0x410
++#define SCANFSTR "%1040mc"
++static int
++do_test (void)
++{
++  mcheck_pedantic (NULL);
++  char *input = malloc (WIDTH + 1);
++  TEST_VERIFY (input != NULL);
++  memset (input, 'A', WIDTH);
++  input[WIDTH] = '\0';
++
++  char *buf = NULL;
++  TEST_VERIFY (sscanf (input, SCANFSTR, &buf) != -1);
++  TEST_VERIFY (buf != NULL);
++
++  free (buf);
++  free (input);
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/stdio-common/vfscanf-internal.c b/stdio-common/vfscanf-internal.c
+index 63b9246e47..8687150dff 100644
+--- a/stdio-common/vfscanf-internal.c
++++ b/stdio-common/vfscanf-internal.c
+@@ -862,8 +862,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
+ 			{
+ 			  /* Enlarge the buffer.  */
+ 			  size_t newsize
+-			    = strsize
+-			      + (strsize >= width ? width - 1 : strsize);
++			    = strsize + (strsize >= width ? width : strsize);
+ 
+ 			  str = (char *) realloc (*strptr, newsize);
+ 			  if (str == NULL)
+@@ -936,7 +935,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
+ 		      && wstr == (wchar_t *) *strptr + strsize)
+ 		    {
+ 		      size_t newsize
+-			= strsize + (strsize > width ? width - 1 : strsize);
++			= strsize + (strsize >= width ? width : strsize);
+ 		      /* Enlarge the buffer.  */
+ 		      wstr = (wchar_t *) realloc (*strptr,
+ 						  newsize * sizeof (wchar_t));
+@@ -991,7 +990,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
+ 		    && wstr == (wchar_t *) *strptr + strsize)
+ 		  {
+ 		    size_t newsize
+-		      = strsize + (strsize > width ? width - 1 : strsize);
++		      = strsize + (strsize >= width ? width : strsize);
+ 		    /* Enlarge the buffer.  */
+ 		    wstr = (wchar_t *) realloc (*strptr,
+ 						newsize * sizeof (wchar_t));
+diff --git a/string/Makefile b/string/Makefile
+index c4423c0437..aa0b0c2f57 100644
+--- a/string/Makefile
++++ b/string/Makefile
+@@ -286,6 +286,7 @@ CFLAGS-wordcopy.c += $(no-stack-protector)
+ # Called during static initialization
+ CFLAGS-strncmp.c += $(no-stack-protector)
+ CFLAGS-memset.c += $(no-stack-protector)
++CFLAGS-strlen.c += $(no-stack-protector)
+ 
+ ifeq ($(run-built-tests),yes)
+ $(objpfx)tst-svc-cmp.out: tst-svc.expect $(objpfx)tst-svc.out
 diff --git a/sysdeps/aarch64/Makefile b/sysdeps/aarch64/Makefile
 index 0d32eddf36..ff4f72c45e 100644
 --- a/sysdeps/aarch64/Makefile
@@ -9269,6 +11070,418 @@ index 3b5ff2cccb..c278485cd3 100644
 +	b	_dl_gcs_lock_failed
 +
  END (_start)
+diff --git a/sysdeps/aarch64/multiarch/dl-symbol-redir-ifunc.h b/sysdeps/aarch64/multiarch/dl-symbol-redir-ifunc.h
+index 647bdd66dd..9f772614bf 100644
+--- a/sysdeps/aarch64/multiarch/dl-symbol-redir-ifunc.h
++++ b/sysdeps/aarch64/multiarch/dl-symbol-redir-ifunc.h
+@@ -20,5 +20,6 @@
+ #define _DL_IFUNC_GENERIC_H
+ 
+ asm ("memset = __memset_generic");
++asm ("strlen = __strlen_generic");
+ 
+ #endif
+diff --git a/sysdeps/aarch64/multiarch/strlen_generic.S b/sysdeps/aarch64/multiarch/strlen_generic.S
+index cb9d5759ac..a362328142 100644
+--- a/sysdeps/aarch64/multiarch/strlen_generic.S
++++ b/sysdeps/aarch64/multiarch/strlen_generic.S
+@@ -40,3 +40,7 @@
+ #endif
+ 
+ #include "../strlen.S"
++
++#if IS_IN (rtld)
++strong_alias (strlen, __strlen_generic)
++#endif
+diff --git a/sysdeps/arm/Makefile b/sysdeps/arm/Makefile
+index d08dade3c5..0bb1b6e05b 100644
+--- a/sysdeps/arm/Makefile
++++ b/sysdeps/arm/Makefile
+@@ -30,6 +30,25 @@ $(objpfx)tst-armtlsdescloc: $(objpfx)tst-armtlsdesclocmod.so
+ $(objpfx)tst-armtlsdescextnow: $(objpfx)tst-armtlsdescextnowmod.so
+ $(objpfx)tst-armtlsdescextlazy: $(objpfx)tst-armtlsdescextlazymod.so
+ endif
++
++tests += \
++  tst-bz34144 \
++  tst-bz34144-audit \
++  # tests
++modules-names += \
++  tst-bz34144-auditmod \
++  tst-bz34144-mod \
++  # modules-names
++$(objpfx)tst-bz34144: $(objpfx)tst-bz34144-mod.so
++$(objpfx)tst-bz34144-audit: $(objpfx)tst-bz34144-mod.so
++$(objpfx)tst-bz34144-audit.out: $(objpfx)tst-bz34144-auditmod.so
++# Use lazy binding to check if _dl_runtime_resolve correctly save/restore
++# the VFP state.
++LDFLAGS-tst-bz34144 = -Wl,-z,lazy
++# With LD_AUDIT, lazy resolution goes through _dl_runtime_profile, which
++# must also save/restore VFP state (BZ 34144).
++LDFLAGS-tst-bz34144-audit = -Wl,-z,lazy
++tst-bz34144-audit-ENV = LD_AUDIT=$(objpfx)tst-bz34144-auditmod.so
+ endif
+ endif
+ 
+diff --git a/sysdeps/arm/dl-trampoline.S b/sysdeps/arm/dl-trampoline.S
+index eb6d464384..88d6824e52 100644
+--- a/sysdeps/arm/dl-trampoline.S
++++ b/sysdeps/arm/dl-trampoline.S
+@@ -20,6 +20,7 @@
+ #define NO_THUMB
+ #include <sysdep.h>
+ #include <libc-symbols.h>
++#include <rtld-global-offsets.h>
+ 
+ 	.text
+ 	.globl _dl_runtime_resolve
+@@ -36,13 +37,40 @@ _dl_runtime_resolve:
+ 	@	ip contains &GOT[n+3] (pointer to function)
+ 	@	lr points to &GOT[2]
+ 
+-	@ Save arguments.  We save r4 to realign the stack.
++	@ Save arguments.  We save r4 to realign the stack and to hold
++	@ the hwcap value used to decide whether to save VFP registers.
+ 	push	{r0-r4}
+ 	cfi_adjust_cfa_offset (20)
+ 	cfi_rel_offset (r0, 0)
+ 	cfi_rel_offset (r1, 4)
+ 	cfi_rel_offset (r2, 8)
+ 	cfi_rel_offset (r3, 12)
++	cfi_rel_offset (r4, 16)
++
++#ifdef SHARED
++	@ Preserve all call-clobbered VFP registers across _dl_fixup.
++	@ VFP may be used by IFUNC resolvers, audit modules, interposed
++	@ malloc, and the __aeabi_mem* helpers required by RTABI32,
++	@ which mandates that those helpers only corrupt integer core
++	@ registers.
++	LDR_GLOBAL (r4, r3, C_SYMBOL_NAME(_rtld_global_ro), \
++		    RTLD_GLOBAL_RO_DL_HWCAP_OFFSET)
++
++	tst	r4, #HWCAP_ARM_VFP
++	beq	.Lno_vfp_save
++
++# define VFP_STACK_REQ (32*8 + 8)
++	sub	sp, sp, VFP_STACK_REQ
++	cfi_adjust_cfa_offset (VFP_STACK_REQ)
++	mov	r3, sp
++	.inst	0xeca30b20	@ vstmia r3!, {d0-d15}
++	tst	r4, #HWCAP_ARM_VFPD32
++	beq	1f
++	.inst	0xece30b20	@ vstmia r3!, {d16-d31}
++1:	.inst	0xeef12a10	@ vmrs r2, fpscr
++	str	r2, [r3]
++.Lno_vfp_save:
++#endif /* SHARED */
+ 
+ 	@ get pointer to linker struct
+ 	ldr	r0, [lr, #-4]
+@@ -59,8 +87,23 @@ _dl_runtime_resolve:
+ 	@ save the return
+ 	mov	ip, r0
+ 
+-	@ get arguments and return address back.  We restore r4
+-	@ only to realign the stack.
++#ifdef SHARED
++	tst	r4, #HWCAP_ARM_VFP
++	beq	.Lno_vfp_restore
++	mov	r3, sp
++	.inst	0xecb30b20	@ vldmia r3!, {d0-d15}
++	tst	r4, #HWCAP_ARM_VFPD32
++	beq	2f
++	.inst	0xecf30b20	@ vldmia r3!, {d16-d31}
++2:	ldr	r2, [r3]
++	.inst	0xeee12a10	@ vmsr fpscr, r2
++	add	sp, sp, VFP_STACK_REQ
++	cfi_adjust_cfa_offset (-VFP_STACK_REQ)
++.Lno_vfp_restore:
++#endif /* SHARED */
++
++	@ get arguments and return address back.  We restore r4 to
++	@ its original value as well.
+ 	pop	{r0-r4,lr}
+ 	cfi_adjust_cfa_offset (-24)
+ 
+@@ -124,14 +167,71 @@ _dl_runtime_profile:
+ 	add	r3, sp, #8
+ 	stmia	r3!, {r0,r1}
+ 
++	@ Preserve all call-clobbered VFP registers across
++	@ _dl_profile_fixup.  See the matching comment in
++	@ _dl_runtime_resolve above for the rationale (BZ 34144,
++	@ BZ 15792).
++	@
++	@ Stack layout below the current sp (which becomes the new sp
++	@ after the sub):
++	@   sp +  0 ..   3: outgoing arg (framesizep) for _dl_profile_fixup
++	@   sp +  4 ..   7: saved hwcap (so we can test it after the call)
++	@   sp +  8 ..  11: saved r2 (used as scratch for LDR_GLOBAL)
++	@   sp + 12 ..  15: padding (for 8-byte alignment of the VFP area)
++	@   sp + 16 .. 16+VFP_STACK_REQ-1: VFP regs + fpscr
++#define VFP_PROFILE_STACK (16 + VFP_STACK_REQ)
++	sub	sp, sp, #VFP_PROFILE_STACK
++	cfi_adjust_cfa_offset (VFP_PROFILE_STACK)
++
++	@ r2 holds the retaddr (3rd arg to _dl_profile_fixup); spill
++	@ it so we can use it as the LDR_GLOBAL destination.
++	str	r2, [sp, #8]
++
++	LDR_GLOBAL (r2, ip, C_SYMBOL_NAME(_rtld_global_ro), \
++		    RTLD_GLOBAL_RO_DL_HWCAP_OFFSET)
++	str	r2, [sp, #4]
++
++	tst	r2, #HWCAP_ARM_VFP
++	beq	.Lprofile_no_vfp_save
++	add	ip, sp, #16
++	.inst	0xecac0b20	@ vstmia ip!, {d0-d15}
++	tst	r2, #HWCAP_ARM_VFPD32
++	beq	7f
++	.inst	0xecec0b20	@ vstmia ip!, {d16-d31}
++7:	.inst	0xeef12a10	@ vmrs r2, fpscr
++	str	r2, [ip]
++.Lprofile_no_vfp_save:
++
++	@ Restore r2 (retaddr) for _dl_profile_fixup.
++	ldr	r2, [sp, #8]
++
+ 	@ Set up extra args for _dl_profile_fixup.
+-	@ r2 and r3 are already loaded.
+-	add	ip, sp, #208
++	@ The framesize slot is at the old sp+208, which is the new
++	@ sp + VFP_PROFILE_STACK + 208 -- compute in two steps because
++	@ the combined offset is not encodable as an ARM immediate.
++	add	ip, sp, #VFP_PROFILE_STACK
++	add	ip, ip, #208
+ 	str	ip, [sp, #0]
+ 
+ 	@ call profiling fixup routine
+ 	bl	_dl_profile_fixup
+ 
++	@ Restore VFP registers.  r0 holds the resolved function
++	@ address; r1/r2/ip are caller-saved by the call.
++	ldr	r1, [sp, #4]
++	tst	r1, #HWCAP_ARM_VFP
++	beq	.Lprofile_no_vfp_restore
++	add	ip, sp, #16
++	.inst	0xecbc0b20	@ vldmia ip!, {d0-d15}
++	tst	r1, #HWCAP_ARM_VFPD32
++	beq	8f
++	.inst	0xecfc0b20	@ vldmia ip!, {d16-d31}
++8:	ldr	r2, [ip]
++	.inst	0xeee12a10	@ vmsr fpscr, r2
++.Lprofile_no_vfp_restore:
++	add	sp, sp, #VFP_PROFILE_STACK
++	cfi_adjust_cfa_offset (-VFP_PROFILE_STACK)
++
+ 	@ The address to call is now in r0.
+ 
+ 	@ Check whether we're wrapping this function.
+diff --git a/sysdeps/arm/tst-bz34144-audit.c b/sysdeps/arm/tst-bz34144-audit.c
+new file mode 100644
+index 0000000000..8f1084fa0a
+--- /dev/null
++++ b/sysdeps/arm/tst-bz34144-audit.c
+@@ -0,0 +1,32 @@
++/* Test that lazy PLT resolution via _dl_runtime_profile preserves
++   caller-saved VFP registers used to pass double arguments (BZ 34144).
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <support/test-driver.h>
++
++extern void test_float_args (double a, double b, double c, double d,
++			     double e, double f, double g, double h);
++
++static int
++do_test (void)
++{
++  test_float_args (2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/sysdeps/arm/tst-bz34144-auditmod.c b/sysdeps/arm/tst-bz34144-auditmod.c
+new file mode 100644
+index 0000000000..ada9f126c2
+--- /dev/null
++++ b/sysdeps/arm/tst-bz34144-auditmod.c
+@@ -0,0 +1,50 @@
++/* Minimal audit module used by tst-bz34144-audit to force PLT calls
++   to go through _dl_runtime_profile instead of _dl_runtime_resolve.
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <link.h>
++#include <stddef.h>
++#include <stdint.h>
++
++unsigned int
++la_version (unsigned int v)
++{
++  return v;
++}
++
++unsigned int
++la_objopen (struct link_map *l, Lmid_t lmid, uintptr_t *cookie)
++{
++  return LA_FLG_BINDFROM | LA_FLG_BINDTO;
++}
++
++uintptr_t
++la_symbind32 (Elf32_Sym *sym, unsigned int ndx, uintptr_t *refcook,
++	      uintptr_t *defcook, unsigned int *flags, const char *symname)
++{
++  return sym->st_value;
++}
++
++Elf32_Addr
++la_arm_gnu_pltenter (Elf32_Sym *sym, unsigned int ndx, uintptr_t *refcook,
++		     uintptr_t *defcook, La_arm_regs *regs,
++		     unsigned int *flags, const char *symname,
++		     long int *framesizep)
++{
++  return sym->st_value;
++}
+diff --git a/sysdeps/arm/tst-bz34144-mod.c b/sysdeps/arm/tst-bz34144-mod.c
+new file mode 100644
+index 0000000000..be6b54bf91
+--- /dev/null
++++ b/sysdeps/arm/tst-bz34144-mod.c
+@@ -0,0 +1,28 @@
++/* DSO used by tst-bz34144.
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <stdlib.h>
++
++void
++test_float_args (double a, double b, double c, double d,
++		 double e, double f, double g, double h)
++{
++  if (a != 2.0 || b != 3.0 || c != 4.0 || d != 5.0
++      || e != 6.0 || f != 7.0 || g != 8.0 || h != 9.0)
++    abort ();
++}
+diff --git a/sysdeps/arm/tst-bz34144.c b/sysdeps/arm/tst-bz34144.c
+new file mode 100644
+index 0000000000..61e41b3945
+--- /dev/null
++++ b/sysdeps/arm/tst-bz34144.c
+@@ -0,0 +1,32 @@
++/* Test that lazy PLT resolution preserves caller-saved VFP registers
++   used to pass double arguments (BZ 34144).
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <support/test-driver.h>
++
++extern void test_float_args (double a, double b, double c, double d,
++			     double e, double f, double g, double h);
++
++static int
++do_test (void)
++{
++  test_float_args (2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/sysdeps/hppa/fpu/feupdateenv.c b/sysdeps/hppa/fpu/feupdateenv.c
+index 397ec7298c..4d7c7f5a37 100644
+--- a/sysdeps/hppa/fpu/feupdateenv.c
++++ b/sysdeps/hppa/fpu/feupdateenv.c
+@@ -24,6 +24,7 @@ __feupdateenv (const fenv_t *envp)
+ {
+   union { unsigned long long l; unsigned int sw[2]; } s;
+   fenv_t temp;
++
+   /* Get the current exception status */
+   __asm__ ("fstd %%fr0,0(%1)	\n\t"
+            "fldd 0(%1),%%fr0	\n\t"
+@@ -46,6 +47,10 @@ __feupdateenv (const fenv_t *envp)
+ 
+   /* Install new environment.  */
+   __fesetenv (&temp);
++
++  /* Raise exceptions.  */
++  __feraiseexcept (temp.__status_word >> 27);
++
+   /* Success.  */
+   return 0;
+ }
+diff --git a/sysdeps/ieee754/dbl-64/s_fma.c b/sysdeps/ieee754/dbl-64/s_fma.c
+index d65d505915..b9147ae32c 100644
+--- a/sysdeps/ieee754/dbl-64/s_fma.c
++++ b/sysdeps/ieee754/dbl-64/s_fma.c
+@@ -114,7 +114,10 @@ __fma (double x, double y, double z)
+ 	  zhi = nz.m;
+ 	  e = nz.e - 64;
+ 	  d -= 64;
+-	  if (d < 64)
++	  if (d == 0)
++	    /* No further shift of r needed; rhi/rlo are unchanged.  */
++	    ;
++	  else if (d < 64)
+ 	    {
+ 	      rlo = rhi << (64 - d) | rlo >> d | !!(rlo << (64 - d));
+ 	      rhi = rhi >> d;
 diff --git a/sysdeps/ieee754/ldbl-128ibm/s_ceill.c b/sysdeps/ieee754/ldbl-128ibm/s_ceill.c
 index 8038cf9fda..88bc364db5 100644
 --- a/sysdeps/ieee754/ldbl-128ibm/s_ceill.c
@@ -9325,6 +11538,529 @@ index 7f0b77cd3f..21ecbd0c85 100644
  	}
      }
    else
+diff --git a/sysdeps/loongarch/lp64/multiarch/dl-symbol-redir-ifunc.h b/sysdeps/loongarch/lp64/multiarch/dl-symbol-redir-ifunc.h
+index 9fdd039da0..8af00d2846 100644
+--- a/sysdeps/loongarch/lp64/multiarch/dl-symbol-redir-ifunc.h
++++ b/sysdeps/loongarch/lp64/multiarch/dl-symbol-redir-ifunc.h
+@@ -22,6 +22,7 @@
+ #ifndef SHARED
+ asm ("memset = __memset_aligned");
+ asm ("memcmp = __memcmp_aligned");
++asm ("strlen = __strlen_aligned");
+ #endif
+ 
+ #endif
+diff --git a/sysdeps/mach/hurd/bits/ioctls.h b/sysdeps/mach/hurd/bits/ioctls.h
+index 151761ef66..162a815082 100644
+--- a/sysdeps/mach/hurd/bits/ioctls.h
++++ b/sysdeps/mach/hurd/bits/ioctls.h
+@@ -306,7 +306,7 @@ enum __ioctl_datum { IOC_8, IOC_16, IOC_32, IOC_64 };
+ #define	SIOCGIFMETRIC	_IOWR('i',23, struct ifreq_int)	/* get IF metric */
+ #define	SIOCSIFMETRIC	_IOW('i',24, struct ifreq_int)	/* set IF metric */
+ #define	SIOCDIFADDR	_IOW('i',25, struct ifreq)	/* delete IF addr */
+-#define	SIOCAIFADDR	_IOW('i',26, struct ifaliasreq)	/* add/chg IF alias */
++/* #define	SIOCAIFADDR	_IOW('i',26, struct ifaliasreq)	 add/chg IF alias */
+ 
+ #define	SIOCSARP	_IOW('i', 30, struct arpreq)	/* set arp entry */
+ #define	OSIOCGARP	_IOWR('i',31, struct arpreq)	/* get arp entry */
+diff --git a/sysdeps/mach/hurd/bits/socket.h b/sysdeps/mach/hurd/bits/socket.h
+index 9b81d48816..fb73dea063 100644
+--- a/sysdeps/mach/hurd/bits/socket.h
++++ b/sysdeps/mach/hurd/bits/socket.h
+@@ -95,8 +95,8 @@ enum __socket_type
+ #define	PF_LAT		14	/* DEC Local Area Transport protocol.  */
+ #define	PF_HYLINK	15	/* NSC Hyperchannel protocol.  */
+ #define	PF_APPLETALK	16	/* Don't use this.  */
+-#define	PF_ROUTE	17	/* Internal Routing Protocol.  */
+-#define	PF_LINK		18	/* Link layer interface.  */
++/* #define	PF_ROUTE	17	Internal Routing Protocol.  */
++/* #define	PF_LINK		18	Link layer interface.  */
+ #define	PF_XTP		19	/* eXpress Transfer Protocol (no AF).  */
+ #define	PF_COIP		20	/* Connection-oriented IP, aka ST II.  */
+ #define	PF_CNT		21	/* Computer Network Technology.  */
+@@ -128,8 +128,8 @@ enum __socket_type
+ #define	AF_LAT		PF_LAT
+ #define	AF_HYLINK	PF_HYLINK
+ #define	AF_APPLETALK	PF_APPLETALK
+-#define	AF_ROUTE	PF_ROUTE
+-#define	AF_LINK		PF_LINK
++/* #define	AF_ROUTE	PF_ROUTE */
++/* #define	AF_LINK		PF_LINK */
+ #ifdef __USE_MISC
+ # define	pseudo_AF_XTP	PF_XTP
+ #endif
+diff --git a/sysdeps/powerpc/nptl/bits/struct_mutex.h b/sysdeps/powerpc/nptl/bits/struct_mutex.h
+index 1472af21f7..ebf2d50922 100644
+--- a/sysdeps/powerpc/nptl/bits/struct_mutex.h
++++ b/sysdeps/powerpc/nptl/bits/struct_mutex.h
+@@ -32,7 +32,7 @@ struct __pthread_mutex_s
+   int __kind;
+ #if __WORDSIZE == 64
+   short __spins;
+-  short __unused;
++  short __glibc_reserved;
+   __pthread_list_t __list;
+ # define __PTHREAD_MUTEX_HAVE_PREV      1
+ #else
+diff --git a/sysdeps/powerpc/powerpc64/le/power10/memchr.S b/sysdeps/powerpc/powerpc64/le/power10/memchr.S
+new file mode 100644
+index 0000000000..5167a349ca
+--- /dev/null
++++ b/sysdeps/powerpc/powerpc64/le/power10/memchr.S
+@@ -0,0 +1,299 @@
++/* Optimized memchr implementation for POWER10 LE.
++   Copyright (C) 2021-2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <sysdep.h>
++
++# ifndef MEMCHR
++#  define MEMCHR __memchr
++# endif
++# define M_VREG_ZERO v17
++# define M_OFF_START_LOOP 256
++# define MEMCHR_SUBTRACT_VECTORS \
++	vsububm   v4,v4,v18;	    \
++	vsububm   v5,v5,v18;	    \
++	vsububm   v6,v6,v18;	    \
++	vsububm   v7,v7,v18;
++# define M_TAIL(vreg,increment)	   \
++	vctzlsbb  r4,vreg;	   \
++	cmpld     r5,r4;	   \
++	ble       L(null);	   \
++	addi	  r4,r4,increment; \
++	add	  r3,r6,r4;	   \
++	blr
++
++#define CHECK16B(vreg,offset,addr,label) \
++	lxv	  vreg+32,offset(addr);	\
++	vcmpequb. vreg,vreg,v18;	\
++	bne	  cr6,L(label);		\
++	cmpldi	  r5,16;		\
++	ble	  L(null);		\
++	addi	  r5,r5,-16;
++
++/* Load 4 quadwords, merge into one VR for speed and check for NULLs.  r6 has #
++   of bytes already checked.  */
++#define CHECK64B(offset,addr,label)	    \
++	lxvp      v4+32,offset(addr);	    \
++	lxvp      v6+32,offset+32(addr);    \
++	MEMCHR_SUBTRACT_VECTORS;	    \
++	vminub	  v14,v4,v5;		    \
++	vminub	  v15,v6,v7;		    \
++	vminub	  v16,v14,v15;		    \
++	vcmpequb. v0,v16,M_VREG_ZERO;	    \
++	beq	  cr6,$+12;		    \
++	li	  r7,offset;		    \
++	b     	  L(label);          	    \
++	cmpldi	  r5,64;		    \
++	ble	  L(null);		    \
++	addi	  r5,r5,-64
++
++/* Implements the function
++   void *[r3] memchr (const void *s [r3], int c [r4], size_t n [r5]).  */
++
++	.machine power10
++
++ENTRY_TOCLESS (MEMCHR)
++	CALL_MCOUNT 3
++
++	cmpldi	r5,0
++	beq	L(null)
++	mr	r0,r5
++	xori	r6,r4,0xff
++
++	mtvsrd	v18+32,r4	/* matching char in v18  */
++	mtvsrd	v19+32,r6	/* non matching char in v19  */
++
++	vspltb	v18,v18,7	/* replicate  */
++	vspltb	v19,v19,7	/* replicate  */
++	vspltisb  M_VREG_ZERO,0
++
++	/* Next 16B-aligned address. Prepare address for L(aligned).  */
++	addi	  r6,r3,16
++	clrrdi	  r6,r6,4
++
++	/* Align data and fill bytes not loaded with non matching char.	 */
++	lvx	  v0,0,r3
++	lvsr	  v1,0,r3
++	vperm	  v0,v19,v0,v1
++
++	vcmpequb. v6,v0,v18
++	bne	  cr6,L(found)
++	sub	  r4,r6,r3
++	cmpld	  r5,r4
++	ble	  L(null)
++	sub	  r5,r5,r4
++
++	/* Test up to OFF_START_LOOP-16 bytes in 16B chunks.  The main loop is
++	   optimized for longer strings, so checking the first bytes in 16B
++	   chunks benefits a lot small strings.  */
++	.p2align 5
++L(aligned):
++	cmpldi	r5,0
++	beq     L(null)
++
++	CHECK16B(v0,0,r6,tail1)
++	CHECK16B(v1,16,r6,tail2)
++	CHECK16B(v2,32,r6,tail3)
++	CHECK16B(v3,48,r6,tail4)
++	CHECK16B(v4,64,r6,tail5)
++	CHECK16B(v5,80,r6,tail6)
++	CHECK16B(v6,96,r6,tail7)
++	CHECK16B(v7,112,r6,tail8)
++	CHECK16B(v8,128,r6,tail9)
++	CHECK16B(v9,144,r6,tail10)
++	CHECK16B(v10,160,r6,tail11)
++	CHECK16B(v0,176,r6,tail12)
++	CHECK16B(v1,192,r6,tail13)
++	CHECK16B(v2,208,r6,tail14)
++	CHECK16B(v3,224,r6,tail15)
++
++	cmpdi	cr5,r4,0	/* Check if c == 0.  This will be useful to
++				   choose how we will perform the main loop.  */
++
++	/* Prepare address for the loop.  */
++	addi	  r4,r3,M_OFF_START_LOOP
++	clrrdi	  r4,r4,6
++	sub	  r6,r4,r3
++	sub	  r5,r0,r6
++	addi	  r6,r4,128
++
++	/* If c == 0, use the loop without the vsububm.  */
++	beq	cr5,L(loop)
++
++	/* This is very similar to the block after L(loop), the difference is
++	   that here MEMCHR_SUBTRACT_VECTORS is not empty, and we subtract
++	   each byte loaded by the char we are looking for, this way we can keep
++	   using vminub to merge the results and checking for nulls.  */
++	.p2align 5
++L(memchr_loop):
++	CHECK64B(0,r4,pre_tail_64b)
++	CHECK64B(64,r4,pre_tail_64b)
++	addi	r4,r4,256
++
++	CHECK64B(0,r6,tail_64b)
++	CHECK64B(64,r6,tail_64b)
++	addi	r6,r6,256
++
++	CHECK64B(0,r4,pre_tail_64b)
++	CHECK64B(64,r4,pre_tail_64b)
++	addi	r4,r4,256
++
++	CHECK64B(0,r6,tail_64b)
++	CHECK64B(64,r6,tail_64b)
++	addi	r6,r6,256
++
++	b	L(memchr_loop)
++	/* Switch to a more aggressive approach checking 64B each time.  Use 2
++	   pointers 128B apart and unroll the loop once to make the pointer
++	   updates and usages separated enough to avoid stalls waiting for
++	   address calculation.  */
++	.p2align 5
++L(loop):
++#undef MEMCHR_SUBTRACT_VECTORS
++#define MEMCHR_SUBTRACT_VECTORS /* nothing */
++	CHECK64B(0,r4,pre_tail_64b)
++	CHECK64B(64,r4,pre_tail_64b)
++	addi	  r4,r4,256
++
++	CHECK64B(0,r6,tail_64b)
++	CHECK64B(64,r6,tail_64b)
++	addi	  r6,r6,256
++
++	CHECK64B(0,r4,pre_tail_64b)
++	CHECK64B(64,r4,pre_tail_64b)
++	addi      r4,r4,256
++
++	CHECK64B(0,r6,tail_64b)
++	CHECK64B(64,r6,tail_64b)
++	addi      r6,r6,256
++
++	b	  L(loop)
++
++	.p2align  5
++L(pre_tail_64b):
++	mr	r6,r4
++L(tail_64b):
++	/* OK, we found a null byte.  Let's look for it in the current 64-byte
++	   block and mark it in its corresponding VR.  lxvp vx,0(ry) puts the
++	   low 16B bytes into vx+1, and the high into vx, so the order here is
++	   v5, v4, v7, v6.  */
++	vcmpequb  v1,v5,M_VREG_ZERO
++	vcmpequb  v2,v4,M_VREG_ZERO
++	vcmpequb  v3,v7,M_VREG_ZERO
++	vcmpequb  v4,v6,M_VREG_ZERO
++
++	/* Take into account the other 64B blocks we had already checked.  */
++	add	r6,r6,r7
++	/* Extract first bit of each byte.  */
++	vextractbm r8,v1
++	vextractbm r9,v2
++	vextractbm r10,v3
++	vextractbm r11,v4
++
++	/* Shift each value into their corresponding position.  */
++	sldi	  r9,r9,16
++	sldi	  r10,r10,32
++	sldi	  r11,r11,48
++
++	/* Merge the results.  */
++	or	  r8,r8,r9
++	or	  r9,r10,r11
++	or	  r11,r9,r8
++
++	cnttzd	  r0,r11	  /* Count trailing zeros before the match.  */
++	cmpld     r5,r0
++	ble	  L(null)
++	add	  r3,r6,r0	  /* Compute final address.  */
++	blr
++
++	.p2align  5
++L(tail1):
++	M_TAIL(v0,0)
++
++	.p2align  5
++L(tail2):
++	M_TAIL(v1,16)
++
++	.p2align  5
++L(tail3):
++	M_TAIL(v2,32)
++
++	.p2align  5
++L(tail4):
++	M_TAIL(v3,48)
++
++	.p2align  5
++L(tail5):
++	M_TAIL(v4,64)
++
++	.p2align  5
++L(tail6):
++	M_TAIL(v5,80)
++
++	.p2align  5
++L(tail7):
++	M_TAIL(v6,96)
++
++	.p2align  5
++L(tail8):
++	M_TAIL(v7,112)
++
++	.p2align  5
++L(tail9):
++	M_TAIL(v8,128)
++
++	.p2align  5
++L(tail10):
++	M_TAIL(v9,144)
++
++	.p2align  5
++L(tail11):
++	M_TAIL(v10,160)
++
++	.p2align  5
++L(tail12):
++	M_TAIL(v0,176)
++
++	.p2align  5
++L(tail13):
++	M_TAIL(v1,192)
++
++	.p2align  5
++L(tail14):
++	M_TAIL(v2,208)
++
++	.p2align  5
++L(tail15):
++	M_TAIL(v3,224)
++
++	.p2align  5
++L(found):
++	vctzlsbb  r7,v6
++	cmpld     r5,r7
++	ble       L(null)
++	add       r3,r3,r7
++	blr
++
++	.p2align  5
++L(null):
++	li	r3,0
++	blr
++
++END (MEMCHR)
++
++weak_alias (__memchr, memchr)
++libc_hidden_builtin_def (memchr)
+diff --git a/sysdeps/powerpc/powerpc64/multiarch/Makefile b/sysdeps/powerpc/powerpc64/multiarch/Makefile
+index c9178223a8..7a3b34c94b 100644
+--- a/sysdeps/powerpc/powerpc64/multiarch/Makefile
++++ b/sysdeps/powerpc/powerpc64/multiarch/Makefile
+@@ -30,7 +30,7 @@ sysdep_routines += memcpy-power8-cached memcpy-power7 memcpy-a2 memcpy-power6 \
+ 		   strncase-power8
+ 
+ ifneq (,$(filter %le,$(config-machine)))
+-sysdep_routines += memcmp-power10 memcpy-power10 memmove-power10 memset-power10 \
++sysdep_routines += memchr-power10 memcmp-power10 memcpy-power10 memmove-power10 memset-power10 \
+ 		   rawmemchr-power9 rawmemchr-power10 \
+ 		   strcmp-power9 strcmp-power10 strncmp-power9 strncmp-power10 \
+ 		   strcpy-power9 strcat-power10 stpcpy-power9 \
+diff --git a/sysdeps/powerpc/powerpc64/multiarch/ifunc-impl-list.c b/sysdeps/powerpc/powerpc64/multiarch/ifunc-impl-list.c
+index 1458b4575d..2e5bd200d8 100644
+--- a/sysdeps/powerpc/powerpc64/multiarch/ifunc-impl-list.c
++++ b/sysdeps/powerpc/powerpc64/multiarch/ifunc-impl-list.c
+@@ -229,6 +229,12 @@ __libc_ifunc_impl_list (const char *name, struct libc_ifunc_impl *array,
+ 
+   /* Support sysdeps/powerpc/powerpc64/multiarch/memchr.c.  */
+   IFUNC_IMPL (i, name, memchr,
++#ifdef __LITTLE_ENDIAN__
++	      IFUNC_IMPL_ADD (array, i, memchr,
++		              hwcap2 & PPC_FEATURE2_ARCH_3_1
++			      && hwcap & PPC_FEATURE_HAS_VSX,
++			      __memchr_power10)
++#endif
+ 	      IFUNC_IMPL_ADD (array, i, memchr,
+ 			      hwcap2 & PPC_FEATURE2_ARCH_2_07
+ 			      && hwcap & PPC_FEATURE_HAS_ALTIVEC,
+diff --git a/sysdeps/powerpc/powerpc64/multiarch/memchr-power10.S b/sysdeps/powerpc/powerpc64/multiarch/memchr-power10.S
+new file mode 100644
+index 0000000000..7347524f9f
+--- /dev/null
++++ b/sysdeps/powerpc/powerpc64/multiarch/memchr-power10.S
+@@ -0,0 +1,28 @@
++/* Optimized memchr implementation for POWER10/PPC64.
++   Copyright (C) 2021-2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#if defined __LITTLE_ENDIAN__ && IS_IN (libc)
++#define MEMCHR __memchr_power10
++
++#undef libc_hidden_builtin_def
++#define libc_hidden_builtin_def(name)
++#undef weak_alias
++#define weak_alias(name,alias)
++
++#include <sysdeps/powerpc/powerpc64/le/power10/memchr.S>
++#endif
+diff --git a/sysdeps/powerpc/powerpc64/multiarch/memchr.c b/sysdeps/powerpc/powerpc64/multiarch/memchr.c
+index 3761fa5fcb..ef58dc03dd 100644
+--- a/sysdeps/powerpc/powerpc64/multiarch/memchr.c
++++ b/sysdeps/powerpc/powerpc64/multiarch/memchr.c
+@@ -25,15 +25,23 @@ extern __typeof (__memchr) __memchr_ppc attribute_hidden;
+ extern __typeof (__memchr) __memchr_power7 attribute_hidden;
+ extern __typeof (__memchr) __memchr_power8 attribute_hidden;
+ 
++# ifdef __LITTLE_ENDIAN__
++extern __typeof (__memchr) __memchr_power10 attribute_hidden;
++# endif
+ /* Avoid DWARF definition DIE on ifunc symbol so that GDB can handle
+    ifunc symbol properly.  */
+ libc_ifunc (__memchr,
+-	    (hwcap2 & PPC_FEATURE2_ARCH_2_07
+-	     && hwcap & PPC_FEATURE_HAS_ALTIVEC)
+-	    ? __memchr_power8 :
+-	    (hwcap & PPC_FEATURE_ARCH_2_06)
+-            ? __memchr_power7
+-            : __memchr_ppc);
++# ifdef __LITTLE_ENDIAN__
++	    (hwcap2 & PPC_FEATURE2_ARCH_3_1
++	     && hwcap & PPC_FEATURE_HAS_VSX)
++	    ? __memchr_power10 :
++# endif
++	      (hwcap2 & PPC_FEATURE2_ARCH_2_07
++	      && hwcap & PPC_FEATURE_HAS_ALTIVEC)
++	      ? __memchr_power8 :
++	        (hwcap & PPC_FEATURE_ARCH_2_06)
++	        ? __memchr_power7
++	        : __memchr_ppc);
+ 
+ weak_alias (__memchr, memchr)
+ libc_hidden_builtin_def (memchr)
+diff --git a/sysdeps/riscv/multiarch/dl-symbol-redir-ifunc.h b/sysdeps/riscv/multiarch/dl-symbol-redir-ifunc.h
+index 24b78711e3..69a0790838 100644
+--- a/sysdeps/riscv/multiarch/dl-symbol-redir-ifunc.h
++++ b/sysdeps/riscv/multiarch/dl-symbol-redir-ifunc.h
+@@ -21,6 +21,7 @@
+ 
+ #ifndef SHARED
+ asm ("memset = __memset_generic");
++asm ("memcpy = __memcpy_generic");
+ #endif
+ 
+ #endif
+diff --git a/sysdeps/s390/fpu/bits/fenv.h b/sysdeps/s390/fpu/bits/fenv.h
+index b9e844e393..33e88fbe9d 100644
+--- a/sysdeps/s390/fpu/bits/fenv.h
++++ b/sysdeps/s390/fpu/bits/fenv.h
+@@ -76,10 +76,10 @@ typedef unsigned int fexcept_t; /* size of fpc */
+ typedef struct
+ {
+   fexcept_t __fpc;
+-  void *__unused;
+-  /* The field __unused (formerly __ieee_instruction_pointer) is a relict from
+-     commit "Remove PTRACE_PEEKUSER" (87b9b50f0d4b92248905e95a06a13c513dc45e59)
+-     and isn't used anymore.  */
++  void *__glibc_reserved;
++  /* The field __glibc_reserved (formerly __ieee_instruction_pointer) is a
++     relict from commit "Remove PTRACE_PEEKUSER"
++     (87b9b50f0d4b92248905e95a06a13c513dc45e59) and isn't used anymore.  */
+ } fenv_t;
+ 
+ /* If the default argument is used we use this value.  */
+diff --git a/sysdeps/s390/nptl/bits/struct_mutex.h b/sysdeps/s390/nptl/bits/struct_mutex.h
+index d069b485d1..571265267c 100644
+--- a/sysdeps/s390/nptl/bits/struct_mutex.h
++++ b/sysdeps/s390/nptl/bits/struct_mutex.h
+@@ -32,7 +32,7 @@ struct __pthread_mutex_s
+   int __kind;
+ #if __WORDSIZE == 64
+   short __spins;
+-  short __unused;
++  short __glibc_reserved;
+   __pthread_list_t __list;
+ # define __PTHREAD_MUTEX_HAVE_PREV      1
+ #else
+diff --git a/sysdeps/unix/sysv/linux/Makefile b/sysdeps/unix/sysv/linux/Makefile
+index 955d316362..c6bd97abf1 100644
+--- a/sysdeps/unix/sysv/linux/Makefile
++++ b/sysdeps/unix/sysv/linux/Makefile
+@@ -129,6 +129,7 @@ CFLAGS-test-errno-linux.c += $(no-fortify-source)
+ 
+ sysdep_headers += \
+   bits/a.out.h \
++  bits/cloexec.h \
+   bits/epoll.h \
+   bits/eventfd.h \
+   bits/inotify.h \
 diff --git a/sysdeps/unix/sysv/linux/aarch64/Makefile b/sysdeps/unix/sysv/linux/aarch64/Makefile
 index b8eb9c0752..89a02faed1 100644
 --- a/sysdeps/unix/sysv/linux/aarch64/Makefile
@@ -9895,6 +12631,35 @@ index 0000000000..7e02820031
 @@ -0,0 +1,2 @@
 +#define GCS_SHOULD_UNLOCK
 +#include "tst-gcs-lock.c"
+diff --git a/sysdeps/unix/sysv/linux/alpha/bits/cloexec.h b/sysdeps/unix/sysv/linux/alpha/bits/cloexec.h
+new file mode 100644
+index 0000000000..f381f28a53
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/alpha/bits/cloexec.h
+@@ -0,0 +1 @@
++#define __O_CLOEXEC 010000000
+diff --git a/sysdeps/unix/sysv/linux/bits/cloexec.h b/sysdeps/unix/sysv/linux/bits/cloexec.h
+new file mode 100644
+index 0000000000..3059fb6473
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/bits/cloexec.h
+@@ -0,0 +1 @@
++#define __O_CLOEXEC 02000000
+diff --git a/sysdeps/unix/sysv/linux/bits/fcntl-linux.h b/sysdeps/unix/sysv/linux/bits/fcntl-linux.h
+index ad7f7c98c6..221a71aa62 100644
+--- a/sysdeps/unix/sysv/linux/bits/fcntl-linux.h
++++ b/sysdeps/unix/sysv/linux/bits/fcntl-linux.h
+@@ -81,9 +81,7 @@
+ #ifndef __O_NOFOLLOW
+ # define __O_NOFOLLOW	0400000
+ #endif
+-#ifndef __O_CLOEXEC
+-# define __O_CLOEXEC   02000000
+-#endif
++#include <bits/cloexec.h>
+ #ifndef __O_DIRECT
+ # define __O_DIRECT	 040000
+ #endif
 diff --git a/sysdeps/unix/sysv/linux/getlogin_r.c b/sysdeps/unix/sysv/linux/getlogin_r.c
 index 3b85e91be6..200c96860f 100644
 --- a/sysdeps/unix/sysv/linux/getlogin_r.c
@@ -9954,6 +12719,13 @@ index 3b85e91be6..200c96860f 100644
        goto out;
      }
  
+diff --git a/sysdeps/unix/sysv/linux/hppa/bits/cloexec.h b/sysdeps/unix/sysv/linux/hppa/bits/cloexec.h
+new file mode 100644
+index 0000000000..f381f28a53
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/hppa/bits/cloexec.h
+@@ -0,0 +1 @@
++#define __O_CLOEXEC 010000000
 diff --git a/sysdeps/unix/sysv/linux/openat2.c b/sysdeps/unix/sysv/linux/openat2.c
 index 7587dd577a..ac7b70584e 100644
 --- a/sysdeps/unix/sysv/linux/openat2.c
@@ -9966,3 +12738,336 @@ index 7587dd577a..ac7b70584e 100644
  #include <sysdep-cancel.h>
  
  int
+diff --git a/sysdeps/unix/sysv/linux/riscv/multiarch/Makefile b/sysdeps/unix/sysv/linux/riscv/multiarch/Makefile
+index 1d26966ded..a033ea9569 100644
+--- a/sysdeps/unix/sysv/linux/riscv/multiarch/Makefile
++++ b/sysdeps/unix/sysv/linux/riscv/multiarch/Makefile
+@@ -9,4 +9,7 @@ sysdep_routines += \
+   # sysdep_routines
+ 
+ CFLAGS-memcpy_noalignment.c += -mno-strict-align
++# Called during static initialization
++CFLAGS-memset-generic.c += $(no-stack-protector)
++CFLAGS-memcpy-generic.c += $(no-stack-protector)
+ endif
+diff --git a/sysdeps/unix/sysv/linux/sparc/bits/cloexec.h b/sysdeps/unix/sysv/linux/sparc/bits/cloexec.h
+new file mode 100644
+index 0000000000..6706eaa7d5
+--- /dev/null
++++ b/sysdeps/unix/sysv/linux/sparc/bits/cloexec.h
+@@ -0,0 +1 @@
++#define __O_CLOEXEC 0x400000
+diff --git a/sysdeps/unix/sysv/linux/sys/mount.h b/sysdeps/unix/sysv/linux/sys/mount.h
+index 457d8dcff2..0c5ebed33a 100644
+--- a/sysdeps/unix/sysv/linux/sys/mount.h
++++ b/sysdeps/unix/sysv/linux/sys/mount.h
+@@ -21,7 +21,6 @@
+ #ifndef _SYS_MOUNT_H
+ #define _SYS_MOUNT_H	1
+ 
+-#include <fcntl.h>
+ #include <features.h>
+ #include <stdint.h>
+ #include <stddef.h>
+@@ -265,9 +264,16 @@ enum fsconfig_command
+ #define FSOPEN_CLOEXEC          0x00000001
+ 
+ /* open_tree flags.  */
+-#define OPEN_TREE_CLONE    1         /* Clone the target tree and attach the clone */
+-#define OPEN_TREE_CLOEXEC  O_CLOEXEC /* Close the file on execve() */
+-
++#ifndef OPEN_TREE_CLONE
++# define OPEN_TREE_CLONE    1 /* Clone the target tree and attach the clone */
++#endif
++#ifndef O_CLOEXEC
++# include <bits/cloexec.h>
++# define O_CLOEXEC __O_CLOEXEC
++#endif
++#ifndef OPEN_TREE_CLOEXEC
++# define OPEN_TREE_CLOEXEC  O_CLOEXEC /* Close the file on execve() */
++#endif
+ 
+ __BEGIN_DECLS
+ 
+diff --git a/sysdeps/unix/sysv/linux/tst-mount.c b/sysdeps/unix/sysv/linux/tst-mount.c
+index 8e3ffbd56f..84dcd448d4 100644
+--- a/sysdeps/unix/sysv/linux/tst-mount.c
++++ b/sysdeps/unix/sysv/linux/tst-mount.c
+@@ -20,6 +20,7 @@
+ #include <support/check.h>
+ #include <support/xunistd.h>
+ #include <support/namespace.h>
++#include <fcntl.h> /* For AT_ constants.  */
+ #include <sys/mount.h>
+ 
+ _Static_assert (sizeof (struct mount_attr) == MOUNT_ATTR_SIZE_VER0,
+diff --git a/sysdeps/unix/sysv/linux/tst-rseq.c b/sysdeps/unix/sysv/linux/tst-rseq.c
+index 11371dc6c5..ba93d390f4 100644
+--- a/sysdeps/unix/sysv/linux/tst-rseq.c
++++ b/sysdeps/unix/sysv/linux/tst-rseq.c
+@@ -48,8 +48,7 @@ do_rseq_main_test (void)
+   size_t rseq_align = MAX (getauxval (AT_RSEQ_ALIGN), RSEQ_MIN_ALIGN);
+   size_t rseq_feature_size = MAX (getauxval (AT_RSEQ_FEATURE_SIZE),
+                                   RSEQ_AREA_SIZE_INITIAL_USED);
+-  size_t rseq_alloc_size = roundup (MAX (rseq_feature_size,
+-                                    RSEQ_AREA_SIZE_INITIAL_USED), rseq_align);
++  size_t rseq_reg_size = MAX (rseq_feature_size, RSEQ_AREA_SIZE_INITIAL);
+   struct rseq *rseq_abi = __thread_pointer () + __rseq_offset;
+ 
+   TEST_VERIFY_EXIT (rseq_thread_registered ());
+@@ -89,8 +88,8 @@ do_rseq_main_test (void)
+   /* Test a rseq registration with the same arguments as the internal
+      registration which should fail with errno == EBUSY.  */
+   TEST_VERIFY (((unsigned long) rseq_abi % rseq_align) == 0);
+-  TEST_VERIFY (__rseq_size <= rseq_alloc_size);
+-  int ret = syscall (__NR_rseq, rseq_abi, rseq_alloc_size, 0, RSEQ_SIG);
++  TEST_VERIFY (__rseq_size <= rseq_reg_size);
++  int ret = syscall (__NR_rseq, rseq_abi, rseq_reg_size, 0, RSEQ_SIG);
+   TEST_VERIFY (ret != 0);
+   TEST_COMPARE (errno, EBUSY);
+ }
+diff --git a/sysdeps/x86/dl-cacheinfo.h b/sysdeps/x86/dl-cacheinfo.h
+index 184e0a8f32..f329b448dc 100644
+--- a/sysdeps/x86/dl-cacheinfo.h
++++ b/sysdeps/x86/dl-cacheinfo.h
+@@ -108,6 +108,15 @@ static const struct intel_02_cache_info
+ 
+ #define nintel_02_known (sizeof (intel_02_known) / sizeof (intel_02_known [0]))
+ 
++/* Cache for redundant cpuid queries in handle_intel, intel_check_word and
++   get_common_cache_info.  Currently, this has only been shown to significantly
++   improve performance on a specific Intel CPU (Xeon 6430).  */
++struct intel_cpuid_cache
++{
++  unsigned char leaf2_valid, leaf4_valid; /* Number of cached (sub)leaves.  */
++  unsigned int leaf2[4], leaf4[0x10][4];
++};
++
+ static int
+ intel_02_known_compare (const void *p1, const void *p2)
+ {
+@@ -128,7 +137,8 @@ static long int
+ __attribute__ ((noinline))
+ intel_check_word (int name, unsigned int value, bool *has_level_2,
+ 		  bool *no_level_2_or_3,
+-		  const struct cpu_features *cpu_features)
++		  const struct cpu_features *cpu_features,
++		  struct intel_cpuid_cache *cache)
+ {
+   if ((value & 0x80000000) != 0)
+     /* The register value is reserved.  */
+@@ -162,7 +172,21 @@ intel_check_word (int name, unsigned int value, bool *has_level_2,
+ 	  unsigned int round = 0;
+ 	  while (1)
+ 	    {
+-	      __cpuid_count (4, round, eax, ebx, ecx, edx);
++	      if (round < cache->leaf4_valid)
++		/* Subleaf was queried before.  Do not execute cpuid again.  */
++		eax = cache->leaf4[round][0], ebx = cache->leaf4[round][1],
++		ecx = cache->leaf4[round][2], edx = cache->leaf4[round][3];
++	      else if (round == cache->leaf4_valid
++		       && round < sizeof(cache->leaf4)/sizeof(*cache->leaf4))
++		{
++		  /* Cache the cpuid result if we have space.  */
++		  __cpuid_count (4, round, eax, ebx, ecx, edx);
++		  cache->leaf4[round][0] = eax, cache->leaf4[round][1] = ebx;
++		  cache->leaf4[round][2] = ecx, cache->leaf4[round][3] = edx;
++		  cache->leaf4_valid++;
++		}
++	      else
++		__cpuid_count (4, round, eax, ebx, ecx, edx);
+ 
+ 	      enum { null = 0, data = 1, inst = 2, uni = 3 } type = eax & 0x1f;
+ 	      if (type == null)
+@@ -258,7 +282,8 @@ intel_check_word (int name, unsigned int value, bool *has_level_2,
+ 
+ 
+ static long int __attribute__ ((noinline))
+-handle_intel (int name, const struct cpu_features *cpu_features)
++handle_intel (int name, const struct cpu_features *cpu_features,
++	      struct intel_cpuid_cache *cache)
+ {
+   unsigned int maxidx = cpu_features->basic.max_cpuid;
+ 
+@@ -271,41 +296,33 @@ handle_intel (int name, const struct cpu_features *cpu_features)
+   long int result = 0;
+   bool no_level_2_or_3 = false;
+   bool has_level_2 = false;
+-  unsigned int eax;
+-  unsigned int ebx;
+-  unsigned int ecx;
+-  unsigned int edx;
+-  __cpuid (2, eax, ebx, ecx, edx);
++  int i;
++
++  if (!cache->leaf2_valid)
++    {
++      __cpuid (2, cache->leaf2[0], cache->leaf2[1],
++		  cache->leaf2[2], cache->leaf2[3]);
++      cache->leaf2_valid = 1;
++    }
+ 
+   /* The low byte of EAX of CPUID leaf 2 should always return 1 and it
+      should be ignored.  If it isn't 1, use CPUID leaf 4 instead.  */
+-  if ((eax & 0xff) != 1)
++  if ((cache->leaf2[0] & 0xff) != 1)
+     return intel_check_word (name, 0xff, &has_level_2, &no_level_2_or_3,
+-			     cpu_features);
+-  else
+-    {
+-      eax &= 0xffffff00;
+-
+-      /* Process the individual registers' value.  */
+-      result = intel_check_word (name, eax, &has_level_2,
+-				 &no_level_2_or_3, cpu_features);
+-      if (result != 0)
+-	return result;
++			     cpu_features, cache);
+ 
+-      result = intel_check_word (name, ebx, &has_level_2,
+-				 &no_level_2_or_3, cpu_features);
+-      if (result != 0)
+-	return result;
+-
+-      result = intel_check_word (name, ecx, &has_level_2,
+-				 &no_level_2_or_3, cpu_features);
+-      if (result != 0)
+-	return result;
++  /* Process all descriptors in leaf 2.  */
++  result = intel_check_word (name, cache->leaf2[0]&0xffffff00, &has_level_2,
++			    &no_level_2_or_3, cpu_features, cache);
++  if (result != 0)
++    return result;
+ 
+-      result = intel_check_word (name, edx, &has_level_2,
+-				 &no_level_2_or_3, cpu_features);
++  for (i = 1; i < 4; i++)
++    {
++      result = intel_check_word (name, cache->leaf2[i], &has_level_2,
++				&no_level_2_or_3, cpu_features, cache);
+       if (result != 0)
+-	return result;
++        return result;
+     }
+ 
+   if (name >= _SC_LEVEL2_CACHE_SIZE && name <= _SC_LEVEL3_CACHE_LINESIZE
+@@ -622,7 +639,7 @@ handle_hygon (int name)
+ 
+ static void
+ get_common_cache_info (long int *shared_ptr, long int * shared_per_thread_ptr, unsigned int *threads_ptr,
+-                long int core)
++                long int core, struct intel_cpuid_cache *cache)
+ {
+   unsigned int eax;
+   unsigned int ebx;
+@@ -680,7 +697,14 @@ get_common_cache_info (long int *shared_ptr, long int * shared_per_thread_ptr, u
+           int check = 0x1 | (threads_l3 == 0) << 1;
+           do
+             {
+-              __cpuid_count (4, i++, eax, ebx, ecx, edx);
++              if (cache != NULL && i < cache->leaf4_valid)
++                eax = cache->leaf4[i][0], ebx = cache->leaf4[i][1],
++                ecx = cache->leaf4[i][2], edx = cache->leaf4[i][3];
++              else
++                /* Do not attempt to cache queries at this point,
++		   because get_common_cache_info is called last.  */
++                __cpuid_count (4, i, eax, ebx, ecx, edx);
++              i++;
+ 
+               /* There seems to be a bug in at least some Pentium Ds
+                  which sometimes fail to iterate all cache parameters.
+@@ -860,35 +884,38 @@ dl_init_cacheinfo (struct cpu_features *cpu_features)
+ 
+   if (cpu_features->basic.kind == arch_kind_intel)
+     {
+-      data = handle_intel (_SC_LEVEL1_DCACHE_SIZE, cpu_features);
+-      shared = handle_intel (_SC_LEVEL3_CACHE_SIZE, cpu_features);
++      struct intel_cpuid_cache cache;
++      cache.leaf2_valid = cache.leaf4_valid = 0;
++
++      data = handle_intel (_SC_LEVEL1_DCACHE_SIZE, cpu_features, &cache);
++      shared = handle_intel (_SC_LEVEL3_CACHE_SIZE, cpu_features, &cache);
+       shared_per_thread = shared;
+ 
+       level1_icache_size
+-	= handle_intel (_SC_LEVEL1_ICACHE_SIZE, cpu_features);
++	= handle_intel (_SC_LEVEL1_ICACHE_SIZE, cpu_features, &cache);
+       level1_icache_linesize
+-	= handle_intel (_SC_LEVEL1_ICACHE_LINESIZE, cpu_features);
++	= handle_intel (_SC_LEVEL1_ICACHE_LINESIZE, cpu_features, &cache);
+       level1_dcache_size = data;
+       level1_dcache_assoc
+-	= handle_intel (_SC_LEVEL1_DCACHE_ASSOC, cpu_features);
++	= handle_intel (_SC_LEVEL1_DCACHE_ASSOC, cpu_features, &cache);
+       level1_dcache_linesize
+-	= handle_intel (_SC_LEVEL1_DCACHE_LINESIZE, cpu_features);
++	= handle_intel (_SC_LEVEL1_DCACHE_LINESIZE, cpu_features, &cache);
+       level2_cache_size
+-	= handle_intel (_SC_LEVEL2_CACHE_SIZE, cpu_features);
++	= handle_intel (_SC_LEVEL2_CACHE_SIZE, cpu_features, &cache);
+       level2_cache_assoc
+-	= handle_intel (_SC_LEVEL2_CACHE_ASSOC, cpu_features);
++	= handle_intel (_SC_LEVEL2_CACHE_ASSOC, cpu_features, &cache);
+       level2_cache_linesize
+-	= handle_intel (_SC_LEVEL2_CACHE_LINESIZE, cpu_features);
++	= handle_intel (_SC_LEVEL2_CACHE_LINESIZE, cpu_features, &cache);
+       level3_cache_size = shared;
+       level3_cache_assoc
+-	= handle_intel (_SC_LEVEL3_CACHE_ASSOC, cpu_features);
++	= handle_intel (_SC_LEVEL3_CACHE_ASSOC, cpu_features, &cache);
+       level3_cache_linesize
+-	= handle_intel (_SC_LEVEL3_CACHE_LINESIZE, cpu_features);
++	= handle_intel (_SC_LEVEL3_CACHE_LINESIZE, cpu_features, &cache);
+       level4_cache_size
+-	= handle_intel (_SC_LEVEL4_CACHE_SIZE, cpu_features);
++	= handle_intel (_SC_LEVEL4_CACHE_SIZE, cpu_features, &cache);
+ 
+       get_common_cache_info (&shared, &shared_per_thread, &threads,
+-			     level2_cache_size);
++			     level2_cache_size, &cache);
+     }
+   else if (cpu_features->basic.kind == arch_kind_zhaoxin)
+     {
+@@ -909,7 +936,7 @@ dl_init_cacheinfo (struct cpu_features *cpu_features)
+       level3_cache_linesize = handle_zhaoxin (_SC_LEVEL3_CACHE_LINESIZE);
+ 
+       get_common_cache_info (&shared, &shared_per_thread, &threads,
+-			     level2_cache_size);
++			     level2_cache_size, NULL);
+     }
+   else if (cpu_features->basic.kind == arch_kind_amd)
+     {
+diff --git a/sysdeps/x86/nptl/bits/struct_mutex.h b/sysdeps/x86/nptl/bits/struct_mutex.h
+index 9c19dff660..13c9894ad4 100644
+--- a/sysdeps/x86/nptl/bits/struct_mutex.h
++++ b/sysdeps/x86/nptl/bits/struct_mutex.h
+@@ -32,7 +32,7 @@ struct __pthread_mutex_s
+   int __kind;
+ #ifdef __x86_64__
+   short __spins;
+-  short __unused;
++  short __glibc_reserved;
+   __pthread_list_t __list;
+ # define __PTHREAD_MUTEX_HAVE_PREV      1
+ #else
+diff --git a/sysdeps/x86_64/multiarch/dl-symbol-redir-ifunc.h b/sysdeps/x86_64/multiarch/dl-symbol-redir-ifunc.h
+index 04b6c1e6a3..b607e525f2 100644
+--- a/sysdeps/x86_64/multiarch/dl-symbol-redir-ifunc.h
++++ b/sysdeps/x86_64/multiarch/dl-symbol-redir-ifunc.h
+@@ -44,6 +44,16 @@ asm ("memset = " HAVE_MEMSET_IFUNC_GENERIC);
+ 
+ asm ("memcmp = " HAVE_MEMCMP_IFUNC_GENERIC);
+ 
++#if MINIMUM_X86_ISA_LEVEL >= 4
++# define HAVE_STRCMP_IFUNC_GENERIC "__strlen_evex"
++#elif MINIMUM_X86_ISA_LEVEL == 3
++# define HAVE_STRCMP_IFUNC_GENERIC "__strlen_avx2"
++#else
++# define HAVE_STRCMP_IFUNC_GENERIC "__strlen_sse2"
++#endif
++
++asm ("strlen = " HAVE_STRCMP_IFUNC_GENERIC);
++
+ #endif /* SHARED */
+ 
+ #endif
