@@ -21,7 +21,6 @@
 #ifndef _SYS_MOUNT_H
 #define _SYS_MOUNT_H	1
 
-#include <fcntl.h>
 #include <features.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -190,6 +189,8 @@ enum
 
 /* fsmount flags.  */
 #define FSMOUNT_CLOEXEC         0x00000001
+#define FSMOUNT_NAMESPACE       0x00000002 /* Create the mount in a new mount
+					      namespace.  */
 
 /* mount attributes used on fsmount.  */
 #define MOUNT_ATTR_RDONLY       0x00000001 /* Mount read-only.  */
@@ -265,9 +266,18 @@ enum fsconfig_command
 #define FSOPEN_CLOEXEC          0x00000001
 
 /* open_tree flags.  */
-#define OPEN_TREE_CLONE    1         /* Clone the target tree and attach the clone */
-#define OPEN_TREE_CLOEXEC  O_CLOEXEC /* Close the file on execve() */
-
+#ifndef OPEN_TREE_CLONE
+# define OPEN_TREE_CLONE    1 /* Clone the target tree and attach the clone */
+#endif
+#define OPEN_TREE_NAMESPACE (1 << 1) /* Clone the target tree into a new mount
+					namespace */
+#ifndef O_CLOEXEC
+# include <bits/cloexec.h>
+# define O_CLOEXEC __O_CLOEXEC
+#endif
+#ifndef OPEN_TREE_CLOEXEC
+# define OPEN_TREE_CLOEXEC  O_CLOEXEC /* Close the file on execve() */
+#endif
 
 __BEGIN_DECLS
 

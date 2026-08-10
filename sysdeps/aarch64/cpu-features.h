@@ -40,11 +40,11 @@
 #define MIDR_IMPLEMENTOR(midr)	\
 	(((midr) & MIDR_IMPLEMENTOR_MASK) >> MIDR_IMPLEMENTOR_SHIFT)
 
-#define IS_EMAG(midr) (MIDR_IMPLEMENTOR(midr) == 'P'			      \
-                       && MIDR_PARTNUM(midr) == 0x000)
-
 #define IS_KUNPENG920(midr) (MIDR_IMPLEMENTOR(midr) == 'H'			   \
                         && MIDR_PARTNUM(midr) == 0xd01)
+
+#define IS_KUNPENG950(midr) (MIDR_IMPLEMENTOR(midr) == 'H'			   \
+                        && MIDR_PARTNUM(midr) == 0xd06)
 
 #define IS_A64FX(midr) (MIDR_IMPLEMENTOR(midr) == 'F'			      \
 			&& MIDR_PARTNUM(midr) == 0x001)
@@ -64,11 +64,11 @@ struct cpu_features
   uint64_t midr_el1;
   unsigned zva_size;
   bool bti;
-  /* Currently, the GLIBC memory tagging tunable only defines 8 bits.  */
-  uint8_t mte_state;
+  uint8_t reserved;
   bool sve;
-  bool prefer_sve_ifuncs;
+  bool unused;
   bool mops;
+  bool sve2;
 };
 
 #endif /* _CPU_FEATURES_AARCH64_H  */

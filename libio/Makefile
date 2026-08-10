@@ -70,6 +70,7 @@ routines_no_fortify += \
   # routines_no_fortify
 
 tests = \
+  bug-fmemopen \
   bug-fopena+ \
   bug-fseek \
   bug-ftell \
@@ -84,6 +85,7 @@ tests = \
   bug-ungetwc1 \
   bug-ungetwc2 \
   bug-wfflush \
+  bug-wgenops-bz33998 \
   bug-wmemstream1 \
   bug-wsetpos \
   test-fmemopen \
@@ -107,6 +109,7 @@ tests = \
   tst-fgetc-after-eof \
   tst-fgetwc \
   tst-fgetws \
+  tst-file-init-race \
   tst-fopenloc2 \
   tst-fputws \
   tst-freopen \
@@ -116,6 +119,8 @@ tests = \
   tst-ftell-partial-wide \
   tst-fwrite-error \
   tst-getdelim \
+  tst-memstream-setbuf \
+  tst-memstream-setvbuf-doallocate \
   tst-memstream1 \
   tst-memstream2 \
   tst-memstream3 \
@@ -135,8 +140,12 @@ tests = \
   tst-swscanf \
   tst-ungetwc1 \
   tst-ungetwc2 \
+  tst-wbackup-leak \
   tst-wfile-sync \
+  tst-wfiledoallocate-static \
   tst-widetext \
+  tst-wmemstream-setbuf \
+  tst-wmemstream-setvbuf-doallocate \
   tst-wmemstream1 \
   tst-wmemstream2 \
   tst-wmemstream3 \
@@ -151,9 +160,14 @@ tests = \
   tst_wscanf \
   # tests
 
-tests-static += tst-stdio-static
+tests-static += \
+   tst-stdio-static \
+   tst-wfiledoallocate-static \
+# tests-static
 
 $(objpfx)tst-popen-fork: $(shared-thread-library)
+
+$(objpfx)tst-file-init-race: $(shared-thread-library)
 
 tests-internal = tst-vtables tst-vtables-interposed
 

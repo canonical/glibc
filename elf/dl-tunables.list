@@ -24,6 +24,14 @@
 # env_alias: An alias environment variable
 
 glibc {
+  elf {
+    thp {
+      type: INT_32
+      minval: 0
+      maxval: 1
+    }
+  }
+
   malloc {
     check {
       type: INT_32
@@ -71,9 +79,6 @@ glibc {
     tcache_count {
       type: SIZE_T
     }
-    tcache_unsorted_limit {
-      type: SIZE_T
-    }
     mxfast {
       type: SIZE_T
       minval: 0
@@ -111,11 +116,6 @@ glibc {
   }
 
   mem {
-    tagging {
-      type: INT_32
-      minval: 0
-      maxval: 255
-    }
     decorate_maps {
       type: INT_32
       minval: 0

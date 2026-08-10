@@ -12,7 +12,7 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/736932
 
 --- a/elf/ldconfig.c
 +++ b/elf/ldconfig.c
-@@ -55,6 +55,17 @@
+@@ -60,6 +60,17 @@
  
  #define PACKAGE _libc_intl_domainname
  
@@ -30,14 +30,14 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/736932
  /* List of directories to handle.  */
  struct dir_entry
  {
-@@ -1270,12 +1281,19 @@
+@@ -1321,12 +1332,19 @@
  
    if (!opt_only_cline)
      {
 +      const char *strp = system_dirs;
 +      size_t idx = 0;
 +
-       parse_conf (config_file, true);
+       ldconfig_parse_config (config_file, opt_chroot, add_dir_callback);
  
        /* Always add the standard search paths.  */
 -      add_system_dir (SLIBDIR);

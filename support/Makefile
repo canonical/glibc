@@ -28,9 +28,18 @@ libsupport-routines = \
   blob_repeat \
   check \
   check_addrinfo \
+  check_aliasent \
   check_dns_packet \
+  check_ether_addr \
+  check_group \
   check_hostent \
   check_netent \
+  check_passwd \
+  check_protoent \
+  check_rpcent \
+  check_servent \
+  check_sgrp \
+  check_spwd \
   delayed_exit \
   dtotimespec \
   dtotimespec-time64 \
@@ -46,6 +55,8 @@ libsupport-routines = \
   support_can_chroot \
   support_capture_subprocess \
   support_capture_subprocess_check \
+  support_check_hugetlb \
+  support_check_nss \
   support_check_stat_fd \
   support_check_stat_path \
   support_chroot \
@@ -60,15 +71,25 @@ libsupport-routines = \
   support_enter_network_namespace \
   support_format_address_family \
   support_format_addrinfo \
+  support_format_aliasent \
   support_format_dns_packet \
+  support_format_ether_addr \
+  support_format_group \
   support_format_herrno \
   support_format_hostent \
   support_format_netent \
+  support_format_passwd \
+  support_format_protoent \
+  support_format_rpcent \
+  support_format_servent \
+  support_format_sgrp \
+  support_format_spwd \
   support_fuse \
   support_isolate_in_subprocess \
   support_mem_access \
   support_mutex_pi_monotonic \
   support_need_proc \
+  support_nscd \
   support_open_and_compare_file_bytes \
   support_open_and_compare_file_string \
   support_openpty \
@@ -91,6 +112,7 @@ libsupport-routines = \
   support_shared_allocate \
   support_small_stack_thread_attribute \
   support_socket_so_timestamp_time64 \
+  support_spawn_wrap \
   support_stack_alloc \
   support_stat_nanoseconds \
   support_subprocess \
@@ -233,7 +255,7 @@ libsupport-routines = \
   xwrite \
   # libsupport-routines
 
-libsupport-static-only-routines := $(libsupport-routines)
+libsupport-static-only-routines = $(libsupport-routines) $(libsupport-sysdep_routines)
 # Only build one variant of the library.
 libsupport-inhibit-o := .os
 ifeq ($(build-shared),yes)
@@ -252,6 +274,17 @@ CFLAGS-support_paths.c = \
 		-DROOTSBINDIR_PATH=\"$(rootsbindir)\" \
 		-DCOMPLOCALEDIR_PATH=\"$(complocaledir)\" \
 		-DSYSCONFDIR_PATH=\"$(sysconfdir)\"
+
+ifeq ($(build-hardcoded-path-in-tests),yes)
+CFLAGS-support_paths.c += -DHARDCODED_PATHS_IN_TEST=true
+else
+CFLAGS-support_paths.c += -DHARDCODED_PATHS_IN_TEST=false
+endif
+
+CFLAGS-support_spawn_wrap.c += \
+  '-DRUN_PROGRAM_ENV=$(patsubst %, ELEMENT ("%"), $(run-program-env))' \
+  '-DRTLD_PREFIX=$(patsubst %, ELEMENT ("%"), $(rtld-prefix))' \
+  # CFLAGS-support_spawn_wrap.c
 
 # Build with exception handling and asynchronous unwind table support.
 CFLAGS-.oS += -fexceptions -fasynchronous-unwind-tables
@@ -284,18 +317,24 @@ CFLAGS-temp_file.c += -D_FILE_OFFSET_BITS=64 -D_TIME_BITS=64
 
 ifeq (,$(CXX))
 LINKS_DSO_PROGRAM = links-dso-program-c
-LDLIBS-links-dso-program-c = -lgcc
+LDLIBS-links-dso-program-c = $(gnulib)
 ifeq ($(have-libgcc_s),yes)
 CFLAGS-links-dso-program-c.c += -fexceptions
-LDLIBS-links-dso-program-c += -lgcc_s $(libunwind)
+LDLIBS-links-dso-program-c += $(libgcc_s) $(libunwind)
 endif
 else
 LINKS_DSO_PROGRAM = links-dso-program
-LDLIBS-links-dso-program = -lstdc++ -lgcc -lgcc_s $(libunwind)
+LDLIBS-links-dso-program = -lstdc++ $(gnulib) $(libgcc_s) $(libunwind)
 endif
 
 ifeq (yes,$(have-selinux))
 LDLIBS-$(LINKS_DSO_PROGRAM) += -lselinux
+endif
+ifeq (yes,$(have-libaudit))
+LDLIBS-$(LINKS_DSO_PROGRAM) += -laudit
+endif
+ifeq (yes,$(have-libcap))
+LDLIBS-$(LINKS_DSO_PROGRAM) += -lcap
 endif
 
 
@@ -340,12 +379,14 @@ tests = \
   tst-support_capture_subprocess \
   tst-support_descriptors \
   tst-support_format_dns_packet \
+  tst-support_format_nss \
   tst-support_fuse \
   tst-support_quote_blob \
   tst-support_quote_blob_wide \
   tst-support_quote_string \
   tst-support_readdir \
   tst-support_record_failure \
+  tst-support_spawn_wrap \
   tst-test_compare \
   tst-test_compare_blob \
   tst-test_compare_string \

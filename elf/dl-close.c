@@ -74,6 +74,11 @@ remove_slotinfo (size_t idx, struct dtv_slotinfo_list *listp, size_t disp,
       if (__glibc_likely (old_map != NULL))
 	{
 	  /* Mark the entry as unused.  These can be read concurrently.  */
+	  if (__glibc_unlikely (GLRO (dl_debug_mask) & DL_DEBUG_TLS))
+	    _dl_debug_printf (
+		"tls: release modid %lu from %s [%ld]\n",
+		(unsigned long int) idx, DSO_FILENAME (old_map->l_name),
+		(long int) old_map->l_ns);
 	  atomic_store_relaxed (&listp->slotinfo[idx - disp].gen,
 				GL(dl_tls_generation) + 1);
 	  atomic_store_relaxed (&listp->slotinfo[idx - disp].map, NULL);
@@ -480,7 +485,7 @@ _dl_close_worker (struct link_map *map, bool force)
   size_t tls_free_end;
   tls_free_start = tls_free_end = NO_TLS_OFFSET;
 
-  /* Protects global and module specitic TLS state.  */
+  /* Protects global and module specific TLS state.  */
   __rtld_lock_lock_recursive (GL(dl_load_tls_lock));
 
   /* We modify the list of loaded objects.  */

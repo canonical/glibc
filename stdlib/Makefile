@@ -388,6 +388,8 @@ endif
 
 tests-internal := \
   tst-qsort4 \
+  tst-stdc_rotate_left \
+  tst-stdc_rotate_right \
   tst-strtod1i \
   tst-strtod3 \
   tst-strtod4 \

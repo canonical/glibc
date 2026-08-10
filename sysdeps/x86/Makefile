@@ -27,11 +27,15 @@ tests += \
   tst-cpu-features-supports-static \
   tst-get-cpu-features \
   tst-get-cpu-features-static \
+  tst-hwcap-tunables \
+# tests
+ifneq (no,$(have-test-mtls-descriptor))
+tests += \
   tst-gnu2-tls2-x86-noxsave \
   tst-gnu2-tls2-x86-noxsavec \
   tst-gnu2-tls2-x86-noxsavexsavec \
-  tst-hwcap-tunables \
 # tests
+endif
 tests-static += \
   tst-cpu-features-cpuinfo-static \
   tst-cpu-features-supports-static \
@@ -46,8 +50,10 @@ tests += \
 tests-static += \
   tst-ifunc-isa-1-static \
 # tests-static
-test-xfail-tst-ifunc-isa-1 = $(with-lld)
-test-xfail-tst-ifunc-isa-1-static = $(with-lld)
+ifneq (no, $(with-lld))
+test-xfail-tst-ifunc-isa-1 = yes
+test-xfail-tst-ifunc-isa-1-static = yes
+endif
 tests += \
   tst-ifunc-isa-2 \
   tst-ifunc-isa-2-static \
@@ -55,8 +61,10 @@ tests += \
 tests-static += \
   tst-ifunc-isa-2-static \
 # tests-static
-test-xfail-tst-ifunc-isa-2 = $(with-lld)
-test-xfail-tst-ifunc-isa-2-static = $(with-lld)
+ifneq (no, $(with-lld))
+test-xfail-tst-ifunc-isa-2 = yes
+test-xfail-tst-ifunc-isa-2-static = yes
+endif
 endif
 endif
 ifeq (yes,$(enable-x86-isa-level))

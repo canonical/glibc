@@ -367,7 +367,7 @@ start_thread (void *arg)
     }
 
   if (__glibc_unlikely (GLRO (dl_debug_mask) & DL_DEBUG_TLS))
-    GLRO (dl_debug_printf) ("Thread starting: TID=%ld, TCB=0x%lx\n",
+    GLRO (dl_debug_printf) ("tls: thread starting; TID=%ld, TCB=0x%lx\n",
 			    (long int) pd->tid, (unsigned long int) pd);
 
   /* Initialize resolver state pointer.  */
@@ -738,11 +738,6 @@ __pthread_create_2_1 (pthread_t *newthread, const pthread_attr_t *attr,
   /* Copy the stack guard canary.  */
 #ifdef THREAD_COPY_STACK_GUARD
   THREAD_COPY_STACK_GUARD (pd);
-#endif
-
-  /* Copy the pointer guard value.  */
-#ifdef THREAD_COPY_POINTER_GUARD
-  THREAD_COPY_POINTER_GUARD (pd);
 #endif
 
   /* Setup tcbhead.  */

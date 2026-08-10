@@ -86,7 +86,7 @@ check_gcs (struct link_map *l, const char *program, bool enforced,
   if (__glibc_unlikely (GLRO(dl_debug_mask) & DL_DEBUG_SECURITY))
     warn (l, program);
   /* Binary is not marked and loaded via dlopen: abort.  Also, do not
-     fail is optional dlopne_mode is being used with audit modules without
+     fail is optional dlopen_mode is being used with audit modules without
      GCS support.  */
   if (program == NULL && (dlopen_mode & __RTLD_AUDIT) == 0)
     fail (l, program);
@@ -146,4 +146,10 @@ _dl_gcs_check (struct link_map *l, const char *program, int dlopen_mode)
 void _dl_gcs_enable_failed (int code)
 {
   _dl_fatal_printf ("failed to enable GCS: %d\n", -code);
+}
+
+/* Used to report error when prctl system call to lock GCS fails.  */
+void _dl_gcs_lock_failed (int code)
+{
+  _dl_fatal_printf ("failed to lock GCS: %d\n", -code);
 }

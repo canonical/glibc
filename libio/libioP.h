@@ -639,11 +639,13 @@ libc_hidden_proto (_IO_file_finish)
 
 extern FILE* _IO_new_file_attach (FILE *, int);
 extern int _IO_new_file_close_it (FILE *);
+int _IO_file_close_maybe_unlink (FILE *, bool) attribute_hidden;
 extern void _IO_new_file_finish (FILE *, int);
 extern FILE* _IO_new_file_fopen (FILE *, const char *, const char *,
 				     int);
 extern void _IO_no_init (FILE *, int, int, struct _IO_wide_data *,
 			 const struct _IO_jump_t *) __THROW;
+extern void _IO_wstrfile_fclose_stack (FILE *) attribute_hidden;
 extern void _IO_new_file_init_internal (struct _IO_FILE_plus *)
   __THROW attribute_hidden;
 extern FILE* _IO_new_file_setbuf (FILE *, char *, ssize_t);
@@ -739,8 +741,14 @@ extern size_t __IO_obstack_xsputn (FILE *fp, const void *data, size_t n)
 /* Jumptable functions for open_{w}memstream.  */
 extern int _IO_mem_sync (FILE* fp) __THROW attribute_hidden;
 extern void _IO_mem_finish (FILE* fp, int) __THROW attribute_hidden;
+extern FILE *_IO_mem_setbuf (FILE *fp, char *buf, ssize_t size)
+  __THROW attribute_hidden;
+extern int _IO_mem_doallocate (FILE *fp) __THROW attribute_hidden;
 extern int _IO_wmem_sync (FILE* fp) __THROW attribute_hidden;
 extern void _IO_wmem_finish (FILE* fp, int) __THROW attribute_hidden;
+extern FILE *_IO_wmem_setbuf (FILE *fp, char *buf, ssize_t size)
+  __THROW attribute_hidden;
+extern int _IO_wmem_doallocate (FILE *fp) __THROW attribute_hidden;
 
 /* Other strfile functions */
 struct _IO_strfile_;

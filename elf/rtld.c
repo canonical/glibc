@@ -35,6 +35,7 @@
 #include <unsecvars.h>
 #include <dl-cache.h>
 #include <dl-osinfo.h>
+#include <dl-reseed-random.h>
 #include <dl-prop.h>
 #include <dl-vdso.h>
 #include <dl-vdso-setup.h>
@@ -52,6 +53,7 @@
 #include <dl-find_object.h>
 #include <dl-audit-check.h>
 #include <dl-call_tls_init_tp.h>
+#include <dl-exec-post.h>
 
 #include <assert.h>
 
@@ -166,12 +168,8 @@ rtld_hidden_data_def (_dl_argv)
 uintptr_t __stack_chk_guard attribute_relro;
 #endif
 
-/* Only exported for architectures that don't store the pointer guard
-   value in thread local area.  */
 uintptr_t __pointer_chk_guard_local attribute_relro attribute_hidden;
-#ifndef THREAD_SET_POINTER_GUARD
 strong_alias (__pointer_chk_guard_local, __pointer_chk_guard)
-#endif
 
 /* Check that AT_SECURE=0, or that the passed name does not contain
    directories and is not overly long.  Reject empty names
@@ -827,15 +825,12 @@ security_init (void)
   /* Set up the pointer guard as well, if necessary.  */
   uintptr_t pointer_chk_guard
     = _dl_setup_pointer_guard (_dl_random, stack_chk_guard);
-#ifdef THREAD_SET_POINTER_GUARD
-  THREAD_SET_POINTER_GUARD (pointer_chk_guard);
-#endif
   __pointer_chk_guard_local = pointer_chk_guard;
 
-  /* We do not need the _dl_random value anymore.  The less
-     information we leave behind, the better, so clear the
-     variable.  */
-  _dl_random = NULL;
+  /* We do not need the _dl_random value anymore.  Scrub the AT_RANDOM
+     bytes and clear the pointer; on targets with an entropy source, refill
+     the bytes with fresh random data.  */
+  _dl_reseed_random (&_dl_random);
 }
 
 #include <setup-vdso.h>
@@ -1192,6 +1187,11 @@ rtld_setup_main_map (struct link_map *main_map)
 
 	    /* This image gets the ID one.  */
 	    GL(dl_tls_max_dtv_idx) = main_map->l_tls_modid = 1;
+	    if (__glibc_unlikely (GLRO (dl_debug_mask) & DL_DEBUG_TLS))
+	      _dl_debug_printf ("tls: assign modid %lu to %s [%ld]\n",
+				(unsigned long int) main_map->l_tls_modid,
+				DSO_FILENAME (main_map->l_name),
+				(long int) main_map->l_ns);
 	  }
 	break;
 
@@ -1204,18 +1204,8 @@ rtld_setup_main_map (struct link_map *main_map)
 	main_map->l_relro_size = ph->p_memsz;
 	break;
       }
-  /* Process program headers again, but scan them backwards so
-     that PT_NOTE can be skipped if PT_GNU_PROPERTY exits.  */
-  for (const ElfW(Phdr) *ph = &phdr[phnum]; ph != phdr; --ph)
-    switch (ph[-1].p_type)
-      {
-      case PT_NOTE:
-	_dl_process_pt_note (main_map, -1, &ph[-1]);
-	break;
-      case PT_GNU_PROPERTY:
-	_dl_process_pt_gnu_property (main_map, -1, &ph[-1]);
-	break;
-      }
+
+  _dl_executable_postprocess (main_map, phdr, phnum);
 
   /* Adjust the address of the TLS initialization image in case
      the executable is actually an ET_DYN object.  */
@@ -1588,6 +1578,9 @@ dl_main (const ElfW(Phdr) *phdr,
 	{
 	  RTLD_TIMING_VAR (start);
 	  rtld_timer_start (&start);
+#ifdef HAVE_THP
+	  _dl_get_thp_config ();
+#endif
 	  _dl_map_object (NULL, rtld_progname, lt_executable, 0,
 			  __RTLD_OPENEXEC, LM_ID_BASE);
 	  rtld_timer_stop (&load_time, start);
@@ -2246,7 +2239,7 @@ dl_main (const ElfW(Phdr) *phdr,
 
   int consider_profiling = GLRO(dl_profile) != NULL;
 
-  /* If we are profiling we also must do lazy reloaction.  */
+  /* If we are profiling we also must do lazy relocation.  */
   GLRO(dl_lazy) |= consider_profiling;
 
   /* If libc.so has been loaded, relocate it early, after the dynamic
@@ -2261,6 +2254,26 @@ dl_main (const ElfW(Phdr) *phdr,
 			   GLRO(dl_lazy) ? RTLD_LAZY : 0, consider_profiling);
       rtld_timer_accum (&relocate_time, start);
   }
+
+  /* Populate the DTV slotinfo and copy each TLS module's into thestatic TLS
+     block *before* the relocation loop.  IFUNC resolvers fired during phase 2
+     of the per-object two-phase scheme therefore observe initialised TLS.  */
+  if (__rtld_tls_init_tp_called)
+    {
+      unsigned int i = main_map->l_searchlist.r_nlist;
+      while (i-- > 0)
+	{
+	  struct link_map *l = main_map->l_initfini[i];
+	  if (l->l_tls_blocksize != 0)
+	    _dl_add_to_slotinfo (l, true);
+	}
+      /* _dl_add_to_slotinfo records gen = dl_tls_generation + 1, and
+	 _dl_allocate_tls_init asserts gen <= dl_tls_generation, so bump
+	 the generation before init.  */
+      if (GL(dl_tls_max_dtv_idx) > 0)
+	++GL(dl_tls_generation);
+      _dl_allocate_tls_init (tcbp, true);
+    }
 
   RTLD_TIMING_VAR (start);
   rtld_timer_start (&start);
@@ -2285,10 +2298,6 @@ dl_main (const ElfW(Phdr) *phdr,
 
 	_dl_relocate_object (l, l->l_scope, GLRO(dl_lazy) ? RTLD_LAZY : 0,
 			     consider_profiling);
-
-	/* Add object to slot information data if necessasy.  */
-	if (l->l_tls_blocksize != 0 && __rtld_tls_init_tp_called)
-	  _dl_add_to_slotinfo (l, true);
       }
   }
   rtld_timer_stop (&relocate_time, start);
@@ -2309,12 +2318,7 @@ dl_main (const ElfW(Phdr) *phdr,
       || count_modids != _dl_count_modids ())
     ++GL(dl_tls_generation);
 
-  /* Now that we have completed relocation, the initializer data
-     for the TLS blocks has its final values and we can copy them
-     into the main thread's TLS area, which we allocated above.
-     Note: thread-local variables must only be accessed after completing
-     the next step.  */
-  _dl_allocate_tls_init (tcbp, true);
+  /* TLS .tdata copy moved before the relocation loop above.  */
 
   /* And finally install it for the main thread.  */
   if (! __rtld_tls_init_tp_called)
@@ -2366,11 +2370,6 @@ dl_main (const ElfW(Phdr) *phdr,
 
   /* Auditing checkpoint: we have added all objects.  */
   _dl_audit_activity_nsid (LM_ID_BASE, LA_ACT_CONSISTENT);
-
-#if defined USE_LDCONFIG && !defined MAP_COPY
-  /* We must munmap() the cache file.  */
-  _dl_unload_cache ();
-#endif
 
   /* Once we return, _dl_sysdep_start will invoke
      the DT_INIT functions and then *USER_ENTRY.  */
@@ -2456,11 +2455,18 @@ process_dl_debug (struct dl_main_state *state, const char *dl_debug)
 		 && dl_debug[len] != ',' && dl_debug[len] != ':')
 	    ++len;
 
+	  bool exclude = *dl_debug == '-';
+	  const char *name = exclude ? dl_debug + 1 : dl_debug;
+	  size_t name_len = exclude ? len - 1 : len;
+
 	  for (cnt = 0; cnt < ndebopts; ++cnt)
-	    if (debopts[cnt].len == len
-		&& memcmp (dl_debug, debopts[cnt].name, len) == 0)
+	    if (debopts[cnt].len == name_len
+		&& memcmp (name, debopts[cnt].name, name_len) == 0)
 	      {
-		GLRO(dl_debug_mask) |= debopts[cnt].mask;
+		if (exclude)
+		  GLRO(dl_debug_mask) &= ~debopts[cnt].mask;
+		else
+		  GLRO(dl_debug_mask) |= debopts[cnt].mask;
 		break;
 	      }
 
@@ -2502,7 +2508,8 @@ Valid options for the LD_DEBUG environment variable are:\n\n");
 
       _dl_printf ("\n\
 To direct the debugging output into a file instead of standard output\n\
-a filename can be specified using the LD_DEBUG_OUTPUT environment variable.\n");
+a filename can be specified using the LD_DEBUG_OUTPUT environment variable.\n\
+Categories can be excluded by prefixing them with a dash (-).\n");
       _exit (0);
     }
 }

@@ -266,6 +266,7 @@ CFLAGS-tst-thread-exit-clobber.o = -std=gnu++11
 LDLIBS-tst-thread-exit-clobber = -lstdc++
 CFLAGS-tst-minstack-throw.o = -std=gnu++11
 LDLIBS-tst-minstack-throw = -lstdc++
+LDLIBS-tst-dl-debug-tid = $(libdl)
 
 tests = \
   tst-attr2 \
@@ -485,6 +486,7 @@ modules-names = \
   tst-audit-threads-mod2 \
   tst-compat-forwarder-mod \
   tst-stack4mod \
+  tst-tls-debug-mod \
   tst-tls3mod \
   tst-tls5mod \
   tst-tls5moda \
@@ -710,7 +712,8 @@ tst-stackguard1-ARGS = --command "$(host-test-program-cmd) --child"
 tst-stackguard1-static-ARGS = --command "$(objpfx)tst-stackguard1-static --child"
 
 ifeq ($(run-built-tests),yes)
-$(objpfx)tst-dl-debug-tid.out: tst-dl-debug-tid.sh $(objpfx)tst-dl-debug-tid
+$(objpfx)tst-dl-debug-tid.out: tst-dl-debug-tid.sh $(objpfx)tst-dl-debug-tid \
+			 $(objpfx)tst-tls-debug-mod.so
 	$(SHELL) $< $(common-objpfx) '$(test-wrapper-env)' '$(rtld-prefix)' \
 	  '$(run-program-env)' \
 	  $(objpfx)tst-dl-debug-tid > $@; $(evaluate-test)
@@ -735,12 +738,9 @@ tst-audit-threads-ENV = LD_AUDIT=$(objpfx)tst-audit-threads-mod1.so
 tst-setuid1-static-ENV = \
   LD_LIBRARY_PATH=$(ld-library-path):$(common-objpfx)elf:$(common-objpfx)nss
 
-tst-pthread-proc-maps-ENV = \
-  GLIBC_TUNABLES=glibc.malloc.arena_max=8:glibc.malloc.mmap_threshold=1024
-tst-pthread-proc-maps-ARGS = 8
-
-# The tests here better do not run in parallel.
-ifeq ($(run-built-tests),yes)
+# The tests here better do not run in parallel, unless serialize-tests is
+# cleared (make check-parallel).
+ifeq (yes-yes,$(run-built-tests)-$(serialize-tests))
 ifneq ($(filter %tests,$(MAKECMDGOALS)),)
 .NOTPARALLEL:
 endif

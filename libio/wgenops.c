@@ -34,6 +34,8 @@
 
 static int save_for_wbackup (FILE *fp, wchar_t *end_p) __THROW;
 
+libio_static_fn_required (_IO_wfile_doallocate);
+
 /* Return minimum _pos markers
    Assumes the current get area is the main get area. */
 ssize_t
@@ -108,8 +110,8 @@ _IO_wdefault_pbackfail (FILE *fp, wint_t c)
 {
   if (fp->_wide_data->_IO_read_ptr > fp->_wide_data->_IO_read_base
       && !_IO_in_backup (fp)
-      && (wint_t) fp->_IO_read_ptr[-1] == c)
-    --fp->_IO_read_ptr;
+      && (wint_t) fp->_wide_data->_IO_read_ptr[-1] == c)
+    --fp->_wide_data->_IO_read_ptr;
   else
     {
       /* Need to handle a filebuf in write mode (switch to read mode). FIXME!*/
@@ -179,11 +181,8 @@ _IO_wdefault_finish (FILE *fp, int dummy)
   for (mark = fp->_markers; mark != NULL; mark = mark->_next)
     mark->_sbuf = NULL;
 
-  if (fp->_IO_save_base)
-    {
-      free (fp->_wide_data->_IO_save_base);
-      fp->_IO_save_base = NULL;
-    }
+  if (_IO_have_wbackup (fp))
+    _IO_free_wbackup_area (fp);
 
 #ifdef _IO_MTSAFE_IO
   if (fp->_lock != NULL)
@@ -271,7 +270,7 @@ __wunderflow (FILE *fp)
       if (save_for_wbackup (fp, fp->_wide_data->_IO_read_end))
 	return WEOF;
     }
-  else if (_IO_have_backup (fp))
+  else if (_IO_have_wbackup (fp))
     _IO_free_wbackup_area (fp);
   return _IO_UNDERFLOW (fp);
 }
@@ -604,6 +603,6 @@ _IO_unsave_wmarkers (FILE *fp)
       fp->_markers = NULL;
     }
 
-  if (_IO_have_backup (fp))
+  if (_IO_have_wbackup (fp))
     _IO_free_wbackup_area (fp);
 }

@@ -210,6 +210,8 @@ tests := \
 # This test runs for a long time.
 xtests += test-wcsncmp-nonarray
 
+tests-internal += \
+  tst-wcsmbs-clone-overflow
 
 include ../Rules
 
@@ -227,6 +229,7 @@ LOCALES := \
   zh_TW.EUC-TW \
   # LOCALES
 include ../gen-locales.mk
+include ../gen-gconv-modules.mk
 
 $(objpfx)tst-btowc.out: $(gen-locales)
 $(objpfx)tst-c16c32-1.out: $(gen-locales)
@@ -241,6 +244,7 @@ $(objpfx)tst-c32-state.out: $(gen-locales)
 $(objpfx)test-c8rtomb.out: $(gen-locales)
 $(objpfx)test-mbrtoc8.out: $(gen-locales)
 $(objpfx)tst-wscanf-to_inpunct.out: $(gen-locales)
+$(objpfx)tst-wcsmbs-clone-overflow.out: $(gen-locales) $(gen-gconv-modules)
 endif
 
 $(objpfx)tst-wcstod-round: $(libm)

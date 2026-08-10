@@ -107,22 +107,21 @@ _dl_try_allocate_static_tls (struct link_map *map, bool optional)
 # error "Either TLS_TCB_AT_TP or TLS_DTV_AT_TP must be defined"
 #endif
 
-  /* If the object is not yet relocated we cannot initialize the
-     static TLS region.  Delay it.  */
-  if (map->l_real->l_relocated)
-    {
+  /* Initialise the static TLS region, the map may not yet be l_relocated (a
+     TLS reloc inside the relocation loop triggered the allocation), but
+     _dl_init_static_tls only writes .tdata into the static TLS slot, which is
+     independent of relocation state.
+     Doing this inline ensures any IFUNC resolver that fires later in the same
+     object's relocation pass sees an initialised TLS slot, and the
+     post-relocation TLS init loop in dl_open_worker_begin becomes a no-op for
+     this map.  */
 #ifdef SHARED
-      /* Update the DTV of the current thread.  Note: GL(dl_load_tls_lock)
-	 is held here so normal load of the generation counter is valid.  */
-      if (__builtin_expect (THREAD_DTV()[0].counter != GL(dl_tls_generation),
-			    0))
-	(void) _dl_update_slotinfo (map->l_tls_modid, GL(dl_tls_generation));
+  /* Update the DTV of the current thread.  Note: GL(dl_load_tls_lock)
+     is held here so normal load of the generation counter is valid.  */
+  if (__glibc_unlikely (THREAD_DTV()[0].counter != GL(dl_tls_generation)))
+    _dl_update_slotinfo (map->l_tls_modid, GL(dl_tls_generation));
 #endif
-
-      dl_init_static_tls (map);
-    }
-  else
-    map->l_need_tls_init = 1;
+  _dl_init_static_tls (map);
 
   return 0;
 }
@@ -141,27 +140,6 @@ _dl_allocate_static_tls (struct link_map *map)
 cannot allocate memory in static TLS block"));
     }
 }
-
-#if !PTHREAD_IN_LIBC
-/* Initialize static TLS area and DTV for current (only) thread.
-   libpthread implementations should provide their own hook
-   to handle all threads.  */
-void
-_dl_nothread_init_static_tls (struct link_map *map)
-{
-#if TLS_TCB_AT_TP
-  void *dest = (char *) THREAD_SELF - map->l_tls_offset;
-#elif TLS_DTV_AT_TP
-  void *dest = (char *) THREAD_SELF + map->l_tls_offset + TLS_PRE_TCB_SIZE;
-#else
-# error "Either TLS_TCB_AT_TP or TLS_DTV_AT_TP must be defined"
-#endif
-
-  /* Initialize the memory.  */
-  memset (__mempcpy (dest, map->l_tls_initimage, map->l_tls_initimage_size),
-	  '\0', map->l_tls_blocksize - map->l_tls_initimage_size);
-}
-#endif /* !PTHREAD_IN_LIBC */
 
 static __always_inline lookup_t
 resolve_map (lookup_t l, struct r_scope_elem *scope[], const ElfW(Sym) **ref,
@@ -291,9 +269,29 @@ _dl_relocate_object_no_relro (struct link_map *l, struct r_scope_elem *scope[],
     }
 
   {
-    /* Do the actual relocation of the object's GOT and other data.  */
+    /* Do the actual relocation of the object's GOT and other data.
 
-    ELF_DYNAMIC_RELOCATE (l, scope, lazy, consider_profiling, skip_ifunc);
+       Process the non-IRELATIVE pass first so .tdata is fully relocated
+       (including R_*_RELATIVE / R_*_64 fixups for TLS initialisers, e.g. a
+       file-scope thread-local initialised with the address of a function),
+       then refresh the static TLS slot before the IRELATIVE pass runs the
+       IFUNC resolvers.  Without this, a resolver would see the unrelocated
+       initialiser bytes that were placed into the slot by the early
+       _dl_allocate_tls_init.  */
+    ELF_DYNAMIC_RELOCATE_NOIFUNC (l, scope, lazy, consider_profiling);
+
+#ifdef SHARED
+    /* Re-initialise the static TLS slot with the .tdata so the IRELATIVE
+       pass observes a fully-relocated initialiser image.  Skipped for objects
+       without static TLS or before the main thread TCB has been set up.  */
+    if (l->l_tls_blocksize != 0
+	&& __rtld_tls_init_tp_called
+	&& l->l_tls_offset != NO_TLS_OFFSET
+	&& l->l_tls_offset != FORCED_DYNAMIC_TLS_OFFSET)
+      _dl_init_static_tls (l);
+#endif
+
+    ELF_DYNAMIC_RELOCATE_IFUNC (l, scope, lazy, skip_ifunc);
 
     if ((consider_profiling || consider_symbind)
 	&& l->l_info[DT_PLTRELSZ] != NULL)

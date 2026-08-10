@@ -155,7 +155,7 @@
    similar to kernel:
 
    - __ASSUME_CLONE_BACKWARDS: for variant 1.
-   - __ASSUME_CLONE_BACKWARDS2: for variant 2 (s390).
+   - __ASSUME_CLONE_BACKWARDS2: for variant 2 (s390x).
    - __ASSUME_CLONE_BACKWARDS3: for variant 3 (microblaze).
    - __ASSUME_CLONE_DEFAULT: for variant 4.
    */
@@ -267,6 +267,14 @@
 # define __ASSUME_MSEAL 1
 #else
 # define __ASSUME_MSEAL 0
+#endif
+
+/* The PIDFD_GET_INFO ioctl was introduced across all architectures in Linux
+   6.13.  */
+#if __LINUX_KERNEL_VERSION >= 0x060D00
+# define __ASSUME_PIDFD_GET_INFO 1
+#else
+# define __ASSUME_PIDFD_GET_INFO 0
 #endif
 
 #endif /* kernel-features.h */

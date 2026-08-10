@@ -169,7 +169,7 @@ fpu_control_t _dl_fpu_control = _FPU_DEFAULT;
 /* Required flags used for stack allocation.  */
 int _dl_stack_prot_flags = DEFAULT_STACK_PROT_PERMS;
 
-#if !defined (__PTHREAD_HTL)
+#if __PTHREAD_NPTL
 list_t _dl_stack_used;
 list_t _dl_stack_user;
 list_t _dl_stack_cache;
@@ -177,10 +177,13 @@ size_t _dl_stack_cache_actsize;
 uintptr_t _dl_in_flight_stack;
 int _dl_stack_cache_lock;
 #endif
-#if !PTHREAD_IN_LIBC
-void (*_dl_init_static_tls) (struct link_map *) = &_dl_nothread_init_static_tls;
-#endif
 struct dl_scope_free_list *_dl_scope_free_list;
+
+#ifdef HAVE_THP
+enum dl_elf_thp_control_t _dl_elf_thp_control;
+enum thp_mode_t _dl_thp_mode;
+size_t _dl_elf_thp_pagesize;
+#endif
 
 #ifdef NEED_DL_SYSINFO
 /* Needed for improved syscall handling on at least x86/Linux.  NB: Don't

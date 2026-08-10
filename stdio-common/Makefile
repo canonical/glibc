@@ -327,6 +327,7 @@ tests := \
   tst-scanf-binary-gnu11 \
   tst-scanf-binary-gnu89 \
   tst-scanf-bz27650 \
+  tst-scanf-bz34208 \
   tst-scanf-intn \
   tst-scanf-nan \
   tst-scanf-round \
@@ -349,7 +350,9 @@ tests := \
   tst-vfprintf-user-type \
   tst-vfprintf-width-i18n \
   tst-vfprintf-width-prec-alloc \
+  tst-vfscanf-bz34008 \
   tst-wc-printf \
+  tst-wscanf-bz34208 \
   tstdiomisc \
   tstgetln \
   tstscanf \
@@ -563,6 +566,9 @@ tst-printf-bz18872-ENV = MALLOC_TRACE=$(objpfx)tst-printf-bz18872.mtrace \
 			LD_PRELOAD=$(common-objpfx)/malloc/libc_malloc_debug.so
 tst-vfprintf-width-prec-ENV = \
   MALLOC_TRACE=$(objpfx)tst-vfprintf-width-prec.mtrace \
+  LD_PRELOAD=$(common-objpfx)/malloc/libc_malloc_debug.so
+tst-vfscanf-bz34008-ENV = \
+  MALLOC_CHECK_=3 \
   LD_PRELOAD=$(common-objpfx)/malloc/libc_malloc_debug.so
 tst-printf-bz25691-ENV = \
   MALLOC_TRACE=$(objpfx)tst-printf-bz25691.mtrace \

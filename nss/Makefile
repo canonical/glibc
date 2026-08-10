@@ -317,6 +317,7 @@ tests := \
   test-netdb \
   test-rpcent \
   testgrp \
+  tst-default-domain \
   tst-fgetsgent_r \
   tst-getaddrinfo \
   tst-getaddrinfo2 \
@@ -326,6 +327,7 @@ tests := \
   tst-gshadow \
   tst-nss-getpwent \
   tst-nss-hash \
+  tst-nss-malloc-failure-getlogin_r \
   tst-nss-test1 \
   tst-nss-test2 \
   tst-nss-test4 \
@@ -425,12 +427,9 @@ libnss_compat-routines	:= $(addprefix compat-,grp pwd spwd initgroups) \
 
 install-others		+= $(inst_vardbdir)/Makefile
 
-# Build static module into libc if requested
 libnss_db-inhibit-o	= $(filter-out .os,$(object-suffixes))
 libnss_compat-inhibit-o	= $(filter-out .os,$(object-suffixes))
-ifeq ($(build-static-nss),yes)
 tests-static		+= tst-nss-static
-endif
 extra-test-objs		+= nss_test1.os nss_test2.os nss_test_errno.os \
 			   nss_test_gai_hv2_canonname.os
 
@@ -513,6 +512,8 @@ endif
 
 $(objpfx)tst-nss-files-alias-leak.out: $(objpfx)libnss_files.so
 $(objpfx)tst-nss-files-alias-truncated.out: $(objpfx)libnss_files.so
+
+$(objpfx)tst-default-domain: $(objpfx)nisdomain.os
 
 tst-nss-gai-hv2-canonname-ENV = \
 		MALLOC_TRACE=$(objpfx)tst-nss-gai-hv2-canonname.mtrace \

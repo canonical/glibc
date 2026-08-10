@@ -272,19 +272,6 @@ all|yes|no|strong) ;;
 *) AC_MSG_ERROR([Not a valid argument for --enable-stack-protector: "$enable_stack_protector"]);;
 esac
 
-dnl On some platforms we cannot use dynamic loading.  We must provide
-dnl static NSS modules.
-AC_ARG_ENABLE([static-nss],
-	      AS_HELP_STRING([--enable-static-nss],
-			     [build static NSS modules @<:@default=no@:>@]),
-	      [static_nss=$enableval],
-	      [static_nss=no])
-dnl Enable static NSS also if we build no shared objects.
-if test x"$static_nss" = xyes || test x"$shared" = xno; then
-  static_nss=yes
-  AC_DEFINE(DO_STATIC_NSS)
-fi
-
 AC_ARG_ENABLE([force-install],
 	      AS_HELP_STRING([--disable-force-install],
 			     [don't force installation of files from this package, even if they are older than the installed files]),
@@ -327,21 +314,6 @@ AC_ARG_ENABLE([multi-arch],
 			     [enable single DSO with optimizations for multiple architectures]),
 	      [multi_arch=$enableval],
 	      [multi_arch=default])
-
-AC_ARG_ENABLE([memory-tagging],
-	      AS_HELP_STRING([--enable-memory-tagging],
-			     [enable memory tagging if supported by the architecture @<:@default=no@:>@]),
-	      [memory_tagging=$enableval],
-	      [memory_tagging=no])
-if test "$memory_tagging" = yes; then
-  # Only enable this on architectures that support it.
-  case $host_cpu in
-    aarch64)
-      AC_DEFINE(USE_MTAG)
-      ;;
-  esac
-fi
-AC_SUBST(memory_tagging)
 
 AC_ARG_ENABLE([systemtap],
               [AS_HELP_STRING([--enable-systemtap],
@@ -1289,13 +1261,13 @@ if test $libc_cv_have_sdata_section = yes; then
   AC_DEFINE(HAVE_SDATA_SECTION)
 fi
 
-AC_CACHE_CHECK(for libunwind-support in compiler,
-	       libc_cv_cc_with_libunwind, [
-  cat > conftest.c <<EOF
+AC_CACHE_CHECK(whether the compiler links with libunwind,
+	       libc_cv_cc_with_libunwind, [dnl
+cat > conftest.c <<EOF
 int main (void) { return 0; }
 EOF
   if ${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS -static -o conftest \
-     conftest.c -v 2>&1 >/dev/null | grep ' -lunwind ' >/dev/null; then
+     conftest.c -v 2>&1 >/dev/null | grep 'libunwind.a' >/dev/null; then
     libc_cv_cc_with_libunwind=yes
   else
     libc_cv_cc_with_libunwind=no
@@ -1305,6 +1277,7 @@ AC_SUBST(libc_cv_cc_with_libunwind)
 if test $libc_cv_cc_with_libunwind = yes; then
   AC_DEFINE(HAVE_CC_WITH_LIBUNWIND)
 fi
+LIBC_CONFIG_VAR([have-cc-with-libunwind], [$libc_cv_cc_with_libunwind])
 
 ASFLAGS_config=
 AC_CACHE_CHECK(whether --noexecstack is desirable for .S files,
@@ -1369,22 +1342,6 @@ LIBC_TRY_CC_OPTION([-fpie], [libc_cv_fpie=yes], [libc_cv_fpie=no])
 ])
 
 AC_SUBST(libc_cv_fpie)
-
-dnl Check how to suppress C23-qualifier-generic const warnings.  GCC has
-dnl -Wno-discarded-qualifiers, while clang -Wno-incompatible-pointer-types-discards-qualifiers
-AC_CACHE_CHECK(for -Wno-discarded-qualifiers, libc_cv_cflags_wno_discarded_qualifiers, [dnl
-LIBC_TRY_CC_OPTION([-Werror -Wno-discarded-qualifiers],
-		   [libc_cv_cflags_wno_discarded_qualifiers=-Wno-discarded-qualifiers],
-		   [libc_cv_cflags_wno_discarded_qualifiers=])
-if test -z "$libc_cv_cflags_wno_discarded_qualifiers"; then
-  LIBC_TRY_CC_OPTION([-Werror -Wno-incompatible-pointer-types-discards-qualifiers],
-		     [libc_cv_cflags_wno_incompatible_pointer_type_discards_qualifiers=-Wno-incompatible-pointer-types-discards-qualifiers],
-		     [libc_cv_cflags_wno_incompatible_pointer_type_discards_qualifiers=])
-  libc_cv_cflags_wno_discarded_qualifiers=$libc_cv_cflags_wno_incompatible_pointer_type_discards_qualifiers
-fi
-])
-LIBC_CONFIG_VAR([config-cflags-wno-discarded-qualifiers],
-		[$libc_cv_cflags_wno_discarded_qualifiers])
 
 AC_CACHE_CHECK(for GLOB_DAT reloc,
 	       libc_cv_has_glob_dat, [dnl
@@ -1696,6 +1653,16 @@ LIBC_TRY_TEST_CXX_OPTION([$CXX -finput-charset=ascii],
 LIBC_CONFIG_VAR(test-config-cxxflags-finput-charset-ascii,
 		$libc_cv_test_cxxflags_finput_charset_ascii)
 
+dnl Check if TEST_CXX supports -std=c++26.
+LIBC_TRY_TEST_CXX_OPTION([$CXX -std=c++26],
+  [-Werror -std=c++26],
+  libc_cv_test_cxxflags_stdcxx26,
+  [libc_cv_test_cxxflags_stdcxx26="-std=c++26"],
+  [libc_cv_test_cxxflags_stdcxx26=]
+)
+LIBC_CONFIG_VAR(test-config-cxxflags-stdcxx26,
+		$libc_cv_test_cxxflags_stdcxx26)
+
 conftest_code="
 extern int not_exist (void);
 
@@ -1938,7 +1905,6 @@ libc_cv_sysconfdir=$sysconfdir
 libc_cv_localstatedir=$localstatedir
 libc_cv_gcc_unwind_find_fde=no
 libc_cv_idn=no
-pthread_in_libc=yes
 abort_in_ld=no
 
 # Iterate over all the sysdep directories we will use, running their
@@ -2134,6 +2100,39 @@ AC_CACHE_CHECK([whether $CC can link against -lgcc_s], libc_cv_have_libgcc_s, [d
   LIBS="$old_LIBS"])
 LIBC_CONFIG_VAR([have-libgcc_s], [$libc_cv_have_libgcc_s])
 
+# Check which runtime library compiler uses
+AC_CACHE_CHECK([for the usable compiler runtime library], [libc_cv_runtime_library], [dnl
+  libc_cv_libgcc_usable=no
+  libgcc_name=`${CC-cc} $CFLAGS $CPPFLAGS -print-libgcc-file-name | sed 's:.*/::'`
+  case "$libgcc_name" in
+    libgcc*)
+      libc_cv_libgcc=-lgcc
+      libc_cv_libgcc_eh=-lgcc_eh
+      libc_cv_runtime_library=libgcc
+      ;;
+    libclang_rt*)
+      libc_cv_libgcc=-lclang_rt.builtins
+      libc_cv_libgcc_eh=
+      libc_cv_runtime_library=compiler-rt
+      ;;
+    *) AC_MSG_FAILURE([non supported compiler runtime library]) ;;
+  esac])
+LIBC_CONFIG_VAR([libgcc-name], [$libc_cv_libgcc])
+LIBC_CONFIG_VAR([libgcc_eh-name], [$libc_cv_libgcc_eh])
+
+# Check if compiler runtime library provides __sfp_handle_exceptions
+LIBC_TRY_CC_AND_TEST_LINK([for __sfp_handle_exceptions support],
+  [void __sfp_handle_exceptions (int); __sfp_handle_exceptions (0)],
+  libc_cv_sfp_handle_exceptions,
+  [libc_cv_sfp_handle_exceptions=yes],
+  [libc_cv_sfp_handle_exceptions=no],
+  libc_cv_test_sfp_handle_exceptions,
+  [libc_cv_test_sfp_handle_exceptions=yes],
+  [libc_cv_test_sfp_handle_exceptions=no])
+if test $libc_cv_sfp_handle_exceptions = yes; then
+  AC_DEFINE([HAVE_SFP_HANDLE_EXCEPTIONS])
+fi
+
 # Support configure.ac under sysdeps.
 AC_SUBST(libc_cv_test_cc_mprefer_vector_width)
 AC_SUBST(test_enable_cet)
@@ -2188,7 +2187,6 @@ libc_cv_multidir=`${CC-cc} $CFLAGS $CPPFLAGS -print-multi-directory`
 AC_SUBST(libc_cv_multidir)
 
 AC_SUBST(profile)
-AC_SUBST(static_nss)
 
 AC_SUBST(DEFINES)
 
@@ -2199,11 +2197,6 @@ VERSION=`sed -n -e 's/^#define VERSION "\([^"]*\)"/\1/p' < $srcdir/version.h`
 RELEASE=`sed -n -e 's/^#define RELEASE "\([^"]*\)"/\1/p' < $srcdir/version.h`
 AC_SUBST(VERSION)
 AC_SUBST(RELEASE)
-
-if test "$pthread_in_libc" = yes; then
-  AC_DEFINE(PTHREAD_IN_LIBC)
-fi
-AC_SUBST(pthread_in_libc)
 
 # Some symbols that might be auto-generated by the compiler are redefined
 # to internal alias (for instance mempcpy to __mempcpy).  However, if fortify

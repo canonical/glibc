@@ -358,11 +358,15 @@ type-ldouble-yes := ldouble
 # double support
 type-double-suffix :=
 type-double-routines := \
-  branred \
+  e_cosh_data \
+  e_coshsinh_data \
   e_exp_data \
   e_log2_data \
   e_log_data \
   e_pow_log_data \
+  e_rem_pio2 \
+  e_sinh_data \
+  e_tanh_data \
   k_rem_pio2 \
   math_err \
   s_asincosh_data \
@@ -559,6 +563,7 @@ tests = \
   test-nan-overflow \
   test-nan-payload \
   test-narrow-macros \
+  test-narrowing-trap \
   test-nearbyint-except \
   test-nearbyint-except-2 \
   test-powl \
@@ -1167,6 +1172,8 @@ CFLAGS-test-nan-payload.c += -fno-builtin
 CFLAGS-test-ceil-except-2.c += -fno-builtin
 CFLAGS-test-floor-except-2.c += -fno-builtin
 CFLAGS-test-trunc-except-2.c += -fno-builtin
+
+CFLAGS-test-narrowing-trap.c += -fno-builtin
 
 include ../Rules
 

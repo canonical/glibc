@@ -242,6 +242,7 @@ tests := \
   bug-regex36 \
   bug-regex37 \
   bug-regex38 \
+  bug-regex39 \
   regexbug1 \
   runptests \
   runtests \
@@ -277,6 +278,7 @@ tests := \
   tst-execvpe4 \
   tst-execvpe5 \
   tst-execvpe6 \
+  tst-execvpe7 \
   tst-fexecve \
   tst-fnmatch \
   tst-fnmatch2 \
@@ -314,6 +316,7 @@ tests := \
   tst-rxspencer-no-utf8 \
   tst-sched_getaffinity \
   tst-spawn-chdir \
+  tst-spawn-chdir-posix \
   tst-spawn4 \
   tst-spawn5 \
   tst-spawn6 \
@@ -327,6 +330,7 @@ tests := \
   tst-wait3 \
   tst-wait4 \
   tst-waitid \
+  tst-wordexp-append \
   tst-wordexp-nocmd \
   tst-wordexp-reuse \
   tstgetopt \
@@ -357,6 +361,7 @@ tests-internal := \
 tests-container := \
   bug-ga2 \
   tst-vfork3 \
+  tst-wordexp-tilde \
   # tests-container
 
 tests-time64 := \
@@ -499,7 +504,7 @@ tests-special += \
   $(objpfx)tst-pcre-mem.out \
   $(objpfx)tst-rxspencer-no-utf8-mem.out \
   $(objpfx)tst-vfork3-mem.out \
-  $(objpfx)tst-wordexp-reuse.out \
+  $(objpfx)tst-wordexp-reuse-mem.out \
   # tests-special
 endif
 endif

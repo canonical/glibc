@@ -33,13 +33,6 @@
 #include <locale/localeinfo.h>
 #include <scratch_buffer.h>
 
-#ifdef	__GNUC__
-# define HAVE_LONGLONG
-# define LONGLONG	long long
-#else
-# define LONGLONG	long
-#endif
-
 /* Determine whether we have to handle `long long' at all.  */
 #if LONG_MAX == LONG_LONG_MAX
 # define need_longlong	0
@@ -270,6 +263,19 @@ char_buffer_add (struct char_buffer *buffer, CHAR_T ch)
     char_buffer_add_slow (buffer, ch);
   else
     *buffer->current++ = ch;
+}
+
+/* Calculate the result size of expanded char array in %ms, %mS, %m[
+  or %lm[.  OLDSIZE is current allocation size and NEED is the
+   remaining field-width budget (chars still to read) or negative if
+   unbounded.  */
+static __always_inline size_t
+grow_to_fit (size_t oldsize, int need)
+{
+  if (need < 0 || oldsize < need)
+    return oldsize * 2;
+  /* oldsize >= need: grow requested capacity and 1 byte for `\0' */
+  return oldsize + need + 1;
 }
 
 /* Read formatted input from S according to the format string
@@ -811,7 +817,8 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 		      && *strptr + strsize - str <= MB_LEN_MAX)
 		    {
 		      /* We have to enlarge the buffer if the `m' flag
-			 was given.  */
+			 was given.  And we may not expand str by width
+			 as the wcrtomb may return various bytes.  */
 		      size_t strleng = str - *strptr;
 		      char *newstr;
 
@@ -862,8 +869,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			{
 			  /* Enlarge the buffer.  */
 			  size_t newsize
-			    = strsize
-			      + (strsize >= width ? width - 1 : strsize);
+			    = strsize + (strsize >= width ? width : strsize);
 
 			  str = (char *) realloc (*strptr, newsize);
 			  if (str == NULL)
@@ -936,7 +942,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 		      && wstr == (wchar_t *) *strptr + strsize)
 		    {
 		      size_t newsize
-			= strsize + (strsize > width ? width - 1 : strsize);
+			= strsize + (strsize >= width ? width : strsize);
 		      /* Enlarge the buffer.  */
 		      wstr = (wchar_t *) realloc (*strptr,
 						  newsize * sizeof (wchar_t));
@@ -991,7 +997,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 		    && wstr == (wchar_t *) *strptr + strsize)
 		  {
 		    size_t newsize
-		      = strsize + (strsize > width ? width - 1 : strsize);
+		      = strsize + (strsize >= width ? width : strsize);
 		    /* Enlarge the buffer.  */
 		    wstr = (wchar_t *) realloc (*strptr,
 						newsize * sizeof (wchar_t));
@@ -1106,7 +1112,8 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			&& *strptr + strsize - str <= MB_LEN_MAX)
 		      {
 			/* We have to enlarge the buffer if the `a' or `m'
-			   flag was given.  */
+			   flag was given.  And we may not expand str by
+			   width as the wcrtomb may return various bytes.  */
 			size_t strleng = str - *strptr;
 			char *newstr;
 
@@ -1164,7 +1171,9 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			  && (char *) str == *strptr + strsize)
 			{
 			  /* Enlarge the buffer.  */
-			  str = (char *) realloc (*strptr, 2 * strsize);
+			  size_t newsize = grow_to_fit (strsize, width);
+
+			  str = (char *) realloc (*strptr, newsize);
 			  if (str == NULL)
 			    {
 			      /* Can't allocate that much.  Last-ditch
@@ -1196,7 +1205,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			    {
 			      *strptr = (char *) str;
 			      str += strsize;
-			      strsize *= 2;
+			      strsize = newsize;
 			    }
 			}
 		    }
@@ -1294,9 +1303,10 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			&& wstr == (wchar_t *) *strptr + strsize)
 		      {
 			/* Enlarge the buffer.  */
-			wstr = (wchar_t *) realloc (*strptr,
-						    (2 * strsize)
-						    * sizeof (wchar_t));
+			size_t newsize = grow_to_fit (strsize, width);
+
+			wstr = (wchar_t *) realloc (
+			    *strptr, newsize * sizeof (wchar_t));
 			if (wstr == NULL)
 			  {
 			    /* Can't allocate that much.  Last-ditch
@@ -1330,7 +1340,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			  {
 			    *strptr = (char *) wstr;
 			    wstr += strsize;
-			    strsize *= 2;
+			    strsize = newsize;
 			  }
 		      }
 		  }
@@ -1370,9 +1380,10 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 		      && wstr == (wchar_t *) *strptr + strsize)
 		    {
 		      /* Enlarge the buffer.  */
+		      size_t newsize = grow_to_fit (strsize, width);
+
 		      wstr = (wchar_t *) realloc (*strptr,
-						  (2 * strsize
-						   * sizeof (wchar_t)));
+						  newsize * sizeof (wchar_t));
 		      if (wstr == NULL)
 			{
 			  /* Can't allocate that much.  Last-ditch effort.  */
@@ -1405,7 +1416,7 @@ __vfscanf_internal (FILE *s, const char *format, va_list argptr,
 			{
 			  *strptr = (char *) wstr;
 			  wstr += strsize;
-			  strsize *= 2;
+			  strsize = newsize;
 			}
 		    }
 		}
@@ -1976,7 +1987,7 @@ digits_extended_fail:
 	      if (flags & NUMBER_SIGNED)
 		{
 		  if (need_longlong && (flags & LONGDBL))
-		    *ARG (LONGLONG int *) = num.q;
+		    *ARG (long long int *) = num.q;
 		  else if (need_long && (flags & LONG))
 		    *ARG (long int *) = num.l;
 		  else if (flags & SHORT)
@@ -1989,7 +2000,7 @@ digits_extended_fail:
 	      else
 		{
 		  if (need_longlong && (flags & LONGDBL))
-		    *ARG (unsigned LONGLONG int *) = num.uq;
+		    *ARG (unsigned long long int *) = num.uq;
 		  else if (need_long && (flags & LONG))
 		    *ARG (unsigned long int *) = num.ul;
 		  else if (flags & SHORT)
@@ -2037,17 +2048,23 @@ digits_extended_fail:
 	    {
 	      /* Maybe "nan".  */
 	      char_buffer_add (&charbuf, c);
-	      if (__builtin_expect (width == 0
-				    || inchar () == EOF
-				    || TOLOWER (c) != L_('a'), 0))
+	      if (__glibc_unlikely (width == 0 || inchar () == EOF))
 		conv_error ();
+	      if (__glibc_unlikely (TOLOWER (c) != L_('a')))
+		{
+		  ungetc (c, s);
+		  conv_error ();
+		}
 	      if (width > 0)
 		--width;
 	      char_buffer_add (&charbuf, c);
-	      if (__builtin_expect (width == 0
-				    || inchar () == EOF
-				    || TOLOWER (c) != L_('n'), 0))
+	      if (__glibc_unlikely (width == 0 || inchar () == EOF))
 		conv_error ();
+	      if (__glibc_unlikely (TOLOWER (c) != L_('n')))
+		{
+		  ungetc (c, s);
+		  conv_error ();
+		}
 	      if (width > 0)
 		--width;
 	      char_buffer_add (&charbuf, c);
@@ -2081,6 +2098,7 @@ digits_extended_fail:
 			    {
 			      /* Invalid character was observed.  Only valid
 				 characters are [a-zA-Z0-9_] and ')'.  */
+			      ungetc (c, s);
 			      conv_error ();
 			      break;
 			    }
@@ -2102,17 +2120,23 @@ digits_extended_fail:
 	    {
 	      /* Maybe "inf" or "infinity".  */
 	      char_buffer_add (&charbuf, c);
-	      if (__builtin_expect (width == 0
-				    || inchar () == EOF
-				    || TOLOWER (c) != L_('n'), 0))
+	      if (__glibc_unlikely (width == 0 || inchar () == EOF))
 		conv_error ();
+	      if (__glibc_unlikely (TOLOWER (c) != L_('n')))
+		{
+		  ungetc (c, s);
+		  conv_error ();
+		}
 	      if (width > 0)
 		--width;
 	      char_buffer_add (&charbuf, c);
-	      if (__builtin_expect (width == 0
-				    || inchar () == EOF
-				    || TOLOWER (c) != L_('f'), 0))
+	      if (__glibc_unlikely (width == 0 || inchar () == EOF))
 		conv_error ();
+	      if (__glibc_unlikely (TOLOWER (c) != L_('f')))
+		{
+		  ungetc (c, s);
+		  conv_error ();
+		}
 	      if (width > 0)
 		--width;
 	      char_buffer_add (&charbuf, c);
@@ -2125,31 +2149,43 @@ digits_extended_fail:
 			--width;
 		      /* Now we have to read the rest as well.  */
 		      char_buffer_add (&charbuf, c);
-		      if (__builtin_expect (width == 0
-					    || inchar () == EOF
-					    || TOLOWER (c) != L_('n'), 0))
+		      if (__glibc_unlikely (width == 0 || inchar () == EOF))
 			conv_error ();
+		      if (__glibc_unlikely (TOLOWER (c) != L_('n')))
+			{
+			  ungetc (c, s);
+			  conv_error ();
+			}
 		      if (width > 0)
 			--width;
 		      char_buffer_add (&charbuf, c);
-		      if (__builtin_expect (width == 0
-					    || inchar () == EOF
-					    || TOLOWER (c) != L_('i'), 0))
+		      if (__glibc_unlikely (width == 0 || inchar () == EOF))
 			conv_error ();
+		      if (__glibc_unlikely (TOLOWER (c) != L_('i')))
+			{
+			  ungetc (c, s);
+			  conv_error ();
+			}
 		      if (width > 0)
 			--width;
 		      char_buffer_add (&charbuf, c);
-		      if (__builtin_expect (width == 0
-					    || inchar () == EOF
-					    || TOLOWER (c) != L_('t'), 0))
+		      if (__glibc_unlikely (width == 0 || inchar () == EOF))
 			conv_error ();
+		      if (__glibc_unlikely (TOLOWER (c) != L_('t')))
+			{
+			  ungetc (c, s);
+			  conv_error ();
+			}
 		      if (width > 0)
 			--width;
 		      char_buffer_add (&charbuf, c);
-		      if (__builtin_expect (width == 0
-					    || inchar () == EOF
-					    || TOLOWER (c) != L_('y'), 0))
+		      if (__glibc_unlikely (width == 0 || inchar () == EOF))
 			conv_error ();
+		      if (__glibc_unlikely (TOLOWER (c) != L_('y')))
+			{
+			  ungetc (c, s);
+			  conv_error ();
+			}
 		      if (width > 0)
 			--width;
 		      char_buffer_add (&charbuf, c);
@@ -2762,9 +2798,10 @@ digits_extended_fail:
 			  && wstr == (wchar_t *) *strptr + strsize)
 			{
 			  /* Enlarge the buffer.  */
-			  wstr = (wchar_t *) realloc (*strptr,
-						      (2 * strsize)
-						      * sizeof (wchar_t));
+			  size_t newsize = grow_to_fit (strsize, width);
+
+			  wstr = (wchar_t *) realloc (
+			      *strptr, newsize * sizeof (wchar_t));
 			  if (wstr == NULL)
 			    {
 			      /* Can't allocate that much.  Last-ditch
@@ -2798,7 +2835,7 @@ digits_extended_fail:
 			    {
 			      *strptr = (char *) wstr;
 			      wstr += strsize;
-			      strsize *= 2;
+			      strsize = newsize;
 			    }
 			}
 		    }
@@ -2847,9 +2884,10 @@ digits_extended_fail:
 			  && wstr == (wchar_t *) *strptr + strsize)
 			{
 			  /* Enlarge the buffer.  */
-			  wstr = (wchar_t *) realloc (*strptr,
-						      (2 * strsize
-						       * sizeof (wchar_t)));
+			  size_t newsize = grow_to_fit (strsize, width);
+
+			  wstr = (wchar_t *) realloc (
+			      *strptr, newsize * sizeof (wchar_t));
 			  if (wstr == NULL)
 			    {
 			      /* Can't allocate that much.  Last-ditch
@@ -2883,7 +2921,7 @@ digits_extended_fail:
 			    {
 			      *strptr = (char *) wstr;
 			      wstr += strsize;
-			      strsize *= 2;
+			      strsize = newsize;
 			    }
 			}
 		    }
@@ -2991,7 +3029,9 @@ digits_extended_fail:
 		      if ((flags & MALLOC)
 			  && *strptr + strsize - str <= MB_LEN_MAX)
 			{
-			  /* Enlarge the buffer.  */
+			  /* Enlarge the buffer.  And we may not
+			   expand str by width as the wcrtomb may
+			   return various bytes.  */
 			  size_t strleng = str - *strptr;
 			  char *newstr;
 
@@ -3059,7 +3099,7 @@ digits_extended_fail:
 			  && (char *) str == *strptr + strsize)
 			{
 			  /* Enlarge the buffer.  */
-			  size_t newsize = 2 * strsize;
+			  size_t newsize = grow_to_fit (strsize, width);
 
 			allocagain:
 			  str = (char *) realloc (*strptr, newsize);

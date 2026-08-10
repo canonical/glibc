@@ -67,6 +67,7 @@ tests = \
   glrefmain \
   tst-dladdr \
   tst-dlinfo \
+  tst-dlsym-ctor \
   tst-rec-dlopen \
   tstatexit \
   tstcxaatexit \
@@ -90,6 +91,7 @@ modules-names = \
   modcxaatexit \
   moddummy1 \
   moddummy2 \
+  tst-dlsym-ctormod \
   # modules-names
 
 failtestmod.so-no-z-defs = yes
@@ -187,7 +189,7 @@ $(objpfx)bug-atexit1.out: $(objpfx)bug-atexit1-lib.so
 $(objpfx)bug-atexit2.out: $(objpfx)bug-atexit2-lib.so
 
 ifneq (,$(CXX))
-LDLIBS-bug-atexit3-lib.so = -lstdc++ -lgcc_eh
+LDLIBS-bug-atexit3-lib.so = -lstdc++ $(libgcc_eh)
 $(objpfx)bug-atexit3-lib.so: $(libsupport)
 $(objpfx)bug-atexit3.out: $(objpfx)bug-atexit3-lib.so
 endif
@@ -197,3 +199,5 @@ $(objpfx)bug-dl-leaf.out: $(objpfx)bug-dl-leaf-lib-cb.so
 $(objpfx)bug-dl-leaf-lib-cb.so: $(objpfx)bug-dl-leaf-lib.so
 
 $(objpfx)tst-rec-dlopen.out: $(objpfx)moddummy1.so $(objpfx)moddummy2.so
+
+$(objpfx)tst-dlsym-ctor.out: $(objpfx)tst-dlsym-ctormod.so

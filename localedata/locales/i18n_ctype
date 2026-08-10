@@ -20,14 +20,15 @@ title     "Unicode 14.0.0 FDCC-set"
 source    "UnicodeData.txt, DerivedCoreProperties.txt"
 address   ""
 contact   ""
-email     "bug-glibc-locales@gnu.org"
+email     "libc-alpha@sourceware.org"
 tel       ""
 fax       ""
 language  ""
 territory "Earth"
 revision  "14.0.0"
 date      "2025-08-18"
-category  "i18n:2012";LC_CTYPE
+
+category "i18n:2012";LC_CTYPE
 END LC_IDENTIFICATION
 
 LC_CTYPE

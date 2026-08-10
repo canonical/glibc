@@ -114,7 +114,10 @@ __fma (double x, double y, double z)
 	  zhi = nz.m;
 	  e = nz.e - 64;
 	  d -= 64;
-	  if (d < 64)
+	  if (d == 0)
+	    /* No further shift of r needed; rhi/rlo are unchanged.  */
+	    ;
+	  else if (d < 64)
 	    {
 	      rlo = rhi << (64 - d) | rlo >> d | !!(rlo << (64 - d));
 	      rhi = rhi >> d;
@@ -192,7 +195,10 @@ __fma (double x, double y, double z)
     i = -i;
   double r = convertfromint64 (i); /* |r| is in [0x1p62,0x1p63] */
 
-  if (e < -1022 - 62)
+  if (__glibc_likely (e >= -1084 && e <= 960))
+    /* Fast-path for normal numbers.  */
+    return asdouble (asuint64 (r) + ((int64_t) e << MANTISSA_WIDTH));
+  else if (e < -1022 - 62)
     {
       /* Result is subnormal before rounding.  */
       if (e == -1022 - 63)
