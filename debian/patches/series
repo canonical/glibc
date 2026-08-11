@@ -73,3 +73,16 @@ any/local-ldconfig-ignore-ld.so.diff
 any/local-bootstrap-headers.diff
 any/local-test-install.diff
 any/local-cross.patch
+
+# Ubuntu patches live in their own little world, to maintain sanity
+ubuntu/local-altlocaledir.diff
+ubuntu/local-disable-ld_audit.diff
+ubuntu/local-disable-nscd-netgroup-caching.diff
+ubuntu/localedata/en_IE-am_pm.diff
+ubuntu/localedata/eo_US.diff
+ubuntu/localedata/es_DO-am_pm.diff
+ubuntu/localedata/sd_PK.diff
+ubuntu/localedata/ug_CN@latin.diff
+ubuntu/local-pldd-root.diff
+ubuntu/apparmor/0002-tests-handle-AppArmor-userns-mitigation.patch
+ubuntu/tst-spawn-coreutils-rs.patch

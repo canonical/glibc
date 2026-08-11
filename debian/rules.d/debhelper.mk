@@ -81,6 +81,9 @@ endif
 	# Keep the setuid on pt_chown (non-Linux only).
 	# Keep the 0700 permissions of /var/cache/ldconfig
 	dh_fixperms -p$(curpass) -Xpt_chown -Xvar/cache/ldconfig
+	if [ $(curpass) = locales ] ; then \
+		chmod +x debian/$(curpass)/usr/share/locales/*-language-pack ; \
+	fi
 	# libc.so prints useful version information when executed.
 	find debian/$(curpass) -type f -regex '.*/libc\.so\.[0-9.]+' -exec chmod a+x '{}' ';'
 	# Use this instead of -X to dh_fixperms so that we can use

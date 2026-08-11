@@ -1,0 +1,28 @@
+Description: Fix spawn-coreutils test with coreutils-rs pwd.
+ Rust coreutils path have to match the expected tool name due to sharing
+ the same binary.
+Forwarded: no
+Author: Simon Poirier <simon.poirier@canonical.com>
+
+Index: glibc-2.44/posix/tst-spawn-chdir.c
+===================================================================
+--- glibc-2.44.orig/posix/tst-spawn-chdir.c	2026-08-12 15:54:16.793283469 -0400
++++ glibc-2.44/posix/tst-spawn-chdir.c	2026-08-12 15:54:16.784316585 -0400
+@@ -159,7 +159,7 @@
+           /* This symbolic link is used in a relative path with
+              posix_spawn.  */
+           char *pwd_symlink_path
+-            = xasprintf ("%s/subdir/pwd-symlink", iteration_directory);
++            = xasprintf ("%s/subdir/pwd", iteration_directory);
+           xsymlink (get_pwd_program (), pwd_symlink_path);
+           add_temp_file (pwd_symlink_path);
+ 
+@@ -189,7 +189,7 @@
+             TEST_COMPARE (POSIX_SPAWNP (&pid, "pwd", &actions,
+                                         NULL, argv, envp), 0);
+           else
+-            TEST_COMPARE (POSIX_SPAWN (&pid, "subdir/pwd-symlink", &actions,
++            TEST_COMPARE (POSIX_SPAWN (&pid, "subdir/pwd", &actions,
+                                        NULL, argv, envp), 0);
+           TEST_VERIFY (pid > 0);
+           siginfo_t sinfo;

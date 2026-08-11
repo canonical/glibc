@@ -8,9 +8,16 @@ GIT_UPDATES_DIFF = debian/patches/git-updates.diff
 
 update-from-upstream:
 	dh_testdir
-	git clone --bare $(GLIBC_GIT) $(GLIBC_CHECKOUT)
-	h=$$(git -C $(GLIBC_CHECKOUT) rev-parse $(GLIBC_BRANCH)); \
+	git fetch origin
+	h=$$(git log -n 1 --format=%H origin/$(GLIBC_BRANCH)); \
 	echo "GIT update of $(GLIBC_GIT)/$(GLIBC_BRANCH) from $(GLIBC_TAG) to $$h" > $(GIT_UPDATES_DIFF)
 	echo "" >> $(GIT_UPDATES_DIFF)
-	git -C $(GLIBC_CHECKOUT) diff --no-renames $(GLIBC_TAG) $(GLIBC_BRANCH) -- . ':!manual' >> $(GIT_UPDATES_DIFF)
-	rm -rf $(GLIBC_CHECKOUT)
+	git diff --no-renames $(GLIBC_TAG) origin/$(GLIBC_BRANCH) >> $(GIT_UPDATES_DIFF)
+
+make-new-snapshot:
+	git fetch origin
+	d=$$(git describe origin/master); \
+	v=$$(echo $$d | sed 's/-/_/'); \
+	dv=$$(echo $$v | sed 's/.*_//')-0ubuntu1; \
+	git archive --prefix=$$d/ origin/master | xz -9evk > ../$$v.orig.tar.xz; \
+	dch -v $$dv ''

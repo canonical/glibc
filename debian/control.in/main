@@ -19,8 +19,10 @@ Build-Depends-Indep: perl, po-debconf
 Maintainer: GNU Libc Maintainers <debian-glibc@lists.debian.org>
 Uploaders: Clint Adams <clint@debian.org>, Aurelien Jarno <aurel32@debian.org>, Samuel Thibault <sthibault@debian.org>
 Standards-Version: 4.6.2
-Vcs-Browser: https://salsa.debian.org/glibc-team/glibc
-Vcs-Git: https://salsa.debian.org/glibc-team/glibc.git
+Vcs-Browser: https://git.launchpad.net/~ubuntu-core-dev/ubuntu/+source/glibc
+Vcs-Git: https://git.launchpad.net/~ubuntu-core-dev/ubuntu/+source/glibc
+XSBC-Original-Vcs-Browser: https://salsa.debian.org/glibc-team/glibc
+XSBC-Original-Vcs-Git: https://salsa.debian.org/glibc-team/glibc.git
 Homepage: https://www.gnu.org/software/libc/libc.html
 
 Package: libc-bin
@@ -30,7 +32,7 @@ Priority: required
 Essential: yes
 Multi-Arch: foreign
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: manpages
+Suggests: manpages
 Build-Profiles: <!stage1>
 Description: GNU C Library: Binaries
  This package contains utility programs related to the GNU C Library.
@@ -104,8 +106,7 @@ Architecture: all
 Section: doc
 Priority: optional
 Multi-Arch: foreign
-Depends: ${misc:Depends}
-Suggests: glibc-doc-reference
+Depends: ${misc:Depends}, glibc-doc-reference (>= 2.18)
 Build-Profiles: <!stage1>
 Description: GNU C Library: Documentation
  Contains the complete GNU C Library ChangeLog.  The GNU C Library Reference
@@ -127,7 +128,7 @@ Package: locales
 Architecture: all
 Section: localization
 Priority: standard
-Depends: libc-bin (>> @DEB_VERSION_UPSTREAM@), libc-l10n (>> @DEB_VERSION_UPSTREAM@), ${misc:Depends}, debconf | debconf-2.0
+Depends: libc-bin (>> @DEB_VERSION_UPSTREAM@), ${misc:Depends}, debconf | debconf-2.0
 Build-Profiles: <!stage1>
 Description: GNU C Library: National Language (locale) data [support]
  Machine-readable data files, shared objects and programs used by the
@@ -144,7 +145,7 @@ Architecture: any
 Section: localization
 Priority: optional
 Multi-Arch: foreign
-Depends: libc-l10n (>> @DEB_VERSION_UPSTREAM@), ${misc:Depends}
+Depends: ${misc:Depends}
 Build-Profiles: <!stage1>
 Description: GNU C Library: Precompiled locale data
  This package contains the precompiled locale data for all supported locales.

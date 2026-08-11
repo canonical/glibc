@@ -15,6 +15,32 @@ test-xfail-tst-create-detached = yes
 # chroot mode, see bug #1070003.
 test-xfail-tst-support_descriptors = yes
 
+# See LP: #2041179, need to double-check that it still fails
+test-xfail-tst-reload2 = yes
+
+# This test is skipped in chroots, and appears to fail on autopkgtest
+# testbeds.  I've run out of time to debug and fix it upstream for
+# disco, so this will have to XFAIL for now:
+test-xfail-tst-nss-test3 = yes
+
+# This test is flapping on all architectures, due to this upstream bug:
+# https://sourceware.org/bugzilla/show_bug.cgi?id=19329
+test-xfail-tst-stack4 = yes
+
+# LP: #1891403 needs good entropy source
+test-xfail-tst-getrandom = yes
+
+# LP: #1894447 detected as unsupported during build, fails in autopkgtest
+test-xfail-tst-localedef-path-norm = yes
+test-xfail-tst-localedef-hardlinks = yes
+test-xfail-tst-pthread-getattr = yes
+test-xfail-tst-strerror = yes
+test-xfail-tst-strsignal = yes
+
+# LP: 2164576  new in 2.44. fails in autopkgtest
+test-xfail-tst-ptrguard-static-dlopen = yes
+test-xfail-tst-nscd-basic = yes
+
 ######################################################################
 # alpha
 ######################################################################
@@ -153,6 +179,13 @@ ifeq ($(config-machine)-$(config-os),x86_64-linux-gnu)
 # This test fails intermittently on amd64. It could be a kernel issue.
 # see https://sourceware.org/bugzilla/show_bug.cgi?id=19004
 test-xfail-tst-robust8 = yes
+
+# fails on prodstack5, tracked in LP: #2041678
+test-xfail-tst-cpu-features-cpuinfo = yes
+test-xfail-tst-cpu-features-cpuinfo-static = yes
+
+# LP: #2059603
+test-xfail-tst-shstk-legacy-1g = yes
 endif
 
 
@@ -174,6 +207,8 @@ endif
 # armhf
 ######################################################################
 ifeq ($(config-machine)-$(config-os),arm-linux-gnueabihf)
+# See LP: #2041188
+test-xfail-tst-support_descriptors = yes
 endif
 
 
@@ -446,11 +481,9 @@ test-xfail-tst-resolv-res_init-failure = yes
 test-xfail-tst-map-32bit-1a = yes
 test-xfail-tst-map-32bit-1b = yes
 test-xfail-tst-map-32bit-2 = yes
-# upstreamed in 2.44
-test-xfail-tst-mallocfork2-malloc-largetcache = yes
-test-xfail-tst-pututxline-cache = yes
-test-xfail-tst-pututxline-lockfail = yes
-test-xfail-tst-arc4random-fork = yes
+
+# TODO: fix default FPU config
+test-xfail-test-fenv = yes
 
 # actually never succeded
 test-xfail-tst-create_format1 = yes
@@ -486,7 +519,6 @@ test-xfail-test-ldouble-log10 = yes
 test-xfail-test-ldouble-log2 = yes
 test-xfail-test-ldouble-y0 = yes
 test-xfail-test-ldouble-y1 = yes
-test-xfail-test-fenv = yes
 test-xfail-test-narrowing-trap = yes
 
 # memory leak
@@ -528,6 +560,10 @@ endif
 # i386
 ######################################################################
 ifeq ($(config-machine)-$(config-os),i686-linux-gnu)
+
+# fails on prodstack5, tracked in LP: #2041678
+test-xfail-tst-cpu-features-cpuinfo = yes
+test-xfail-tst-cpu-features-cpuinfo-static = yes
 endif
 
 
@@ -650,6 +686,15 @@ endif
 # ppc64el
 ######################################################################
 ifeq ($(config-machine)-$(config-os),powerpc64le-linux-gnu)
+	# See LP: #2058466
+	test-xfail-tst-decorate-maps = yes
+
+	# See LP: #2098505
+	test-xfail-test-double-acospi = yes
+	test-xfail-test-float-acospi = yes
+	test-xfail-test-float32-acospi = yes
+	test-xfail-test-float32x-acospi = yes
+	test-xfail-test-float64-acospi = yes
 endif
 
 
@@ -755,4 +800,8 @@ endif
 ######################################################################
 ifeq ($(config-machine)-$(config-os),x86_64-linux-gnux32)
 test-xfail-tst-platform-1 = yes
+
+# fails on prodstack5, tracked in LP: #2041678
+test-xfail-tst-cpu-features-cpuinfo = yes
+test-xfail-tst-cpu-features-cpuinfo-static = yes
 endif

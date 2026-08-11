@@ -11,4 +11,10 @@ case "$(dpkg-architecture -qDEB_HOST_ARCH)" in
         ;;
 esac
 
+# Disable user namespace if we're not in a container
+AA_USERNS_TOGGLE=/proc/sys/kernel/apparmor_restrict_unprivileged_userns
+if ! systemd-detect-virt -c && [ -e $AA_USERNS_TOGGLE ]; then
+    echo 0 | sudo tee $AA_USERNS_TOGGLE
+fi
+
 debian/rules build-arch-post-check

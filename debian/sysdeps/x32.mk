@@ -1,5 +1,5 @@
 # configuration options for all flavours
-extra_config_options = --enable-multi-arch
+extra_config_options = --enable-multi-arch --enable-cet
 CC = $(DEB_HOST_GNU_TYPE)-$(BASE_CC)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 CXX = $(DEB_HOST_GNU_TYPE)-$(BASE_CXX)$(DEB_GCC_VERSION) -Wl,--hash-style=both
 
@@ -44,6 +44,7 @@ i386_CXX = $(CXX) -m32
 i386_mvec = no
 i386_slibdir = /lib32
 i386_libdir = /usr/lib32
+i386_extra_config_options = $(extra_config_options) --enable-cet=no
 
 define libc6-dev-i386_extra_pkg_install
 
