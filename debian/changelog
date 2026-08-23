@@ -1,3 +1,14 @@
+glibc (2.43-4) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Fix wordexp WRDE_APPEND to preserve state on non-NOSPACE errors
+      (CVE-2026-6368).  Closes: #1144252.
+    - Fix fmod/fmodf infinite recursion on m68k.  Closes: #1144250.
+    - Fix out-of-bounds stack array write in tdelete (CVE-2026-19542).
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 23 Aug 2026 15:07:44 +0200
+
 glibc (2.43-3) unstable; urgency=medium
 
   [ Samuel Thibault ]
