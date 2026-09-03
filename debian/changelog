@@ -1,3 +1,36 @@
+glibc (2.35-0ubuntu3.15) jammy-security; urgency=medium
+
+  * SECURITY UPDATE: Out-of-bounds stack array access in tdelete
+    - debian/patches/CVE-2026-19542.patch: misc: Fix out-of-bounds array write
+      in tdelete (bug 34506) in misc/tsearch.c.
+    - CVE-2026-19542
+  * SECURITY UPDATE: invalid memory when calling wordexp with WRDE_APPEND
+    - debian/patches/CVE-2026-6368.patch: posix: Fix wordexp WRDE_APPEND to
+      preserve state on non-NOSPACE errors (BZ 34090, CVE-2026-6368) in
+      posix/Makefile, posix/tst-wordexp-append.c, posix/wordexp.c.
+    - CVE-2026-6368
+  * SECURITY UPDATE: stack clash issue when expanding long tilde paths
+    - debian/patches/CVE-2026-6791.patch: posix: Fix stack overflow in wordexp
+      tilde expansion (BZ 34091, CVE-2026-6791) in posix/Makefile, posix/tst-
+      wordexp-tilde.c, posix/tst-wordexp-tilde.root/etc/group, posix/tst-
+      wordexp-tilde.root/etc/nsswitch.conf, posix/tst-wordexp-
+      tilde.root/etc/passwd, posix/wordexp.c.
+    - CVE-2026-6791
+  * SECURITY UPDATE: SHIFT_JISX0213 converter hang
+    - debian/patches/CVE-2026-77117-1.patch: iconvdata: SHIFT_JISX0213 decoding
+      lacks pending character reset (CVE-2026-77117) in
+      iconvdata/shift_jisx0213.c.
+    - debian/patches/CVE-2026-77117-2.patch: iconvdata: Test case for bug 34556,
+      bug 34568 in iconvdata/Makefile, iconvdata/tst-jisx0213-progress.c.
+    - CVE-2026-77117
+  * SECURITY UPDATE: EUC_JISX0213 converter hang
+    - debian/patches/CVE-2026-80489.patch: iconvdata: EUC_JISX0213 decoding
+      lacks pending character reset (CVE-2026-80489) in iconvdata/euc-
+      jisx0213.c.
+    - CVE-2026-80489
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Thu, 03 Sep 2026 10:20:04 -0400
+
 glibc (2.35-0ubuntu3.14) jammy-security; urgency=medium
 
   * SECURITY UPDATE: assertion failure via IBM1390 or IBM1399 charsets
