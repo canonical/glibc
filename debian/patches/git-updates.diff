@@ -1,4 +1,4 @@
-GIT update of https://sourceware.org/git/glibc.git/release/2.43/master from glibc-2.43 to 0afa34adb0fd9d756d1fe745064272e9b9aadbdc
+GIT update of https://sourceware.org/git/glibc.git/release/2.43/master from glibc-2.43 to 20b3e8717652bdc2f89c99c4cc6e38d56a754866
 
 diff --git a/ADVISORIES b/ADVISORIES
 new file mode 100644
@@ -1046,27 +1046,44 @@ index f6c7c265a8..ab6e14c685 100644
 +run_program_env="$run_program_env LC_ALL=en_US.UTF-8"
 +run_test_array
 diff --git a/iconvdata/Makefile b/iconvdata/Makefile
-index 26e888b443..fbb0067302 100644
+index 26e888b443..ba2eec2b48 100644
 --- a/iconvdata/Makefile
 +++ b/iconvdata/Makefile
-@@ -76,7 +76,7 @@ tests = bug-iconv1 bug-iconv2 tst-loading tst-e2big tst-iconv4 bug-iconv4 \
+@@ -76,7 +76,8 @@ tests = bug-iconv1 bug-iconv2 tst-loading tst-e2big tst-iconv4 bug-iconv4 \
  	tst-iconv6 bug-iconv5 bug-iconv6 tst-iconv7 bug-iconv8 bug-iconv9 \
  	bug-iconv10 bug-iconv11 bug-iconv12 tst-iconv-big5-hkscs-to-2ucs4 \
  	bug-iconv13 bug-iconv14 bug-iconv15 \
 -	tst-iconv-iso-2022-cn-ext
-+	tst-iconv-iso-2022-cn-ext tst-bug33980
++	tst-iconv-iso-2022-cn-ext tst-bug33980 \
++	tst-jisx0213-progress
  ifeq ($(have-thread-library),yes)
  tests += bug-iconv3
  endif
-@@ -333,6 +333,8 @@ $(objpfx)bug-iconv15.out: $(addprefix $(objpfx), $(gconv-modules)) \
+@@ -333,6 +334,10 @@ $(objpfx)bug-iconv15.out: $(addprefix $(objpfx), $(gconv-modules)) \
  			  $(addprefix $(objpfx),$(modules.so))
  $(objpfx)tst-iconv-iso-2022-cn-ext.out: $(addprefix $(objpfx), $(gconv-modules)) \
  					$(addprefix $(objpfx),$(modules.so))
 +$(objpfx)tst-bug33980.out: $(addprefix $(objpfx), $(gconv-modules)) \
 +			   $(addprefix $(objpfx),$(modules.so))
++$(objpfx)tst-jisx0213-progress.out: \
++  $(addprefix $(objpfx), $(gconv-modules)) $(addprefix $(objpfx),$(modules.so))
  
  $(objpfx)iconv-test.out: run-iconv-test.sh \
  			 $(addprefix $(objpfx), $(gconv-modules)) \
+diff --git a/iconvdata/euc-jisx0213.c b/iconvdata/euc-jisx0213.c
+index 5572bbdb7b..61c22231e1 100644
+--- a/iconvdata/euc-jisx0213.c
++++ b/iconvdata/euc-jisx0213.c
+@@ -224,6 +224,9 @@
+ 	    STANDARD_FROM_LOOP_ERR_HANDLER (1);				      \
+ 	  }								      \
+       }									      \
++    else 								      \
++      /* There was a pending character.  Clear it.  */			      \
++      *statep = 0;							      \
+ 									      \
+     put32 (outptr, ch);							      \
+     outptr += 4;							      \
 diff --git a/iconvdata/ibm1364.c b/iconvdata/ibm1364.c
 index 4f41f22c12..8df66ea048 100644
 --- a/iconvdata/ibm1364.c
@@ -1181,6 +1198,20 @@ index 4f41f22c12..8df66ea048 100644
  									      \
      if (__builtin_expect (ch, 0) == SO)					      \
        {									      \
+diff --git a/iconvdata/shift_jisx0213.c b/iconvdata/shift_jisx0213.c
+index 61c9c3ce6d..e9179f605e 100644
+--- a/iconvdata/shift_jisx0213.c
++++ b/iconvdata/shift_jisx0213.c
+@@ -226,6 +226,9 @@
+ 	    STANDARD_FROM_LOOP_ERR_HANDLER (1);				      \
+ 	  }								      \
+       }									      \
++    else 								      \
++      /* There was a pending character.  Clear it.  */			      \
++      *statep = 0;							      \
+ 									      \
+     put32 (outptr, ch);							      \
+     outptr += 4;							      \
 diff --git a/iconvdata/tst-bug33980.c b/iconvdata/tst-bug33980.c
 new file mode 100644
 index 0000000000..c9693e0efe
@@ -1340,6 +1371,136 @@ index 0000000000..c9693e0efe
 +}
 +
 +#include <support/test-driver.c>
+diff --git a/iconvdata/tst-jisx0213-progress.c b/iconvdata/tst-jisx0213-progress.c
+new file mode 100644
+index 0000000000..7b2073be1f
+--- /dev/null
++++ b/iconvdata/tst-jisx0213-progress.c
+@@ -0,0 +1,124 @@
++/* Test JISX0213 combining character conversion progress (bug 34556, bug 34568).
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++/* Certain JISX0213 byte sequences map to a combining sequence, for
++   example U+304B (HIRAGANA LETTER KA) followed by U+309A (COMBINING
++   SEMI-VOICED SOUND MARK).  When converting to internal encoding
++   (actually UTF-32) with a small output buffer, the first code point
++   is emitted and the second is queued in the converter state.  This
++   test verifies that the queued code point is consumed exactly once
++   on retry, so that the conversion makes progress and terminates.  */
++
++#include <errno.h>
++#include <iconv.h>
++#include <stdio.h>
++#include <string.h>
++
++#include <support/check.h>
++#include <support/support.h>
++
++static void
++test_one (const char *charset, const char *input, size_t outbufsize)
++{
++  printf ("info: %s: testing output buffer size %zu\n", charset, outbufsize);
++
++  /* Expected UTF-32 output.  */
++  static const wchar_t expected[] = { 0x304b, 0x309a, 'A' };
++
++  /* Use WCHAR_T encoding to avoid the BOM.  */
++  iconv_t cd = iconv_open ("WCHAR_T", charset);
++  TEST_VERIFY_EXIT (cd != (iconv_t) -1);
++
++  char result[64];
++  size_t result_len = 0;
++
++  char *inptr = (char *) input;
++  size_t inleft = strlen (input);
++
++  char outbuf[64];
++
++  int iterations = 0;
++  while (inleft > 0)
++    {
++      char *outptr = outbuf;
++      size_t outleft = outbufsize;
++      size_t inleft_before = inleft;
++
++      size_t ret = iconv (cd, &inptr, &inleft, &outptr, &outleft);
++      size_t produced = outptr - outbuf;
++
++      TEST_VERIFY_EXIT (result_len + produced <= sizeof (result));
++      memcpy (result + result_len, outbuf, produced);
++      result_len += produced;
++
++      if (ret == (size_t) -1 && errno == E2BIG)
++	{
++	  if (produced == 0 && inleft == inleft_before)
++	    {
++	      /* Output buffer too small for a single code point.  */
++	      TEST_VERIFY_EXIT (outbufsize < 4);
++	      break;
++	    }
++	  /* Bound iterations to detect non-progress bugs.  */
++	  if (++iterations < 10)
++	    continue;
++	  else
++	    {
++	      FAIL ("%s: no progress", charset);
++	      goto out;
++	    }
++	}
++      if (ret == (size_t) -1)
++	FAIL_EXIT1 ("outbufsize %zu: iconv: %m", outbufsize);
++      break;
++    }
++
++  /* Flush pending converter state.  */
++  {
++    char *outptr = outbuf;
++    size_t outleft = outbufsize;
++    size_t ret = iconv (cd, NULL, NULL, &outptr, &outleft);
++    TEST_VERIFY (ret == 0);
++    size_t produced = outptr - outbuf;
++    memcpy (result + result_len, outbuf, produced);
++    result_len += produced;
++  }
++
++  if (outbufsize >= 4)
++    {
++      TEST_COMPARE (inleft, 0);
++      TEST_COMPARE_BLOB (result, result_len,
++			 expected, sizeof (expected));
++    }
++
++ out:
++  TEST_VERIFY_EXIT (iconv_close (cd) == 0);
++}
++
++static int
++do_test (void)
++{
++  for (size_t outbufsize = 1; outbufsize <= 16; outbufsize++)
++    {
++      test_one ("EUC-JISX0213", "\244\367A", outbufsize);
++      test_one ("SHIFT_JISX0213", "\202\365A", outbufsize);
++    }
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/include/bits/stdio2-decl.h b/include/bits/stdio2-decl.h
 index 9758bf4b55..97c2236f24 100644
 --- a/include/bits/stdio2-decl.h
@@ -1385,7 +1546,7 @@ index c13546e4fd..4fbc522624 100644
  int
  __fcntl (int fd, int cmd, ...)
 diff --git a/libio/Makefile b/libio/Makefile
-index 4f4dd9f275..5995adf5dd 100644
+index 4f4dd9f275..3fcccd2fa9 100644
 --- a/libio/Makefile
 +++ b/libio/Makefile
 @@ -84,6 +84,7 @@ tests = \
@@ -1396,6 +1557,14 @@ index 4f4dd9f275..5995adf5dd 100644
    bug-wmemstream1 \
    bug-wsetpos \
    test-fmemopen \
+@@ -107,6 +108,7 @@ tests = \
+   tst-fgetc-after-eof \
+   tst-fgetwc \
+   tst-fgetws \
++  tst-fopen-ccs-empty \
+   tst-fopenloc2 \
+   tst-fputws \
+   tst-freopen \
 diff --git a/libio/bug-wgenops-bz33998.c b/libio/bug-wgenops-bz33998.c
 new file mode 100644
 index 0000000000..cc4067da99
@@ -1452,6 +1621,98 @@ index 0000000000..cc4067da99
 +  xfclose (fp);
 +  free (filename);
 +
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/libio/fileops.c b/libio/fileops.c
+index 1852c9ea12..160891c0f0 100644
+--- a/libio/fileops.c
++++ b/libio/fileops.c
+@@ -339,12 +339,14 @@ _IO_new_file_fopen (FILE *fp, const char *filename, const char *mode,
+ 	  *((char *) __mempcpy (ccs, cs + 5, endp - (cs + 5))) = '\0';
+ 	  strip (ccs, ccs);
+ 
+-	  if (__wcsmbs_named_conv (&fcts, ccs[2] == '\0'
+-				   ? upstr (ccs, cs + 5) : ccs) != 0)
++	  /* After stripping, ccs[2] == '\0' means the charset name is empty.
++	     This is not a valid charset and would cause problems downstream.
++	     Reject it with EINVAL (BZ #34574, CVE-2026-18374).  */
++	  if (ccs[2] == '\0' || __wcsmbs_named_conv (&fcts, ccs) != 0)
+ 	    {
+-	      /* Something went wrong, we cannot load the conversion modules.
+-		 This means we cannot proceed since the user explicitly asked
+-		 for these.  */
++	      /* Either the charset name is empty after strip(), or conversion
++		 modules cannot be loaded.  This means we cannot proceed since
++		 the user explicitly asked for character conversion.  */
+ 	      (void) _IO_file_close_it (fp);
+ 	      free (ccs);
+ 	      __set_errno (EINVAL);
+diff --git a/libio/tst-fopen-ccs-empty.c b/libio/tst-fopen-ccs-empty.c
+new file mode 100644
+index 0000000000..64723965e1
+--- /dev/null
++++ b/libio/tst-fopen-ccs-empty.c
+@@ -0,0 +1,62 @@
++/* Test fopen with an empty ",ccs=" value in the mode string (bug 34574).
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <errno.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <support/check.h>
++#include <support/support.h>
++#include <support/temp_file.h>
++#include <support/xunistd.h>
++
++static void
++check_fopen_fails (const char *path, const char *mode)
++{
++  errno = 0;
++  FILE *fp = fopen (path, mode);
++  TEST_VERIFY (fp == NULL);
++  TEST_COMPARE (errno, EINVAL);
++  if (fp != NULL)
++    fclose (fp);
++}
++
++static int
++do_test (void)
++{
++  char *path;
++  xclose (create_temp_file ("tst-fopen-ccs-empty", &path));
++
++  /* The value is blank and the mode string continues well past it.  */
++  enum { size = 1024 * 1024 };
++  char *mode = xmalloc (size);
++  memset (mode, 'X', size);
++  mode[size - 1] = '\0';
++  static const char prefix[] = "w,ccs=                     ,";
++  memcpy (mode, prefix, sizeof (prefix) - 1);
++  check_fopen_fails (path, mode);
++  free (mode);
++
++  check_fopen_fails (path, "w,ccs=");
++  check_fopen_fails (path, "w,ccs=,");
++
++  free (path);
 +  return 0;
 +}
 +
@@ -10236,18 +10497,10 @@ index 0000000000..eb85a552ad
 @@ -0,0 +1 @@
 +root:x:0:0:root:/root:/bin/sh
 diff --git a/posix/wordexp.c b/posix/wordexp.c
-index 4a8541add4..8fdc8b8caf 100644
+index 4a8541add4..9a49e102ee 100644
 --- a/posix/wordexp.c
 +++ b/posix/wordexp.c
-@@ -35,6 +35,7 @@
- #include <scratch_buffer.h>
- #include <_itoa.h>
- #include <assert.h>
-+#include <intprops.h>
- 
- /*
-  * This is a recursive-descent-style word expansion routine.
-@@ -335,17 +336,29 @@ parse_tilde (char **word, size_t *word_length, size_t *max_length,
+@@ -335,17 +335,29 @@ parse_tilde (char **word, size_t *word_length, size_t *max_length,
    else
      {
        /* Look up user name in database to get home directory */
@@ -10283,7 +10536,7 @@ index 4a8541add4..8fdc8b8caf 100644
  
        if (result == 0 && tpwd != NULL && pwd.pw_dir)
  	*word = w_addstr (*word, word_length, max_length, pwd.pw_dir);
-@@ -2212,6 +2225,12 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
+@@ -2212,6 +2224,12 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
    char ifs_white[4];
    wordexp_t old_word = *pwordexp;
  
@@ -10296,7 +10549,7 @@ index 4a8541add4..8fdc8b8caf 100644
    if (flags & WRDE_REUSE)
      {
        /* Minimal implementation of WRDE_REUSE for now */
-@@ -2246,6 +2265,23 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
+@@ -2246,6 +2264,21 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
  	  pwordexp->we_offs = 0;
  	}
      }
@@ -10304,23 +10557,21 @@ index 4a8541add4..8fdc8b8caf 100644
 +    {
 +      /* WRDE_APPEND with an existing word list: duplicate the array so that
 +	 realloc during parsing does not invalidate the caller's pointer.  The
-+	 strings themselves are shared.  */
-+      size_t num_p;
-+      char **dup;
-+      if (INT_ADD_WRAPV (pwordexp->we_offs, pwordexp->we_wordc, &num_p)
-+	  || INT_ADD_WRAPV (num_p, 1, &num_p))
-+	return WRDE_NOSPACE;
-+      dup = __libc_reallocarray (NULL, num_p, sizeof *dup);
++	 strings themselves are shared an the array already holds
++	 'we_offs + we_wordc + 1 pointers' (so the size computation cannot
++	 overflow).  */
++      size_t num_p = pwordexp->we_offs + pwordexp->we_wordc + 1;
++      char **dup = malloc (num_p * sizeof (char *));
 +      if (dup == NULL)
 +	return WRDE_NOSPACE;
-+      memcpy (dup, pwordexp->we_wordv, num_p * sizeof *dup);
++      memcpy (dup, pwordexp->we_wordv, num_p * sizeof (char *));
 +      saved_wordv = pwordexp->we_wordv;
 +      pwordexp->we_wordv = dup;
 +    }
  
    /* Find out what the field separators are.
     * There are two types: whitespace and non-whitespace.
-@@ -2326,7 +2362,7 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
+@@ -2326,7 +2359,7 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
  	    error = w_addword (pwordexp, NULL);
  
  	    if (error)
@@ -10329,7 +10580,7 @@ index 4a8541add4..8fdc8b8caf 100644
  	  }
  
  	break;
-@@ -2344,7 +2380,7 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
+@@ -2344,7 +2377,7 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
  	    error = w_addword (pwordexp, NULL);
  
  	    if (error)
@@ -10338,7 +10589,7 @@ index 4a8541add4..8fdc8b8caf 100644
  	  }
  
  	break;
-@@ -2410,10 +2446,18 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
+@@ -2410,10 +2443,18 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
  
    /* There was a word separator at the end */
    if (word == NULL) /* i.e. w_newword */
@@ -10360,7 +10611,7 @@ index 4a8541add4..8fdc8b8caf 100644
  
  do_error:
    /* Error:
-@@ -2424,11 +2468,30 @@ do_error:
+@@ -2424,11 +2465,30 @@ do_error:
    free (word);
  
    if (error == WRDE_NOSPACE)
@@ -11633,6 +11884,80 @@ index 63b9246e47..8687150dff 100644
  		    /* Enlarge the buffer.  */
  		    wstr = (wchar_t *) realloc (*strptr,
  						newsize * sizeof (wchar_t));
+diff --git a/stdlib/Makefile b/stdlib/Makefile
+index 04596b53b1..43a12f24ff 100644
+--- a/stdlib/Makefile
++++ b/stdlib/Makefile
+@@ -347,6 +347,7 @@ tests := \
+   tst-stdc_leading_zeros \
+   tst-stdc_trailing_ones \
+   tst-stdc_trailing_zeros \
++  tst-strfmon-bug34510 \
+   tst-strfmon_l \
+   tst-strfrom \
+   tst-strfrom-locale \
+diff --git a/stdlib/strfmon_l.c b/stdlib/strfmon_l.c
+index f864289480..c39babaeae 100644
+--- a/stdlib/strfmon_l.c
++++ b/stdlib/strfmon_l.c
+@@ -549,7 +549,8 @@ __vstrfmon_l_buffer (struct __printf_buffer *buf, locale_t loc,
+       /* Now test whether the output width is filled.  */
+       if (buf->write_ptr - startp < width)
+ 	{
+-	  size_t pad_width = width - (buf->write_ptr - startp);
++	  size_t written_width = buf->write_ptr - startp;
++	  size_t pad_width = width - written_width;
+ 	  __printf_buffer_pad (buf, ' ', pad_width);
+ 	  if (__printf_buffer_has_failed (buf))
+ 	    /* Implies length check.  */
+@@ -558,7 +559,7 @@ __vstrfmon_l_buffer (struct __printf_buffer *buf, locale_t loc,
+ 	     Otherwise move the field contents in place.  */
+ 	  if (!left)
+ 	    {
+-	      memmove (startp + pad_width, startp, buf->write_ptr - startp);
++	      memmove (startp + pad_width, startp, written_width);
+ 	      memset (startp, ' ', pad_width);
+ 	    }
+ 	}
+diff --git a/stdlib/tst-strfmon-bug34510.c b/stdlib/tst-strfmon-bug34510.c
+new file mode 100644
+index 0000000000..b187bde1f4
+--- /dev/null
++++ b/stdlib/tst-strfmon-bug34510.c
+@@ -0,0 +1,33 @@
++/* Test handling of right-padding in strfmon (bug 34510, CVE-2026-19499).
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <monetary.h>
++#include <errno.h>
++#include <support/check.h>
++#include <support/next_to_fault.h>
++
++static int
++do_test (void)
++{
++  struct support_next_to_fault ntf = support_next_to_fault_allocate (100);
++  TEST_COMPARE (strfmon (ntf.buffer, ntf.length, "%100n", 1.23), -1);
++  TEST_COMPARE (errno, E2BIG);
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/string/Makefile b/string/Makefile
 index c4423c0437..aa0b0c2f57 100644
 --- a/string/Makefile
@@ -11747,6 +12072,44 @@ index cb9d5759ac..a362328142 100644
 +#if IS_IN (rtld)
 +strong_alias (strlen, __strlen_generic)
 +#endif
+diff --git a/sysdeps/alpha/Makefile b/sysdeps/alpha/Makefile
+index 60a369e255..faa59ab27a 100644
+--- a/sysdeps/alpha/Makefile
++++ b/sysdeps/alpha/Makefile
+@@ -53,6 +53,20 @@ CFLAGS-s_lrint.c += -mieee-with-inexact
+ CFLAGS-test-misc.c += -mieee-with-inexact
+ # Avoid "conflicting types for built-in function" warnings
+ CFLAGS-s_isnan.c += -fno-builtin-isnanf
++
++# _Float32x and _Float64 are both binary64 on Alpha, so this narrowing
++# divide is a plain divide and the hardware alone decides whether to
++# signal underflow.  IEEE 754 determines tininess after rounding from the
++# result rounded as if the exponent range were unbounded, but Alpha
++# determines it from the delivered result.  For a quotient that is tiny
++# but rounds up to the smallest normal -- DBL_MIN / (1 + 2^-52) under a
++# rounding mode that rounds away from zero -- the unbounded rounding
++# stays below DBL_MIN, because that binade has a finer spacing than the
++# subnormals, while the delivered result is DBL_MIN and looks normal.
++# Alpha raises no underflow for it.  No trap is taken, so the kernel
++# emulation cannot correct this, and the operation has no wider
++# intermediate for libm to examine.
++test-xfail-test-float32x-float64-div = yes
+ endif
+ 
+ # Build everything with full IEEE math support, and with dynamic rounding;
+diff --git a/sysdeps/alpha/fpu/bits/fenv.h b/sysdeps/alpha/fpu/bits/fenv.h
+index b1135f1f0a..530f298914 100644
+--- a/sysdeps/alpha/fpu/bits/fenv.h
++++ b/sysdeps/alpha/fpu/bits/fenv.h
+@@ -121,7 +121,7 @@ typedef unsigned long int fenv_t;
+ 
+ #ifdef __USE_GNU
+ /* Floating-point environment where none of the exceptions are masked.  */
+-# define FE_NOMASK_ENV	((const fenv_t *) 0x880000000000003eUL)
++# define FE_NOMASK_ENV	((const fenv_t *) 0x880000000000007eUL)
+ 
+ /* Floating-point environment with (processor-dependent) non-IEEE floating
+    point.  In this case, mapping denormals to zero.  */
 diff --git a/sysdeps/arm/Makefile b/sysdeps/arm/Makefile
 index d08dade3c5..0bb1b6e05b 100644
 --- a/sysdeps/arm/Makefile
@@ -12230,6 +12593,27 @@ index a3bd24b71f..98797e0887 100644
  }
  strong_alias (__fmodf, __ieee754_fmodf)
  versioned_symbol (libm, __fmodf, fmodf, GLIBC_2_43);
+diff --git a/sysdeps/m68k/m680x0/fpu/w_fmod_compat.c b/sysdeps/m68k/m680x0/fpu/w_fmod_compat.c
+deleted file mode 100644
+index 57f38091e6..0000000000
+--- a/sysdeps/m68k/m680x0/fpu/w_fmod_compat.c
++++ /dev/null
+@@ -1,15 +0,0 @@
+-/* m68k provides an optimized __ieee752_fmod.  */
+-#include <math-svid-compat.h>
+-#ifdef SHARED
+-# undef SHLIB_COMPAT
+-# define SHLIB_COMPAT(a, b, c) 1
+-# undef LIBM_SVID_COMPAT
+-# define LIBM_SVID_COMPAT 1
+-# undef compat_symbol
+-# define compat_symbol(a, b, c, d)
+-#include <math/w_fmod_compat.c>
+-libm_alias_double (__fmod_compat, fmod)
+-#else
+-#include <math-type-macros-double.h>
+-#include <w_fmod_template.c>
+-#endif
 diff --git a/sysdeps/mach/hurd/bits/ioctls.h b/sysdeps/mach/hurd/bits/ioctls.h
 index 151761ef66..162a815082 100644
 --- a/sysdeps/mach/hurd/bits/ioctls.h
@@ -13318,6 +13702,38 @@ index 0000000000..f381f28a53
 +++ b/sysdeps/unix/sysv/linux/alpha/bits/cloexec.h
 @@ -0,0 +1 @@
 +#define __O_CLOEXEC 010000000
+diff --git a/sysdeps/unix/sysv/linux/alpha/makecontext.S b/sysdeps/unix/sysv/linux/alpha/makecontext.S
+index b0479315d5..1de0dd2653 100644
+--- a/sysdeps/unix/sysv/linux/alpha/makecontext.S
++++ b/sysdeps/unix/sysv/linux/alpha/makecontext.S
+@@ -38,6 +38,9 @@ ENTRY(__makecontext)
+ 	s8addq	$1, 0, $2
+ 	subq	$8, $2, $8
+ 
++	/* The Alpha ABI requires a 16-byte-aligned stack pointer.  */
++	bic	$8, 15, $8
++
+ 	/* Copy all parameters.  Switch statement header here.  */
+ 	ldah	$3, $jumptable($29)	!gprelhigh
+ 	cmple	$18, 6, $1
+diff --git a/sysdeps/unix/sysv/linux/alpha/setrlimit64.c b/sysdeps/unix/sysv/linux/alpha/setrlimit64.c
+index 512aaf2042..d8cb04fa5e 100644
+--- a/sysdeps/unix/sysv/linux/alpha/setrlimit64.c
++++ b/sysdeps/unix/sysv/linux/alpha/setrlimit64.c
+@@ -35,11 +35,11 @@ __old_setrlimit64 (enum __rlimit_resource resource,
+ {
+   struct rlimit64 krlimits;
+ 
+-  if (rlimits->rlim_cur == OLD_RLIM64_INFINITY)
++  if (rlimits->rlim_cur >= OLD_RLIM64_INFINITY)
+     krlimits.rlim_cur = RLIM64_INFINITY;
+   else
+     krlimits.rlim_cur = rlimits->rlim_cur;
+-  if (rlimits->rlim_max == OLD_RLIM64_INFINITY)
++  if (rlimits->rlim_max >= OLD_RLIM64_INFINITY)
+     krlimits.rlim_max = RLIM64_INFINITY;
+   else
+     krlimits.rlim_max = rlimits->rlim_max;
 diff --git a/sysdeps/unix/sysv/linux/bits/cloexec.h b/sysdeps/unix/sysv/linux/bits/cloexec.h
 new file mode 100644
 index 0000000000..3059fb6473
