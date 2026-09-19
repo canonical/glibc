@@ -1,4 +1,4 @@
-GIT update of https://sourceware.org/git/glibc.git/release/2.43/master from glibc-2.43 to 20b3e8717652bdc2f89c99c4cc6e38d56a754866
+GIT update of https://sourceware.org/git/glibc.git/release/2.43/master from glibc-2.43 to d6c6dd71c63411229e3a39cb4946546acd22a668
 
 diff --git a/ADVISORIES b/ADVISORIES
 new file mode 100644
@@ -9,10 +9,10 @@ index 0000000000..d4e33f2df3
 +For the GNU C Library Security Advisories, see the git master branch:
 +https://sourceware.org/git/?p=glibc.git;a=tree;f=advisories;hb=HEAD
 diff --git a/NEWS b/NEWS
-index e271fb2e4d..9305ab5d34 100644
+index e271fb2e4d..ac44b1828b 100644
 --- a/NEWS
 +++ b/NEWS
-@@ -5,6 +5,18 @@ See the end for copying conditions.
+@@ -5,6 +5,20 @@ See the end for copying conditions.
  Please send GNU C library bug reports via <https://sourceware.org/bugzilla/>
  using `glibc' in the "product" field.
  
@@ -25,12 +25,30 @@ index e271fb2e4d..9305ab5d34 100644
 + [33848] build: Build fails at openat2.h, redefinition of 'struct
 +    open_how'
 + [33904] build: error: '__vasprintf_chk' undeclared here
++ [34507] nptl: Pretty-printer tests FAIL instead of UNSUPPORTED when
++   cross-testing without python3 on target
 + [34509] libc: [m68k] Regression: Perl locks up after upgrading glibc
 +   to 2.43
 +
  Version 2.43
  
  Major new features:
+diff --git a/Rules b/Rules
+index b07400a979..785517b5c4 100644
+--- a/Rules
++++ b/Rules
+@@ -431,8 +431,9 @@ py-env := PYTHONPATH=$(py-const-dir):$(..)scripts:$${PYTHONPATH}
+ # The pretty printer files and test_common_printers.py must be present for all.
+ $(tests-printers-out): $(objpfx)%.out: $(objpfx)% %.py %.c $(pretty-printers) \
+ 		       $(..)scripts/test_printers_common.py
+-	$(test-wrapper-env) $(py-env) \
+-	    $(PYTHON) $*.py $*.c $(objpfx)$* $(pretty-printers) > $@; \
++	$(test-wrapper-env) $(py-env) sh -c \
++	    'command -v $(firstword $(PYTHON)) > /dev/null 2>&1 || exit 77; \
++	     exec $(PYTHON) $*.py $*.c $(objpfx)$* $(pretty-printers)' > $@; \
+ 	$(evaluate-test)
+ endif
+ 
 diff --git a/advisories/GLIBC-SA-2023-0001 b/advisories/GLIBC-SA-2023-0001
 deleted file mode 100644
 index 3d19c91b6a..0000000000
@@ -959,6 +977,38 @@ index 669898d8c0..11b9b4597a 100755
  
  ${test_wrapper_env} \
  ${run_program_env} \
+diff --git a/hesiod/nss_hesiod/hesiod-proto.c b/hesiod/nss_hesiod/hesiod-proto.c
+index d47abca1fd..a85769a74f 100644
+--- a/hesiod/nss_hesiod/hesiod-proto.c
++++ b/hesiod/nss_hesiod/hesiod-proto.c
+@@ -39,8 +39,8 @@ struct protoent_data {};
+ #include <nss/nss_files/files-parse.c>
+ LINE_PARSER
+ ("#",
+- STRING_FIELD (result->p_name, isspace, 1);
+- INT_FIELD (result->p_proto, isspace, 1, 10,);
++ STRING_FIELD (result->p_name, isspace, true);
++ INT_FIELD (result->p_proto, isspace, true, 10,);
+  )
+ 
+ enum nss_status
+diff --git a/hesiod/nss_hesiod/hesiod-service.c b/hesiod/nss_hesiod/hesiod-service.c
+index 3b5c704660..205ba69f4b 100644
+--- a/hesiod/nss_hesiod/hesiod-service.c
++++ b/hesiod/nss_hesiod/hesiod-service.c
+@@ -39,9 +39,9 @@ struct servent_data {};
+ #define ISSC_OR_SPACE(c)	((c) ==  ';' || isspace (c))
+ LINE_PARSER
+ ("#",
+- STRING_FIELD (result->s_name, ISSC_OR_SPACE, 1);
+- STRING_FIELD (result->s_proto, ISSC_OR_SPACE, 1);
+- INT_FIELD (result->s_port, ISSC_OR_SPACE, 10, 0, htons);
++ STRING_FIELD (result->s_name, ISSC_OR_SPACE, true);
++ STRING_FIELD (result->s_proto, ISSC_OR_SPACE, true);
++ INT_FIELD (result->s_port, ISSC_OR_SPACE, false, 10, htons);
+  )
+ 
+ enum nss_status
 diff --git a/iconv/Makefile b/iconv/Makefile
 index 51ffab9efc..69555cbe57 100644
 --- a/iconv/Makefile
@@ -2107,6 +2157,127 @@ index 1f2ff1639a..a4f3369eb0 100644
    attribute_hidden;
  
  #endif /* _NSS_DATABASE_H */
+diff --git a/nss/nss_files/files-ethers.c b/nss/nss_files/files-ethers.c
+index a689b1a5b4..bdbb64d699 100644
+--- a/nss/nss_files/files-ethers.c
++++ b/nss/nss_files/files-ethers.c
+@@ -36,16 +36,16 @@ LINE_PARSER
+        unsigned int number;
+ 
+        if (cnt < 5)
+-	 INT_FIELD (number, ISCOLON , 0, 16, (unsigned int))
++	 INT_FIELD (number, ISCOLON , false, 16, (unsigned int))
+        else
+-	 INT_FIELD (number, isspace, 1, 16, (unsigned int))
++	 INT_FIELD (number, isspace, true, 16, (unsigned int))
+ 
+        if (number > 0xff)
+ 	 return 0;
+        result->e_addr.ether_addr_octet[cnt] = number;
+      }
+  };
+- STRING_FIELD (result->e_name, isspace, 1);
++ STRING_FIELD (result->e_name, isspace, true);
+  )
+ 
+ 
+diff --git a/nss/nss_files/files-hosts.c b/nss/nss_files/files-hosts.c
+index bfbffa3b54..8d7c90945a 100644
+--- a/nss/nss_files/files-hosts.c
++++ b/nss/nss_files/files-hosts.c
+@@ -53,7 +53,7 @@ LINE_PARSER
+  {
+    char *addr;
+ 
+-   STRING_FIELD (addr, isspace, 1);
++   STRING_FIELD (addr, isspace, true);
+ 
+    /* Parse address.  */
+    if (__inet_pton (af == AF_UNSPEC ? AF_INET : af, addr, entdata->host_addr)
+@@ -96,7 +96,7 @@ LINE_PARSER
+    entdata->h_addr_ptrs[1] = NULL;
+    result->h_addr_list = entdata->h_addr_ptrs;
+ 
+-   STRING_FIELD (result->h_name, isspace, 1);
++   STRING_FIELD (result->h_name, isspace, true);
+  })
+ 
+ #define EXTRA_ARGS_VALUE , AF_INET, 0
+diff --git a/nss/nss_files/files-network.c b/nss/nss_files/files-network.c
+index 86cab9e4e9..b5d6f536f9 100644
+--- a/nss/nss_files/files-network.c
++++ b/nss/nss_files/files-network.c
+@@ -38,9 +38,9 @@ LINE_PARSER
+    char *cp;
+    int n = 1;
+ 
+-   STRING_FIELD (result->n_name, isspace, 1);
++   STRING_FIELD (result->n_name, isspace, true);
+ 
+-   STRING_FIELD (addr, isspace, 1);
++   STRING_FIELD (addr, isspace, true);
+    /* 'inet_network' does not add zeroes at the end if the network number
+       does not contain four byte values.  We shift result ourselves if
+       necessary.  */
+diff --git a/nss/nss_files/files-parse.c b/nss/nss_files/files-parse.c
+index 016b0965e4..f9fcb64c01 100644
+--- a/nss/nss_files/files-parse.c
++++ b/nss/nss_files/files-parse.c
+@@ -20,6 +20,7 @@
+ #include <errno.h>
+ #include <string.h>
+ #include <stdlib.h>
++#include <stdbool.h>
+ #include <stdint.h>
+ #include <nss_files.h>
+ 
+diff --git a/nss/nss_files/files-proto.c b/nss/nss_files/files-proto.c
+index 59dc134fe6..398ba85519 100644
+--- a/nss/nss_files/files-proto.c
++++ b/nss/nss_files/files-proto.c
+@@ -29,8 +29,8 @@ struct protoent_data {};
+ #include "files-parse.c"
+ LINE_PARSER
+ ("#",
+- STRING_FIELD (result->p_name, isspace, 1);
+- INT_FIELD (result->p_proto, isspace, 1, 10,);
++ STRING_FIELD (result->p_name, isspace, true);
++ INT_FIELD (result->p_proto, isspace, true, 10,);
+  )
+ 
+ #include GENERIC
+diff --git a/nss/nss_files/files-rpc.c b/nss/nss_files/files-rpc.c
+index 76056c04e8..f159f04686 100644
+--- a/nss/nss_files/files-rpc.c
++++ b/nss/nss_files/files-rpc.c
+@@ -29,8 +29,8 @@ struct rpcent_data {};
+ #include "files-parse.c"
+ LINE_PARSER
+ ("#",
+- STRING_FIELD (result->r_name, isspace, 1);
+- INT_FIELD (result->r_number, isspace, 1, 10,);
++ STRING_FIELD (result->r_name, isspace, true);
++ INT_FIELD (result->r_number, isspace, true, 10,);
+  )
+ 
+ #include GENERIC
+diff --git a/nss/nss_files/files-service.c b/nss/nss_files/files-service.c
+index 1bff1a2ab6..ba141438c4 100644
+--- a/nss/nss_files/files-service.c
++++ b/nss/nss_files/files-service.c
+@@ -31,9 +31,9 @@ struct servent_data {};
+ #define ISSLASH(c) ((c) == '/')
+ LINE_PARSER
+ ("#",
+- STRING_FIELD (result->s_name, isspace, 1);
+- INT_FIELD (result->s_port, ISSLASH, 10, 0, htons);
+- STRING_FIELD (result->s_proto, isspace, 1);
++ STRING_FIELD (result->s_name, isspace, true);
++ INT_FIELD (result->s_port, ISSLASH, false, 10, htons);
++ STRING_FIELD (result->s_proto, isspace, true);
+  )
+ 
+ #include GENERIC
 diff --git a/nss/tst-nss-malloc-failure-getlogin_r.c b/nss/tst-nss-malloc-failure-getlogin_r.c
 new file mode 100644
 index 0000000000..0e2985ad57
@@ -10999,6 +11170,43 @@ index 73af0c72fe..6bf9962916 100644
  const struct res_sym __p_type_syms[] = {
    {ns_t_a,      (char *) "A",     (char *) "address"},
    {ns_t_ns,     (char *) "NS",    (char *) "name server"},
+diff --git a/resolv/resolv_conf.c b/resolv/resolv_conf.c
+index d33f32ac1a..a688d4223b 100644
+--- a/resolv/resolv_conf.c
++++ b/resolv/resolv_conf.c
+@@ -281,8 +281,12 @@ resolv_conf_matches (const struct __res_state *resp,
+   {
+     if (resp->dnsrch[0] == NULL)
+       {
+-        /* Empty search list.  No default domain name.  */
+-        return conf->search_list_size == 0 && resp->defdname[0] == '\0';
++        /* Empty search list, or the first entry does not fit in
++           resp->defdname.  No default domain name.  */
++        return resp->defdname[0] == '\0'
++          && (conf->search_list_size == 0
++              || (strlen (conf->search_list[0]) + 1
++                  > sizeof (resp->defdname)));
+       }
+ 
+     if (resp->dnsrch[0] != resp->defdname)
+@@ -309,11 +313,12 @@ resolv_conf_matches (const struct __res_state *resp,
+           }
+         else
+           {
+-            /* resp->dnsrch is truncated if the number of elements
+-               exceeds MAXDNSRCH, or if the combined storage space for
+-               the search list exceeds what can be stored in
+-               resp->defdname.  */
+-            if (i == MAXDNSRCH || search_list_size > sizeof (resp->dnsrch))
++            /* resp->dnsrch is truncated if the number of elements exceeds
++               MAXDNSRCH, or if conf->search_list[i] does not fit in the
++               remaining space of resp->defdname.  */
++            if (i == MAXDNSRCH
++                || (search_list_size + strlen (conf->search_list[i]) + 1
++                    > sizeof (resp->defdname)))
+               break;
+             /* Otherwise, a mismatch indicates a match failure.  */
+             return false;
 diff --git a/resolv/tst-ns_sprintrr.c b/resolv/tst-ns_sprintrr.c
 new file mode 100644
 index 0000000000..34739b5924
@@ -11763,6 +11971,52 @@ index 0000000000..0c802ab967
 +}
 +
 +#include <support/test-driver.c>
+diff --git a/resolv/tst-resolv-res_init-skeleton.c b/resolv/tst-resolv-res_init-skeleton.c
+index 1e4c59dac9..e51a532c7e 100644
+--- a/resolv/tst-resolv-res_init-skeleton.c
++++ b/resolv/tst-resolv-res_init-skeleton.c
+@@ -724,6 +724,41 @@ struct test_case test_cases[] =
+      "nameserver 192.0.2.1\n"
+      "; nameserver[0]: [192.0.2.1]:53\n"
+     },
++/* Search list entries which do not fit in the legacy 256-byte
++   resp->defdname buffer (bug 31026).  LONG244 is 244 characters long,
++   so it does not fit after "example.com\0" (12 bytes).  LONG256 is 256
++   characters long, so it does not fit even as the first entry.  */
++#define LBL63 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
++#define LONG244 LBL63 "." LBL63 "." LBL63 "." \
++  "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
++#define LONG256 LBL63 "." LBL63 "." LBL63 "." LBL63 "a"
++    {.name = "search list truncated at long entry after short entry",
++     .conf = "nameserver 192.0.2.1\n"
++     "search example.com " LONG244 "\n",
++     .expected = "search example.com\n"
++     "; search[0]: example.com\n"
++     "; search[1]: " LONG244 "\n"
++     "nameserver 192.0.2.1\n"
++     "; nameserver[0]: [192.0.2.1]:53\n"
++    },
++    {.name = "search list truncated at long first entry",
++     .conf = "nameserver 192.0.2.1\n"
++     "search " LONG256 " example.com\n",
++     .expected = "; search[0]: " LONG256 "\n"
++     "; search[1]: example.com\n"
++     "nameserver 192.0.2.1\n"
++     "; nameserver[0]: [192.0.2.1]:53\n"
++    },
++    {.name = "long first entry from the domain directive",
++     .conf = "nameserver 192.0.2.1\n"
++     "domain " LONG256 "\n",
++     .expected = "; search[0]: " LONG256 "\n"
++     "nameserver 192.0.2.1\n"
++     "; nameserver[0]: [192.0.2.1]:53\n"
++    },
++#undef LONG256
++#undef LONG244
++#undef LBL63
+     {.name = "trust-ad flag",
+      .conf = "options trust-ad\n"
+      "nameserver 192.0.2.1\n",
 diff --git a/scripts/abilist.awk b/scripts/abilist.awk
 index 6cc7af6ac8..7ea1edf8c0 100644
 --- a/scripts/abilist.awk
@@ -14167,3 +14421,16 @@ index 04b6c1e6a3..b607e525f2 100644
  #endif /* SHARED */
  
  #endif
+diff --git a/timezone/zic.c b/timezone/zic.c
+index d5d30163b0..17c6f906b2 100644
+--- a/timezone/zic.c
++++ b/timezone/zic.c
+@@ -3234,7 +3234,7 @@ outzone(const struct zone *zpfirst, ptrdiff_t zonecount)
+ 				startttisut);
+ 			if (usestart) {
+ 				addtt(starttime, type);
+-				if (useuntil && nonTZlimtime < starttime) {
++				if (nonTZlimtime < starttime) {
+ 				  nonTZlimtime = starttime;
+ 				  nonTZlimtype = type;
+ 				}
