@@ -9,7 +9,7 @@ dpkg_host_buildflags = $(shell $(if $(filter libc,$(curpass)),,DEB_HOST_ARCH=$(c
 # Get CFLAGS and remove flags incompatible with GNU libc
 # -Wformat -Werror=format-security	=> GNU libc testsuite generates such warnings on purpose
 # -fstack-protector%			=> Mapped to configure option --enable-stack-protector=yes|all|strong
-# -fcf-protection			=> It should be mapped to configure option --enable-cet, but currently not done due to issue in testsuite (see #1114518)
+# -fcf-protection			=> Mapped to configure option --enable-cet=permissive
 dpkg_filtered_host_cflags = $(filter-out -Wformat -Werror=format-security -fstack-protector% -fcf-protection, $(call dpkg_host_buildflags, CFLAGS))
 
 define generic_multilib_extra_pkg_install
@@ -131,6 +131,7 @@ endif
 		$(if $(filter $(threads),no),--disable-nscd) \
 		$(if $(filter $(call xx,mvec),no),--disable-mathvec) \
 		$(if $(filter -Wno-error,$(call dpkg_host_buildflags, CFLAGS)),--disable-werror) \
+		$(if $(filter -fcf-protection,$(call dpkg_host_buildflags, CFLAGS)),--enable-cet=permissive) \
 		$(if $(filter -fstack-protector,$(call dpkg_host_buildflags, CFLAGS)),--enable-stack-protector=yes) \
 		$(if $(filter -fstack-protector-all,$(call dpkg_host_buildflags, CFLAGS)),--enable-stack-protector=all) \
 		$(if $(filter -fstack-protector-strong,$(call dpkg_host_buildflags, CFLAGS)),--enable-stack-protector=strong) \

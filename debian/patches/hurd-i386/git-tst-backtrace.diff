@@ -1,0 +1,25 @@
+commit b7a63154b0682387f7d8910882bd8248a3aaeaf2
+Author: Samuel Thibault <samuel.thibault@ens-lyon.org>
+Date:   Sun Aug 30 22:38:29 2026 +0000
+
+    tst-backtrace5: Fix on hurd
+    
+    hurd has intermediate io_read and read_nocancel functions, skip them down to
+    the actual read call from the test.
+
+diff --git a/debug/tst-backtrace5.c b/debug/tst-backtrace5.c
+index 6538da9ab5..75a018670a 100644
+--- a/debug/tst-backtrace5.c
++++ b/debug/tst-backtrace5.c
+@@ -77,9 +77,9 @@ handle_signal (int signum)
+ 
+   /* Skip the signal trampoline and any cancellable syscall wrapper frames
+      (__syscall_cancel*) and require the read syscall wrapper to be
+-     present.  */
++     present (but skip intermediates).  */
+   for (i = 1; i < n; i++)
+-    if (match (symbols[i], "read"))
++    if (match (symbols[i], "read") && !match (symbols[i], "read_nocancel") && !match (symbols[i], "io_read"))
+       break;
+   if (i == n)
+     {

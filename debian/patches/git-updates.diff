@@ -1,4 +1,4 @@
-GIT update of https://sourceware.org/git/glibc.git/release/2.44/master from glibc-2.44 to 16be1518495f1fa05481b0182c4e4c24927c62df
+GIT update of https://sourceware.org/git/glibc.git/release/2.44/master from glibc-2.44 to 1f5026241027260e9280039698bca031484c82ad
 
 diff --git a/ADVISORIES b/ADVISORIES
 new file mode 100644
@@ -151,10 +151,10 @@ index 6bef57ece9..be51154bae 100644
  	-rm -f $(addprefix $(common-objpfx),$(common-generated))
  	-rm -f $(gen-as-const-headers:%.sym=$(common-objpfx)%.h)
 diff --git a/NEWS b/NEWS
-index ee28fadf49..d0ef2d3e9a 100644
+index ee28fadf49..a9a89bf6bc 100644
 --- a/NEWS
 +++ b/NEWS
-@@ -5,6 +5,20 @@ See the end for copying conditions.
+@@ -5,6 +5,24 @@ See the end for copying conditions.
  Please send GNU C library bug reports via <https://sourceware.org/bugzilla/>
  using `glibc' in the "product" field.
  
@@ -171,10 +171,30 @@ index ee28fadf49..d0ef2d3e9a 100644
 +  [34441] math: math: sinh() returns wrong results for some inputs with
 +    |x| > 36.736801
 +  [34465] math: math: x86_64 tanh ifunc selection wrong
++  [34507] nptl: Pretty-printer tests FAIL instead of UNSUPPORTED when
++    cross-testing without python3 on target
++  [34509] libc: [m68k] Regression: Perl locks up after upgrading glibc
++    to 2.43
 +
  Version 2.44
  
  Major new features:
+diff --git a/Rules b/Rules
+index 71495028fb..cfdbb459c8 100644
+--- a/Rules
++++ b/Rules
+@@ -467,8 +467,9 @@ py-env := PYTHONPATH=$(py-const-dir):$(..)scripts:$${PYTHONPATH}
+ # The pretty printer files and test_common_printers.py must be present for all.
+ $(tests-printers-out): $(objpfx)%.out: $(objpfx)% %.py %.c $(pretty-printers) \
+ 		       $(..)scripts/test_printers_common.py
+-	$(test-wrapper-env) $(py-env) \
+-	    $(PYTHON) $*.py $*.c $(objpfx)$* $(pretty-printers) > $@; \
++	$(test-wrapper-env) $(py-env) sh -c \
++	    'command -v $(firstword $(PYTHON)) > /dev/null 2>&1 || exit 77; \
++	     exec $(PYTHON) $*.py $*.c $(objpfx)$* $(pretty-printers)' > $@; \
+ 	$(evaluate-test)
+ endif
+ 
 diff --git a/advisories/GLIBC-SA-2023-0001 b/advisories/GLIBC-SA-2023-0001
 deleted file mode 100644
 index 3d19c91b6a..0000000000
@@ -1303,10 +1323,18 @@ index 4c5784c060..6538da9ab5 100644
       check do_test.  */
  
 diff --git a/elf/Makefile b/elf/Makefile
-index 94c5b7e6ed..d279a5135c 100644
+index 94c5b7e6ed..f1a8a75fdc 100644
 --- a/elf/Makefile
 +++ b/elf/Makefile
-@@ -1396,6 +1396,13 @@ modules-names += \
+@@ -306,6 +306,7 @@ tst-ifunc-resolver-protector-static-non-pie-no-pie = yes
+ 
+ tests-container := \
+   tst-dl-cache-long-path \
++  tst-dl-cache-old-format \
+   tst-ldconfig-bad-aux-cache \
+   tst-ldconfig-ld_so_conf-update \
+   # tests-container
+@@ -1396,6 +1397,13 @@ modules-names += \
    tst-ifunc-tls-write-lib \
    tst-tls-tdata-reloc-lib \
    # modules-names
@@ -1320,7 +1348,15 @@ index 94c5b7e6ed..d279a5135c 100644
  ifneq (no,$(have-test-mtls-descriptor))
  tests += tst-ifunc-tls-init-tlsdesc
  modules-names += tst-ifunc-tls-init-tlsdesc-lib
-@@ -1574,7 +1581,9 @@ $(objpfx)dl-allobjs.os: $(all-rtld-routines:%=$(objpfx)%.os)
+@@ -1425,6 +1433,7 @@ tests-special += \
+   $(objpfx)check-execstack.out \
+   $(objpfx)check-initfini.out \
+   $(objpfx)check-localplt.out \
++  $(objpfx)check-symbol-version.out \
+   $(objpfx)check-textrel.out \
+   $(objpfx)check-wx-segment.out \
+   # tests-special
+@@ -1574,7 +1583,9 @@ $(objpfx)dl-allobjs.os: $(all-rtld-routines:%=$(objpfx)%.os)
  # when compiled for libc.
  rtld-stubbed-symbols = \
    __libc_assert_fail \
@@ -1331,7 +1367,20 @@ index 94c5b7e6ed..d279a5135c 100644
    calloc \
    free \
    malloc \
-@@ -2545,6 +2554,27 @@ $(objpfx)tst-ifunc-fault-bindnow.out: $(objpfx)tst-ifunc-fault-bindnow \
+@@ -2368,6 +2379,12 @@ $(objpfx)check-initfini.out: $(..)scripts/check-initfini.awk \
+ 	$(evaluate-test)
+ generated += check-initfini.out
+ 
++$(objpfx)check-symbol-version.out: $(..)scripts/check-symbol-version.awk \
++			    $(all-built-dso:=.dynsym)
++	LC_ALL=C $(AWK) -f $^ > $@; \
++	$(evaluate-test)
++generated += check-symbol-version.out
++
+ $(objpfx)tst-dlopenrpath: $(objpfx)tst-dlopenrpathmod.so
+ CFLAGS-tst-dlopenrpath.c += -DPFX=\"$(objpfx)\"
+ LDFLAGS-tst-dlopenrpathmod.so += -Wl,-rpath,\$$ORIGIN/test-subdir
+@@ -2545,6 +2562,27 @@ $(objpfx)tst-ifunc-fault-bindnow.out: $(objpfx)tst-ifunc-fault-bindnow \
     $(objpfx)ld.so
  	$(tst-ifunc-fault-script)
  
@@ -1359,6 +1408,18 @@ index 94c5b7e6ed..d279a5135c 100644
  LDFLAGS-tst-ifunc-plt-lib.so = -Wl,-z,lazy
  
  tst-ifunc-plt-bindnow-ENV = LD_BIND_NOW=1
+@@ -3006,9 +3044,10 @@ LDFLAGS-tst-dlopen-nodelete-reloc-mod17.so = -Wl,--no-as-needed
+ 
+ $(objpfx)tst-ldconfig-ld_so_conf-update.out: $(objpfx)tst-ldconfig-ld-mod.so
+ 
+-# Reuses the trivial module already built for tst-dl-path-buf.
+ $(objpfx)tst-dl-cache-long-path: $(shared-thread-library)
++# Both cache tests reuse the trivial module already built for tst-dl-path-buf.
+ $(objpfx)tst-dl-cache-long-path.out: $(objpfx)tst-dl-path-buf-mod.so
++$(objpfx)tst-dl-cache-old-format.out: $(objpfx)tst-dl-path-buf-mod.so
+ 
+ LDFLAGS-tst-dst-needed-leaf-mod.so = \
+   -Wl,-soname,\$$ORIGIN/\$$ORIGIN/\$$ORIGIN/\$$ORIGIN/\$$ORIGIN/leaf.so
 diff --git a/elf/dl-reloc-static-pie.c b/elf/dl-reloc-static-pie.c
 index 8463e46147..5dc5a545a8 100644
 --- a/elf/dl-reloc-static-pie.c
@@ -1645,6 +1706,159 @@ index 35141acec4..0130c63feb 100644
 +			     (consider_profile), skip_ifunc)
  
  #endif
+diff --git a/elf/tst-dl-cache-old-format.c b/elf/tst-dl-cache-old-format.c
+new file mode 100644
+index 0000000000..985aed99ec
+--- /dev/null
++++ b/elf/tst-dl-cache-old-format.c
+@@ -0,0 +1,144 @@
++/* Test that ld.so accepts an ld.so.cache written in the old format.
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++/* A cache written by "ldconfig -c old" carries no new-format header, so
++   the loader must not look for cache extensions in it.  The test writes
++   such a cache, then starts a dynamically linked child, which is where
++   an unpatched loader dies before main, and then dlopens a module that
++   is only reachable through the cache, which covers the reload path.  */
++
++#include <dlfcn.h>
++#include <fcntl.h>
++#include <getopt.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/stat.h>
++
++#include <support/capture_subprocess.h>
++#include <support/check.h>
++#include <support/support.h>
++#include <support/temp_file.h>
++#include <support/xdlfcn.h>
++#include <support/xunistd.h>
++
++/* ldconfig only indexes file names starting with "lib", so the module is
++   deployed under a lib-prefixed name and dlopened by that name.  */
++#define MOD_BUILT	"tst-dl-path-buf-mod.so"
++#define MOD_DEPLOYED	"libtst-dl-path-buf-mod.so"
++#define MOD_SYMBOL	"tst_dl_path_buf_mod_value"
++#define MOD_EXPECTED	0xaabbccddu
++
++#define MOD_DIR "/tst-dl-cache-old-format"
++
++/* Copied from sysdeps/generic/dl-cache.h, which cannot be included here
++   because it relies on libc-internal attributes.  */
++#define CACHE_MAGIC_OLD "ld.so-1.7.0"
++#define CACHE_MAGIC_NEW "glibc-ld.so.cache1.1"
++
++/* Set in the re-executed child, whose only job is to reach main.  */
++static int restart;
++#define CMDLINE_OPTIONS \
++  { "restart", no_argument, &restart, 1 },
++
++static void
++run_ldconfig (void *closure __attribute__ ((unused)))
++{
++  char *prog = xasprintf ("%s/ldconfig", support_install_rootsbindir);
++  char *args[] = { prog, (char *) "-c", (char *) "old", NULL };
++  execv (args[0], args);
++  FAIL_EXIT1 ("execv (%s): %m", prog);
++}
++
++/* ldconfig accepts an unknown -c argument without complaining and falls
++   back to the new format, so verify that the cache on disk really is the
++   old format and carries no new-format header anywhere.  */
++static void
++check_cache_is_old_format (void)
++{
++  char *path = xasprintf ("%s/ld.so.cache", support_sysconfdir_prefix);
++  int fd = xopen (path, O_RDONLY, 0);
++  struct stat64 st;
++  xfstat64 (fd, &st);
++  size_t length = st.st_size;
++  char *contents = xmalloc (length);
++  xread (fd, contents, length);
++  xclose (fd);
++
++  TEST_COMPARE_BLOB (contents, sizeof CACHE_MAGIC_OLD - 1,
++		     CACHE_MAGIC_OLD, sizeof CACHE_MAGIC_OLD - 1);
++  TEST_VERIFY (memmem (contents, length, CACHE_MAGIC_NEW,
++		       sizeof CACHE_MAGIC_NEW - 1) == NULL);
++
++  free (contents);
++  free (path);
++}
++
++static void
++do_prepare (int argc, char **argv)
++{
++  if (restart)
++    return;
++
++  xmkdirp (MOD_DIR, 0777);
++  add_temp_file (MOD_DIR);
++  char *src = xasprintf ("%s/elf/" MOD_BUILT, support_objdir_root);
++  support_copy_file (src, MOD_DIR "/" MOD_DEPLOYED);
++  add_temp_file (MOD_DIR "/" MOD_DEPLOYED);
++  free (src);
++
++  char *conf = xasprintf ("%s/ld.so.conf", support_sysconfdir_prefix);
++  support_write_file_string (conf, MOD_DIR "\n");
++  free (conf);
++
++  xmkdirp ("/var/cache/ldconfig", 0777);
++  struct support_capture_subprocess result
++    = support_capture_subprocess (run_ldconfig, NULL);
++  support_capture_subprocess_check (&result, "ldconfig", 0, sc_allow_none);
++  support_capture_subprocess_free (&result);
++
++  check_cache_is_old_format ();
++}
++#define PREPARE do_prepare
++
++static int
++do_test (int argc, char **argv)
++{
++  if (restart)
++    /* Reaching main is the entire check: the loader read the old-format
++       cache while starting this process.  */
++    return 0;
++
++  char *spargv[] = { argv[0], (char *) "--direct", (char *) "--restart",
++		     NULL };
++  struct support_capture_subprocess result
++    = support_capture_subprogram (spargv[0], spargv, NULL);
++  support_capture_subprocess_check (&result, "restart", 0, sc_allow_none);
++  support_capture_subprocess_free (&result);
++
++  /* This process still has the cache from its own startup mapped, so the
++     dlopen exercises the reload of the replaced file as well.  */
++  void *handle = xdlopen (MOD_DEPLOYED, RTLD_NOW | RTLD_LOCAL);
++  unsigned int (*value) (void) = xdlsym (handle, MOD_SYMBOL);
++  TEST_COMPARE (value (), MOD_EXPECTED);
++  xdlclose (handle);
++
++  return 0;
++}
++
++#define TEST_FUNCTION_ARGV do_test
++#include <support/test-driver.c>
+diff --git a/elf/tst-dl-cache-old-format.root/postclean.req b/elf/tst-dl-cache-old-format.root/postclean.req
+new file mode 100644
+index 0000000000..e69de29bb2
 diff --git a/elf/tst-ifunc-fault-dep-bindnow.c b/elf/tst-ifunc-fault-dep-bindnow.c
 new file mode 100644
 index 0000000000..60d97dcaa4
@@ -1763,6 +1977,259 @@ index 9f71418b3a..f4820a1822 100644
  }
  
  /* Change ld.so.conf to refer to the new directory, and generate a new
+diff --git a/iconvdata/Makefile b/iconvdata/Makefile
+index fbb0067302..ba2eec2b48 100644
+--- a/iconvdata/Makefile
++++ b/iconvdata/Makefile
+@@ -76,7 +76,8 @@ tests = bug-iconv1 bug-iconv2 tst-loading tst-e2big tst-iconv4 bug-iconv4 \
+ 	tst-iconv6 bug-iconv5 bug-iconv6 tst-iconv7 bug-iconv8 bug-iconv9 \
+ 	bug-iconv10 bug-iconv11 bug-iconv12 tst-iconv-big5-hkscs-to-2ucs4 \
+ 	bug-iconv13 bug-iconv14 bug-iconv15 \
+-	tst-iconv-iso-2022-cn-ext tst-bug33980
++	tst-iconv-iso-2022-cn-ext tst-bug33980 \
++	tst-jisx0213-progress
+ ifeq ($(have-thread-library),yes)
+ tests += bug-iconv3
+ endif
+@@ -335,6 +336,8 @@ $(objpfx)tst-iconv-iso-2022-cn-ext.out: $(addprefix $(objpfx), $(gconv-modules))
+ 					$(addprefix $(objpfx),$(modules.so))
+ $(objpfx)tst-bug33980.out: $(addprefix $(objpfx), $(gconv-modules)) \
+ 			   $(addprefix $(objpfx),$(modules.so))
++$(objpfx)tst-jisx0213-progress.out: \
++  $(addprefix $(objpfx), $(gconv-modules)) $(addprefix $(objpfx),$(modules.so))
+ 
+ $(objpfx)iconv-test.out: run-iconv-test.sh \
+ 			 $(addprefix $(objpfx), $(gconv-modules)) \
+diff --git a/iconvdata/euc-jisx0213.c b/iconvdata/euc-jisx0213.c
+index 5572bbdb7b..61c22231e1 100644
+--- a/iconvdata/euc-jisx0213.c
++++ b/iconvdata/euc-jisx0213.c
+@@ -224,6 +224,9 @@
+ 	    STANDARD_FROM_LOOP_ERR_HANDLER (1);				      \
+ 	  }								      \
+       }									      \
++    else 								      \
++      /* There was a pending character.  Clear it.  */			      \
++      *statep = 0;							      \
+ 									      \
+     put32 (outptr, ch);							      \
+     outptr += 4;							      \
+diff --git a/iconvdata/shift_jisx0213.c b/iconvdata/shift_jisx0213.c
+index 61c9c3ce6d..e9179f605e 100644
+--- a/iconvdata/shift_jisx0213.c
++++ b/iconvdata/shift_jisx0213.c
+@@ -226,6 +226,9 @@
+ 	    STANDARD_FROM_LOOP_ERR_HANDLER (1);				      \
+ 	  }								      \
+       }									      \
++    else 								      \
++      /* There was a pending character.  Clear it.  */			      \
++      *statep = 0;							      \
+ 									      \
+     put32 (outptr, ch);							      \
+     outptr += 4;							      \
+diff --git a/iconvdata/tst-jisx0213-progress.c b/iconvdata/tst-jisx0213-progress.c
+new file mode 100644
+index 0000000000..7b2073be1f
+--- /dev/null
++++ b/iconvdata/tst-jisx0213-progress.c
+@@ -0,0 +1,124 @@
++/* Test JISX0213 combining character conversion progress (bug 34556, bug 34568).
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++/* Certain JISX0213 byte sequences map to a combining sequence, for
++   example U+304B (HIRAGANA LETTER KA) followed by U+309A (COMBINING
++   SEMI-VOICED SOUND MARK).  When converting to internal encoding
++   (actually UTF-32) with a small output buffer, the first code point
++   is emitted and the second is queued in the converter state.  This
++   test verifies that the queued code point is consumed exactly once
++   on retry, so that the conversion makes progress and terminates.  */
++
++#include <errno.h>
++#include <iconv.h>
++#include <stdio.h>
++#include <string.h>
++
++#include <support/check.h>
++#include <support/support.h>
++
++static void
++test_one (const char *charset, const char *input, size_t outbufsize)
++{
++  printf ("info: %s: testing output buffer size %zu\n", charset, outbufsize);
++
++  /* Expected UTF-32 output.  */
++  static const wchar_t expected[] = { 0x304b, 0x309a, 'A' };
++
++  /* Use WCHAR_T encoding to avoid the BOM.  */
++  iconv_t cd = iconv_open ("WCHAR_T", charset);
++  TEST_VERIFY_EXIT (cd != (iconv_t) -1);
++
++  char result[64];
++  size_t result_len = 0;
++
++  char *inptr = (char *) input;
++  size_t inleft = strlen (input);
++
++  char outbuf[64];
++
++  int iterations = 0;
++  while (inleft > 0)
++    {
++      char *outptr = outbuf;
++      size_t outleft = outbufsize;
++      size_t inleft_before = inleft;
++
++      size_t ret = iconv (cd, &inptr, &inleft, &outptr, &outleft);
++      size_t produced = outptr - outbuf;
++
++      TEST_VERIFY_EXIT (result_len + produced <= sizeof (result));
++      memcpy (result + result_len, outbuf, produced);
++      result_len += produced;
++
++      if (ret == (size_t) -1 && errno == E2BIG)
++	{
++	  if (produced == 0 && inleft == inleft_before)
++	    {
++	      /* Output buffer too small for a single code point.  */
++	      TEST_VERIFY_EXIT (outbufsize < 4);
++	      break;
++	    }
++	  /* Bound iterations to detect non-progress bugs.  */
++	  if (++iterations < 10)
++	    continue;
++	  else
++	    {
++	      FAIL ("%s: no progress", charset);
++	      goto out;
++	    }
++	}
++      if (ret == (size_t) -1)
++	FAIL_EXIT1 ("outbufsize %zu: iconv: %m", outbufsize);
++      break;
++    }
++
++  /* Flush pending converter state.  */
++  {
++    char *outptr = outbuf;
++    size_t outleft = outbufsize;
++    size_t ret = iconv (cd, NULL, NULL, &outptr, &outleft);
++    TEST_VERIFY (ret == 0);
++    size_t produced = outptr - outbuf;
++    memcpy (result + result_len, outbuf, produced);
++    result_len += produced;
++  }
++
++  if (outbufsize >= 4)
++    {
++      TEST_COMPARE (inleft, 0);
++      TEST_COMPARE_BLOB (result, result_len,
++			 expected, sizeof (expected));
++    }
++
++ out:
++  TEST_VERIFY_EXIT (iconv_close (cd) == 0);
++}
++
++static int
++do_test (void)
++{
++  for (size_t outbufsize = 1; outbufsize <= 16; outbufsize++)
++    {
++      test_one ("EUC-JISX0213", "\244\367A", outbufsize);
++      test_one ("SHIFT_JISX0213", "\202\365A", outbufsize);
++    }
++  return 0;
++}
++
++#include <support/test-driver.c>
+diff --git a/include/fcntl.h b/include/fcntl.h
+index be435047bc..86890a5b3d 100644
+--- a/include/fcntl.h
++++ b/include/fcntl.h
+@@ -20,11 +20,9 @@ extern int __fcntl (int __fd, int __cmd, ...);
+ libc_hidden_proto (__fcntl)
+ extern int __fcntl64 (int __fd, int __cmd, ...) attribute_hidden;
+ libc_hidden_proto (__fcntl64)
+-extern int __openat (int __fd, const char *__file, int __oflag, ...)
+-  __nonnull ((2));
++extern int __openat (int __fd, const char *__file, int __oflag, ...);
+ libc_hidden_proto (__openat)
+-extern int __openat64 (int __fd, const char *__file, int __oflag, ...)
+-  __nonnull ((2));
++extern int __openat64 (int __fd, const char *__file, int __oflag, ...);
+ libc_hidden_proto (__openat64)
+ 
+ extern int __open_2 (const char *__path, int __oflag);
+diff --git a/io/bits/fcntl2.h b/io/bits/fcntl2.h
+index f076cc3367..074c16b204 100644
+--- a/io/bits/fcntl2.h
++++ b/io/bits/fcntl2.h
+@@ -135,18 +135,14 @@ open64 (__fortify_clang_overload_arg (const char *, ,__path), int __oflag,
+ 
+ #ifdef __USE_ATFILE
+ # ifndef __USE_FILE_OFFSET64
+-extern int __openat_2 (int __fd, const char *__path, int __oflag)
+-     __nonnull ((2));
++extern int __openat_2 (int __fd, const char *__path, int __oflag);
+ extern int __REDIRECT (__openat_alias, (int __fd, const char *__path,
+-					int __oflag, ...), openat)
+-     __nonnull ((2));
++					int __oflag, ...), openat);
+ # else
+ extern int __REDIRECT (__openat_2, (int __fd, const char *__path,
+-				    int __oflag), __openat64_2)
+-     __nonnull ((2));
++				    int __oflag), __openat64_2);
+ extern int __REDIRECT (__openat_alias, (int __fd, const char *__path,
+-					int __oflag, ...), openat64)
+-     __nonnull ((2));
++					int __oflag, ...), openat64);
+ # endif
+ 
+ # ifdef __va_arg_pack_len
+diff --git a/io/fcntl.h b/io/fcntl.h
+index d0ad4d6652..3d90cc9adb 100644
+--- a/io/fcntl.h
++++ b/io/fcntl.h
+@@ -230,19 +230,17 @@ extern int open64 (const char *__file, int __oflag, ...) __nonnull ((1));
+    This function is a cancellation point and therefore not marked with
+    __THROW.  */
+ # ifndef __USE_FILE_OFFSET64
+-extern int openat (int __fd, const char *__file, int __oflag, ...)
+-     __nonnull ((2));
++extern int openat (int __fd, const char *__file, int __oflag, ...);
+ # else
+ #  ifdef __REDIRECT
+ extern int __REDIRECT (openat, (int __fd, const char *__file, int __oflag,
+-				...), openat64) __nonnull ((2));
++				...), openat64);
+ #  else
+ #   define openat openat64
+ #  endif
+ # endif
+ # ifdef __USE_LARGEFILE64
+-extern int openat64 (int __fd, const char *__file, int __oflag, ...)
+-     __nonnull ((2));
++extern int openat64 (int __fd, const char *__file, int __oflag, ...);
+ # endif
+ #endif
+ 
 diff --git a/io/ftw.c b/io/ftw.c
 index ed0eeb3904..a9368a706e 100644
 --- a/io/ftw.c
@@ -1801,6 +2268,123 @@ index d3cd14c21a..fa7b05df22 100644
  weak_alias (__ftw64, ftw)
  versioned_symbol (libc, __new_nftw64, nftw, GLIBC_2_3_3);
  # if SHLIB_COMPAT(libc, GLIBC_2_1, GLIBC_2_3_3)
+diff --git a/io/sys/stat.h b/io/sys/stat.h
+index 3069e187b0..ff70b69f59 100644
+--- a/io/sys/stat.h
++++ b/io/sys/stat.h
+@@ -370,7 +370,7 @@ extern int fchmod (int __fd, __mode_t __mode) __THROW;
+    the directory FD is open on.  */
+ extern int fchmodat (int __fd, const char *__file, __mode_t __mode,
+ 		     int __flag)
+-     __THROW __nonnull ((2)) __wur;
++     __THROW __wur;
+ #endif /* Use ATFILE.  */
+ 
+ 
+diff --git a/libio/Makefile b/libio/Makefile
+index 616107ee10..9aec016cca 100644
+--- a/libio/Makefile
++++ b/libio/Makefile
+@@ -110,6 +110,7 @@ tests = \
+   tst-fgetwc \
+   tst-fgetws \
+   tst-file-init-race \
++  tst-fopen-ccs-empty \
+   tst-fopenloc2 \
+   tst-fputws \
+   tst-freopen \
+diff --git a/libio/fileops.c b/libio/fileops.c
+index 9348d7c3a1..5a249725ee 100644
+--- a/libio/fileops.c
++++ b/libio/fileops.c
+@@ -355,12 +355,14 @@ _IO_new_file_fopen (FILE *fp, const char *filename, const char *mode,
+ 	  *((char *) __mempcpy (ccs, cs + 5, endp - (cs + 5))) = '\0';
+ 	  strip (ccs, ccs);
+ 
+-	  if (__wcsmbs_named_conv (&fcts, ccs[2] == '\0'
+-				   ? upstr (ccs, cs + 5) : ccs) != 0)
++	  /* After stripping, ccs[2] == '\0' means the charset name is empty.
++	     This is not a valid charset and would cause problems downstream.
++	     Reject it with EINVAL (BZ #34574, CVE-2026-18374).  */
++	  if (ccs[2] == '\0' || __wcsmbs_named_conv (&fcts, ccs) != 0)
+ 	    {
+-	      /* Something went wrong, we cannot load the conversion modules.
+-		 This means we cannot proceed since the user explicitly asked
+-		 for these.  */
++	      /* Either the charset name is empty after strip(), or conversion
++		 modules cannot be loaded.  This means we cannot proceed since
++		 the user explicitly asked for character conversion.  */
+ 	      (void) _IO_file_close_it (fp);
+ 	      free (ccs);
+ 	      __set_errno (EINVAL);
+diff --git a/libio/tst-fopen-ccs-empty.c b/libio/tst-fopen-ccs-empty.c
+new file mode 100644
+index 0000000000..64723965e1
+--- /dev/null
++++ b/libio/tst-fopen-ccs-empty.c
+@@ -0,0 +1,62 @@
++/* Test fopen with an empty ",ccs=" value in the mode string (bug 34574).
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <errno.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <support/check.h>
++#include <support/support.h>
++#include <support/temp_file.h>
++#include <support/xunistd.h>
++
++static void
++check_fopen_fails (const char *path, const char *mode)
++{
++  errno = 0;
++  FILE *fp = fopen (path, mode);
++  TEST_VERIFY (fp == NULL);
++  TEST_COMPARE (errno, EINVAL);
++  if (fp != NULL)
++    fclose (fp);
++}
++
++static int
++do_test (void)
++{
++  char *path;
++  xclose (create_temp_file ("tst-fopen-ccs-empty", &path));
++
++  /* The value is blank and the mode string continues well past it.  */
++  enum { size = 1024 * 1024 };
++  char *mode = xmalloc (size);
++  memset (mode, 'X', size);
++  mode[size - 1] = '\0';
++  static const char prefix[] = "w,ccs=                     ,";
++  memcpy (mode, prefix, sizeof (prefix) - 1);
++  check_fopen_fails (path, mode);
++  free (mode);
++
++  check_fopen_fails (path, "w,ccs=");
++  check_fopen_fails (path, "w,ccs=,");
++
++  free (path);
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/math/auto-libm-test-in b/math/auto-libm-test-in
 index ca670768a2..5c4d486af4 100644
 --- a/math/auto-libm-test-in
@@ -2380,6 +2964,84 @@ index f96252b91c..91ab5c19fa 100644
 += sinh tonearest ibm128 -0x1.92a5c27afbe82p+4 : -0x9.e40fcd1239298000000000002p+32 : inexact-ok
 += sinh towardzero ibm128 -0x1.92a5c27afbe82p+4 : -0x9.e40fcd1239298000000000002p+32 : inexact-ok
 += sinh upward ibm128 -0x1.92a5c27afbe82p+4 : -0x9.e40fcd1239298000000000002p+32 : inexact-ok
+diff --git a/misc/tsearch.c b/misc/tsearch.c
+index 9b2eb34b25..e517dfa712 100644
+--- a/misc/tsearch.c
++++ b/misc/tsearch.c
+@@ -85,6 +85,7 @@
+ #include <assert.h>
+ #include <stdalign.h>
+ #include <stddef.h>
++#include <stdint.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <search.h>
+@@ -406,12 +407,13 @@ __tdelete (const void *key, void **vrootp, __compar_fn_t compar)
+   int cmp;
+   node *rootp = (node *) vrootp;
+   node root, unchained;
+-  /* Stack of nodes so we remember the parents without recursion.  It's
+-     _very_ unlikely that there are paths longer than 40 nodes.  The tree
+-     would need to have around 250.000 nodes.  */
+-  int stacksize = 40;
++  /* Stack of nodes so we remember the parents without recursion.  The
++     stack size is a conservative approximation of the maximum height
++     of a red-black tree, based on size of the address space.
++     Actual numbers are closer to 57 (32 bit) and 117 (63 bit).  */
++  enum { stacksize = 2 * UINTPTR_WIDTH };
+   int sp = 0;
+-  node **nodestack = alloca (sizeof (node *) * stacksize);
++  node *nodestack[stacksize];
+ 
+   if (rootp == NULL)
+     return NULL;
+@@ -424,14 +426,7 @@ __tdelete (const void *key, void **vrootp, __compar_fn_t compar)
+   root = DEREFNODEPTR(rootp);
+   while ((cmp = (*compar) (key, root->key)) != 0)
+     {
+-      if (sp == stacksize)
+-	{
+-	  node **newstack;
+-	  stacksize += 20;
+-	  newstack = alloca (sizeof (node *) * stacksize);
+-	  nodestack = memcpy (newstack, nodestack, sp * sizeof (node *));
+-	}
+-
++      assert (sp < stacksize);
+       nodestack[sp++] = rootp;
+       p = DEREFNODEPTR(rootp);
+       if (cmp < 0)
+@@ -470,13 +465,7 @@ __tdelete (const void *key, void **vrootp, __compar_fn_t compar)
+       node upn;
+       for (;;)
+ 	{
+-	  if (sp == stacksize)
+-	    {
+-	      node **newstack;
+-	      stacksize += 20;
+-	      newstack = alloca (sizeof (node *) * stacksize);
+-	      nodestack = memcpy (newstack, nodestack, sp * sizeof (node *));
+-	    }
++	  assert (sp < stacksize);
+ 	  nodestack[sp++] = parentp;
+ 	  parentp = up;
+ 	  upn = DEREFNODEPTR(up);
+@@ -541,6 +530,7 @@ __tdelete (const void *key, void **vrootp, __compar_fn_t compar)
+ 		  SETNODEPTR(pp,q);
+ 		  /* Make sure pp is right if the case below tries to use
+ 		     it.  */
++		  assert (sp < stacksize);
+ 		  nodestack[sp++] = pp = LEFTPTR(q);
+ 		  q = RIGHT(p);
+ 		}
+@@ -625,6 +615,7 @@ __tdelete (const void *key, void **vrootp, __compar_fn_t compar)
+ 		  SETLEFT(p,RIGHT(q));
+ 		  SETRIGHT(q,p);
+ 		  SETNODEPTR(pp,q);
++		  assert (sp < stacksize);
+ 		  nodestack[sp++] = pp = RIGHTPTR(q);
+ 		  q = LEFT(p);
+ 		}
 diff --git a/nptl/cancellation.c b/nptl/cancellation.c
 index 4368cb7231..63f09840ff 100644
 --- a/nptl/cancellation.c
@@ -2477,6 +3139,219 @@ index b0cbe5cebf..82c686f020 100644
  #include <futex-internal.h>
  #include <internaltypes.h>
  #include <semaphore.h>
+diff --git a/posix/unistd.h b/posix/unistd.h
+index 06a6a88b52..dc5c2ec009 100644
+--- a/posix/unistd.h
++++ b/posix/unistd.h
+@@ -307,7 +307,7 @@ extern int execveat (int __fd, const char *__path, char *const __argv[],
+    If AT_EACCESS is set in FLAG, then use effective IDs like `eaccess',
+    otherwise use real IDs like `access'.  */
+ extern int faccessat (int __fd, const char *__file, int __type, int __flag)
+-     __THROW __nonnull ((2)) __wur;
++     __THROW __wur;
+ #endif /* Use GNU.  */
+ 
+ 
+@@ -510,7 +510,7 @@ extern int lchown (const char *__file, __uid_t __owner, __gid_t __group)
+    on.  */
+ extern int fchownat (int __fd, const char *__file, __uid_t __owner,
+ 		     __gid_t __group, int __flag)
+-     __THROW __nonnull ((2)) __wur;
++     __THROW __wur;
+ #endif /* Use GNU.  */
+ 
+ /* Change the process's working directory to PATH.  */
+diff --git a/posix/wordexp.c b/posix/wordexp.c
+index 8fdc8b8caf..9a49e102ee 100644
+--- a/posix/wordexp.c
++++ b/posix/wordexp.c
+@@ -35,7 +35,6 @@
+ #include <scratch_buffer.h>
+ #include <_itoa.h>
+ #include <assert.h>
+-#include <intprops.h>
+ 
+ /*
+  * This is a recursive-descent-style word expansion routine.
+@@ -2269,16 +2268,14 @@ wordexp (const char *words, wordexp_t *pwordexp, int flags)
+     {
+       /* WRDE_APPEND with an existing word list: duplicate the array so that
+ 	 realloc during parsing does not invalidate the caller's pointer.  The
+-	 strings themselves are shared.  */
+-      size_t num_p;
+-      char **dup;
+-      if (INT_ADD_WRAPV (pwordexp->we_offs, pwordexp->we_wordc, &num_p)
+-	  || INT_ADD_WRAPV (num_p, 1, &num_p))
+-	return WRDE_NOSPACE;
+-      dup = __libc_reallocarray (NULL, num_p, sizeof *dup);
++	 strings themselves are shared an the array already holds
++	 'we_offs + we_wordc + 1 pointers' (so the size computation cannot
++	 overflow).  */
++      size_t num_p = pwordexp->we_offs + pwordexp->we_wordc + 1;
++      char **dup = malloc (num_p * sizeof (char *));
+       if (dup == NULL)
+ 	return WRDE_NOSPACE;
+-      memcpy (dup, pwordexp->we_wordv, num_p * sizeof *dup);
++      memcpy (dup, pwordexp->we_wordv, num_p * sizeof (char *));
+       saved_wordv = pwordexp->we_wordv;
+       pwordexp->we_wordv = dup;
+     }
+diff --git a/resolv/resolv_conf.c b/resolv/resolv_conf.c
+index d33f32ac1a..a688d4223b 100644
+--- a/resolv/resolv_conf.c
++++ b/resolv/resolv_conf.c
+@@ -281,8 +281,12 @@ resolv_conf_matches (const struct __res_state *resp,
+   {
+     if (resp->dnsrch[0] == NULL)
+       {
+-        /* Empty search list.  No default domain name.  */
+-        return conf->search_list_size == 0 && resp->defdname[0] == '\0';
++        /* Empty search list, or the first entry does not fit in
++           resp->defdname.  No default domain name.  */
++        return resp->defdname[0] == '\0'
++          && (conf->search_list_size == 0
++              || (strlen (conf->search_list[0]) + 1
++                  > sizeof (resp->defdname)));
+       }
+ 
+     if (resp->dnsrch[0] != resp->defdname)
+@@ -309,11 +313,12 @@ resolv_conf_matches (const struct __res_state *resp,
+           }
+         else
+           {
+-            /* resp->dnsrch is truncated if the number of elements
+-               exceeds MAXDNSRCH, or if the combined storage space for
+-               the search list exceeds what can be stored in
+-               resp->defdname.  */
+-            if (i == MAXDNSRCH || search_list_size > sizeof (resp->dnsrch))
++            /* resp->dnsrch is truncated if the number of elements exceeds
++               MAXDNSRCH, or if conf->search_list[i] does not fit in the
++               remaining space of resp->defdname.  */
++            if (i == MAXDNSRCH
++                || (search_list_size + strlen (conf->search_list[i]) + 1
++                    > sizeof (resp->defdname)))
+               break;
+             /* Otherwise, a mismatch indicates a match failure.  */
+             return false;
+diff --git a/resolv/tst-resolv-res_init-skeleton.c b/resolv/tst-resolv-res_init-skeleton.c
+index 1e4c59dac9..e51a532c7e 100644
+--- a/resolv/tst-resolv-res_init-skeleton.c
++++ b/resolv/tst-resolv-res_init-skeleton.c
+@@ -724,6 +724,41 @@ struct test_case test_cases[] =
+      "nameserver 192.0.2.1\n"
+      "; nameserver[0]: [192.0.2.1]:53\n"
+     },
++/* Search list entries which do not fit in the legacy 256-byte
++   resp->defdname buffer (bug 31026).  LONG244 is 244 characters long,
++   so it does not fit after "example.com\0" (12 bytes).  LONG256 is 256
++   characters long, so it does not fit even as the first entry.  */
++#define LBL63 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
++#define LONG244 LBL63 "." LBL63 "." LBL63 "." \
++  "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
++#define LONG256 LBL63 "." LBL63 "." LBL63 "." LBL63 "a"
++    {.name = "search list truncated at long entry after short entry",
++     .conf = "nameserver 192.0.2.1\n"
++     "search example.com " LONG244 "\n",
++     .expected = "search example.com\n"
++     "; search[0]: example.com\n"
++     "; search[1]: " LONG244 "\n"
++     "nameserver 192.0.2.1\n"
++     "; nameserver[0]: [192.0.2.1]:53\n"
++    },
++    {.name = "search list truncated at long first entry",
++     .conf = "nameserver 192.0.2.1\n"
++     "search " LONG256 " example.com\n",
++     .expected = "; search[0]: " LONG256 "\n"
++     "; search[1]: example.com\n"
++     "nameserver 192.0.2.1\n"
++     "; nameserver[0]: [192.0.2.1]:53\n"
++    },
++    {.name = "long first entry from the domain directive",
++     .conf = "nameserver 192.0.2.1\n"
++     "domain " LONG256 "\n",
++     .expected = "; search[0]: " LONG256 "\n"
++     "nameserver 192.0.2.1\n"
++     "; nameserver[0]: [192.0.2.1]:53\n"
++    },
++#undef LONG256
++#undef LONG244
++#undef LBL63
+     {.name = "trust-ad flag",
+      .conf = "options trust-ad\n"
+      "nameserver 192.0.2.1\n",
+diff --git a/scripts/check-symbol-version.awk b/scripts/check-symbol-version.awk
+new file mode 100644
+index 0000000000..2ddaa0edc9
+--- /dev/null
++++ b/scripts/check-symbol-version.awk
+@@ -0,0 +1,67 @@
++# Copyright (C) 2026 Free Software Foundation, Inc.
++# This file is part of the GNU C Library.
++
++# The GNU C Library is free software; you can redistribute it and/or
++# modify it under the terms of the GNU Lesser General Public
++# License as published by the Free Software Foundation; either
++# version 2.1 of the License, or (at your option) any later version.
++
++# The GNU C Library is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++# Lesser General Public License for more details.
++
++# You should have received a copy of the GNU Lesser General Public
++# License along with the GNU C Library; if not, see
++# <https://www.gnu.org/licenses/>.
++
++# This awk script expects to get command-line files that are each
++# the output of 'readelf -W --dyn-syms' on a single shared object.
++# It exits successfully (0) if there are versioned symbols with more
++# than one default version in dynamic symbol table.
++# It fails (1) if any did contain versioned symbols with more than one
++# default version in dynamic symbol table.
++# It fails (2) if the input did not take the expected form.
++
++BEGIN { result = incorrect = sanity = 0 }
++
++function check_one(name) {
++  if (!sanity) {
++    print name ": *** input did not look like readelf -d output";
++    result = 2;
++  } else {
++    ok = 1;
++    if (incorrect) {
++      print name ": *** incorrect dynamic symbol table";
++      result = result ? result : 1;
++      ok = 0;
++    }
++    if (ok)
++      print name ": OK";
++  }
++
++  delete version
++  incorrect = sanity = 0
++}
++
++FILENAME != lastfile {
++  if (lastfile)
++    check_one(lastfile);
++  lastfile = FILENAME;
++}
++
++$1 == "Symbol" && $2 == "table" && $3 == "'.dynsym'" { sanity = 1 }
++$8 ~ "@@" {
++  split($8,a,"@");
++  if (version[a[1]] != "") {
++    incorrect = 1;
++    print a[1] " has 2 default versions: " version[a[1]] ", " a[3];
++  } else {
++    version[a[1]] = a[3];
++  }
++}
++
++END {
++  check_one(lastfile);
++  exit(result);
++}
 diff --git a/stdio-common/tst-printf-format-c.sh b/stdio-common/tst-printf-format-c.sh
 index 825c50ec42..73d28c5607 100644
 --- a/stdio-common/tst-printf-format-c.sh
@@ -2718,6 +3593,80 @@ index 5d0324c551..57bea12621 100644
      {
        output = gensub(/^$/, " ", 1, output)
      }
+diff --git a/stdlib/Makefile b/stdlib/Makefile
+index addf7dc99f..16948eb512 100644
+--- a/stdlib/Makefile
++++ b/stdlib/Makefile
+@@ -347,6 +347,7 @@ tests := \
+   tst-stdc_leading_zeros \
+   tst-stdc_trailing_ones \
+   tst-stdc_trailing_zeros \
++  tst-strfmon-bug34510 \
+   tst-strfmon_l \
+   tst-strfrom \
+   tst-strfrom-locale \
+diff --git a/stdlib/strfmon_l.c b/stdlib/strfmon_l.c
+index f864289480..c39babaeae 100644
+--- a/stdlib/strfmon_l.c
++++ b/stdlib/strfmon_l.c
+@@ -549,7 +549,8 @@ __vstrfmon_l_buffer (struct __printf_buffer *buf, locale_t loc,
+       /* Now test whether the output width is filled.  */
+       if (buf->write_ptr - startp < width)
+ 	{
+-	  size_t pad_width = width - (buf->write_ptr - startp);
++	  size_t written_width = buf->write_ptr - startp;
++	  size_t pad_width = width - written_width;
+ 	  __printf_buffer_pad (buf, ' ', pad_width);
+ 	  if (__printf_buffer_has_failed (buf))
+ 	    /* Implies length check.  */
+@@ -558,7 +559,7 @@ __vstrfmon_l_buffer (struct __printf_buffer *buf, locale_t loc,
+ 	     Otherwise move the field contents in place.  */
+ 	  if (!left)
+ 	    {
+-	      memmove (startp + pad_width, startp, buf->write_ptr - startp);
++	      memmove (startp + pad_width, startp, written_width);
+ 	      memset (startp, ' ', pad_width);
+ 	    }
+ 	}
+diff --git a/stdlib/tst-strfmon-bug34510.c b/stdlib/tst-strfmon-bug34510.c
+new file mode 100644
+index 0000000000..b187bde1f4
+--- /dev/null
++++ b/stdlib/tst-strfmon-bug34510.c
+@@ -0,0 +1,33 @@
++/* Test handling of right-padding in strfmon (bug 34510, CVE-2026-19499).
++   Copyright (C) 2026 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <https://www.gnu.org/licenses/>.  */
++
++#include <monetary.h>
++#include <errno.h>
++#include <support/check.h>
++#include <support/next_to_fault.h>
++
++static int
++do_test (void)
++{
++  struct support_next_to_fault ntf = support_next_to_fault_allocate (100);
++  TEST_COMPARE (strfmon (ntf.buffer, ntf.length, "%100n", 1.23), -1);
++  TEST_COMPARE (errno, E2BIG);
++  return 0;
++}
++
++#include <support/test-driver.c>
 diff --git a/string/test-strcasecmp.c b/string/test-strcasecmp.c
 index a5235fa1bb..d090dcbf36 100644
 --- a/string/test-strcasecmp.c
@@ -2895,6 +3844,44 @@ index 54ada39eb2..9da0f21f60 100644
  
    s1[len] = 0;
    s2[len] = 0;
+diff --git a/sysdeps/alpha/Makefile b/sysdeps/alpha/Makefile
+index 60a369e255..faa59ab27a 100644
+--- a/sysdeps/alpha/Makefile
++++ b/sysdeps/alpha/Makefile
+@@ -53,6 +53,20 @@ CFLAGS-s_lrint.c += -mieee-with-inexact
+ CFLAGS-test-misc.c += -mieee-with-inexact
+ # Avoid "conflicting types for built-in function" warnings
+ CFLAGS-s_isnan.c += -fno-builtin-isnanf
++
++# _Float32x and _Float64 are both binary64 on Alpha, so this narrowing
++# divide is a plain divide and the hardware alone decides whether to
++# signal underflow.  IEEE 754 determines tininess after rounding from the
++# result rounded as if the exponent range were unbounded, but Alpha
++# determines it from the delivered result.  For a quotient that is tiny
++# but rounds up to the smallest normal -- DBL_MIN / (1 + 2^-52) under a
++# rounding mode that rounds away from zero -- the unbounded rounding
++# stays below DBL_MIN, because that binade has a finer spacing than the
++# subnormals, while the delivered result is DBL_MIN and looks normal.
++# Alpha raises no underflow for it.  No trap is taken, so the kernel
++# emulation cannot correct this, and the operation has no wider
++# intermediate for libm to examine.
++test-xfail-test-float32x-float64-div = yes
+ endif
+ 
+ # Build everything with full IEEE math support, and with dynamic rounding;
+diff --git a/sysdeps/alpha/fpu/bits/fenv.h b/sysdeps/alpha/fpu/bits/fenv.h
+index b1135f1f0a..530f298914 100644
+--- a/sysdeps/alpha/fpu/bits/fenv.h
++++ b/sysdeps/alpha/fpu/bits/fenv.h
+@@ -121,7 +121,7 @@ typedef unsigned long int fenv_t;
+ 
+ #ifdef __USE_GNU
+ /* Floating-point environment where none of the exceptions are masked.  */
+-# define FE_NOMASK_ENV	((const fenv_t *) 0x880000000000003eUL)
++# define FE_NOMASK_ENV	((const fenv_t *) 0x880000000000007eUL)
+ 
+ /* Floating-point environment with (processor-dependent) non-IEEE floating
+    point.  In this case, mapping denormals to zero.  */
 diff --git a/sysdeps/arm/Makefile b/sysdeps/arm/Makefile
 index 0bb1b6e05b..9042315492 100644
 --- a/sysdeps/arm/Makefile
@@ -2911,6 +3898,20 @@ index 0bb1b6e05b..9042315492 100644
  lib-noranlib: $(objpfx)libgcc-stubs.a
  
  ifeq ($(build-shared),yes)
+diff --git a/sysdeps/generic/dl-cache.h b/sysdeps/generic/dl-cache.h
+index 972ab32b86..b1de245438 100644
+--- a/sysdeps/generic/dl-cache.h
++++ b/sysdeps/generic/dl-cache.h
+@@ -321,6 +321,9 @@ cache_extension_load (const struct cache_file_new *cache,
+ 		      struct cache_extension_all_loaded *loaded)
+ {
+   memset (loaded, 0, sizeof (*loaded));
++  if (cache == NULL)
++    /* Old-format cache without a new-format header, so no extensions.  */
++    return true;
+   if (cache->extension_offset == 0)
+     /* No extensions present.  This is not a format error.  */
+     return true;
 diff --git a/sysdeps/ieee754/dbl-64/e_sinh.c b/sysdeps/ieee754/dbl-64/e_sinh.c
 index 1643f3f504..638e3d6a6d 100644
 --- a/sysdeps/ieee754/dbl-64/e_sinh.c
@@ -3012,6 +4013,53 @@ index 70e3b32dc6..1c500ad581 100644
  #ifndef __LONG_DOUBLE_128__
  # error "compiler did not predefine __LONG_DOUBLE_128__ as expected"
  #endif
+diff --git a/sysdeps/m68k/m680x0/fpu/e_fmod.c b/sysdeps/m68k/m680x0/fpu/e_fmod.c
+index 9ad6924422..faac7c79e3 100644
+--- a/sysdeps/m68k/m680x0/fpu/e_fmod.c
++++ b/sysdeps/m68k/m680x0/fpu/e_fmod.c
+@@ -33,7 +33,7 @@ __fmod (double x, double y)
+ 			&& !is_nan (hx)))
+     return __math_invalid (x);
+ 
+-  return __m81_u(fmod)(x, y);
++  return __m81_u(__ieee754_fmod)(x, y);
+ }
+ strong_alias (__fmod, __ieee754_fmod)
+ libm_alias_finite (__ieee754_fmod, __fmod)
+diff --git a/sysdeps/m68k/m680x0/fpu/e_fmodf.c b/sysdeps/m68k/m680x0/fpu/e_fmodf.c
+index a3bd24b71f..98797e0887 100644
+--- a/sysdeps/m68k/m680x0/fpu/e_fmodf.c
++++ b/sysdeps/m68k/m680x0/fpu/e_fmodf.c
+@@ -34,7 +34,7 @@ __fmodf (float x, float y)
+ 			&& !is_nan (hx)))
+     return __math_invalidf (x);
+ 
+-  return __m81_u(fmodf)(x, y);
++  return __m81_u(__ieee754_fmodf)(x, y);
+ }
+ strong_alias (__fmodf, __ieee754_fmodf)
+ versioned_symbol (libm, __fmodf, fmodf, GLIBC_2_43);
+diff --git a/sysdeps/m68k/m680x0/fpu/w_fmod_compat.c b/sysdeps/m68k/m680x0/fpu/w_fmod_compat.c
+deleted file mode 100644
+index 57f38091e6..0000000000
+--- a/sysdeps/m68k/m680x0/fpu/w_fmod_compat.c
++++ /dev/null
+@@ -1,15 +0,0 @@
+-/* m68k provides an optimized __ieee752_fmod.  */
+-#include <math-svid-compat.h>
+-#ifdef SHARED
+-# undef SHLIB_COMPAT
+-# define SHLIB_COMPAT(a, b, c) 1
+-# undef LIBM_SVID_COMPAT
+-# define LIBM_SVID_COMPAT 1
+-# undef compat_symbol
+-# define compat_symbol(a, b, c, d)
+-#include <math/w_fmod_compat.c>
+-libm_alias_double (__fmod_compat, fmod)
+-#else
+-#include <math-type-macros-double.h>
+-#include <w_fmod_template.c>
+-#endif
 diff --git a/sysdeps/mach/hurd/i386/localplt.data b/sysdeps/mach/hurd/i386/localplt.data
 index 2befcd3748..5b9413422d 100644
 --- a/sysdeps/mach/hurd/i386/localplt.data
@@ -3112,6 +4160,100 @@ index fda28cd983..cc39118d12 100644
  ld.so: _hurd_intr_rpc_mach_msg
  ld.so: __errno_location
  ld.so: _dl_init_first
+diff --git a/sysdeps/powerpc/powerpc32/__longjmp-common.S b/sysdeps/powerpc/powerpc32/__longjmp-common.S
+index eb228bf4fe..f1da933704 100644
+--- a/sysdeps/powerpc/powerpc32/__longjmp-common.S
++++ b/sysdeps/powerpc/powerpc32/__longjmp-common.S
+@@ -30,13 +30,13 @@ ENTRY (__longjmp_symbol)
+ 
+ #if defined PTR_DEMANGLE || defined CHECK_SP
+ 	lwz r24,(JB_GPR1*4)(r3)
++# ifdef PTR_DEMANGLE
++	PTR_DEMANGLE (r24, r25)
++# endif
+ # ifdef CHECK_SP
+-#  ifdef PTR_DEMANGLE
+-	PTR_DEMANGLE3 (r24, r24, r25)
+-#  endif
+ 	CHECK_SP (r24)
+-	mr r1,r24
+ # endif
++	mr r1,r24
+ #else
+ 	lwz r1,(JB_GPR1*4)(r3)
+ #endif
+@@ -49,9 +49,6 @@ ENTRY (__longjmp_symbol)
+ 	lwz r19,((JB_GPRS+19-14)*4)(r3)
+ 	lwz r20,((JB_GPRS+20-14)*4)(r3)
+ #ifdef PTR_DEMANGLE
+-# ifndef CHECK_SP
+-	PTR_DEMANGLE3 (r1, r24, r25)
+-# endif
+ 	PTR_DEMANGLE2 (r0, r25)
+ #endif
+ 	/* longjmp/longjmp_target probe expects longjmp first argument (4@3),
+diff --git a/sysdeps/powerpc/powerpc32/fpu/__longjmp-common.S b/sysdeps/powerpc/powerpc32/fpu/__longjmp-common.S
+index c5acc1610c..8e383cc997 100644
+--- a/sysdeps/powerpc/powerpc32/fpu/__longjmp-common.S
++++ b/sysdeps/powerpc/powerpc32/fpu/__longjmp-common.S
+@@ -114,13 +114,13 @@ L(no_vmx):
+ #endif
+ #if defined PTR_DEMANGLE || defined CHECK_SP
+ 	lwz r24,(JB_GPR1*4)(r3)
++# ifdef PTR_DEMANGLE
++	PTR_DEMANGLE (r24, r25)
++# endif
+ # ifdef CHECK_SP
+-#  ifdef PTR_DEMANGLE
+-	PTR_DEMANGLE3 (r24, r24, r25)
+-#  endif
+ 	CHECK_SP (r24)
+-	mr r1,r24
+ # endif
++	mr r1,r24
+ #else
+ 	lwz r1,(JB_GPR1*4)(r3)
+ #endif
+@@ -140,9 +140,6 @@ L(no_vmx):
+ 	lwz r20,((JB_GPRS+6)*4)(r3)
+ 	lfd fp20,((JB_FPRS+6*2)*4)(r3)
+ #ifdef PTR_DEMANGLE
+-# ifndef CHECK_SP
+-	PTR_DEMANGLE3 (r1, r24, r25)
+-# endif
+ 	PTR_DEMANGLE2 (r0, r25)
+ #endif
+ 	/* longjmp/longjmp_target probe expects longjmp first argument (4@3),
+diff --git a/sysdeps/powerpc/powerpc64/__longjmp-common.S b/sysdeps/powerpc/powerpc64/__longjmp-common.S
+index 99b2718677..fe8488fcac 100644
+--- a/sysdeps/powerpc/powerpc64/__longjmp-common.S
++++ b/sysdeps/powerpc/powerpc64/__longjmp-common.S
+@@ -115,19 +115,15 @@ L(no_vmx):
+ #endif
+ #if defined PTR_DEMANGLE || defined CHECK_SP
+ 	ld r22,(JB_GPR1*8)(r3)
+-#else
+-	ld r1,(JB_GPR1*8)(r3)
+-#endif
+-#ifdef PTR_DEMANGLE
+-# ifdef CHECK_SP
+-	PTR_DEMANGLE3 (r22, r22, r25)
+-# else
+-	PTR_DEMANGLE3 (r1, r22, r25)
++# ifdef PTR_DEMANGLE
++	PTR_DEMANGLE (r22, r25)
+ # endif
+-#endif
+-#ifdef CHECK_SP
++# ifdef CHECK_SP
+ 	CHECK_SP (r22)
++# endif
+ 	mr r1,r22
++#else
++	ld r1,(JB_GPR1*8)(r3)
+ #endif
+ 	ld r2,(JB_GPR2*8)(r3)
+ 	ld r0,(JB_LR*8)(r3)
 diff --git a/sysdeps/unix/sysdep.h b/sysdeps/unix/sysdep.h
 index a6ce5348ec..f0f271ec02 100644
 --- a/sysdeps/unix/sysdep.h
@@ -3228,6 +4370,46 @@ index a6ce5348ec..f0f271ec02 100644
  
  /* Issue a cancellable syscall defined by syscall number NAME plus any other
     argument required.  If an error occurs its value is returned as an negative
+diff --git a/sysdeps/unix/sysv/linux/alpha/makecontext.S b/sysdeps/unix/sysv/linux/alpha/makecontext.S
+index b0479315d5..1de0dd2653 100644
+--- a/sysdeps/unix/sysv/linux/alpha/makecontext.S
++++ b/sysdeps/unix/sysv/linux/alpha/makecontext.S
+@@ -38,6 +38,9 @@ ENTRY(__makecontext)
+ 	s8addq	$1, 0, $2
+ 	subq	$8, $2, $8
+ 
++	/* The Alpha ABI requires a 16-byte-aligned stack pointer.  */
++	bic	$8, 15, $8
++
+ 	/* Copy all parameters.  Switch statement header here.  */
+ 	ldah	$3, $jumptable($29)	!gprelhigh
+ 	cmple	$18, 6, $1
+diff --git a/sysdeps/unix/sysv/linux/bits/fcntl-linux-fortify.h b/sysdeps/unix/sysv/linux/bits/fcntl-linux-fortify.h
+index 4c8f3a874e..b12b5b75da 100644
+--- a/sysdeps/unix/sysv/linux/bits/fcntl-linux-fortify.h
++++ b/sysdeps/unix/sysv/linux/bits/fcntl-linux-fortify.h
+@@ -25,7 +25,7 @@
+ extern int __REDIRECT (__openat2_alias, (int __dfd, const char *__filename,
+ 					 const struct open_how *__how,
+ 					 size_t __usize), openat2)
+-     __nonnull ((2, 3));
++     __nonnull ((3));
+ 
+ #if !__fortify_use_clang
+ __errordecl (__openat2_invalid_size,
+diff --git a/sysdeps/unix/sysv/linux/bits/fcntl-linux.h b/sysdeps/unix/sysv/linux/bits/fcntl-linux.h
+index 587b815124..6aaa6cc4e7 100644
+--- a/sysdeps/unix/sysv/linux/bits/fcntl-linux.h
++++ b/sysdeps/unix/sysv/linux/bits/fcntl-linux.h
+@@ -485,7 +485,7 @@ extern int open_by_handle_at (int __mountdirfd, struct file_handle *__handle,
+ extern int openat2 (int __dfd, const char * __filename,
+ 		    const struct open_how * __how,
+ 		    __SIZE_TYPE__ __usize)
+-     __nonnull ((2, 3));
++     __nonnull ((3));
+ 
+ #endif	/* use GNU */
+ 
 diff --git a/sysdeps/unix/sysv/linux/epoll_pwait2.c b/sysdeps/unix/sysv/linux/epoll_pwait2.c
 index 4da03e3e69..76ec1f8a71 100644
 --- a/sysdeps/unix/sysv/linux/epoll_pwait2.c
@@ -3279,6 +4461,32 @@ index 42347a66fc..ca0f82da08 100644
  #if LDBL_MANT_DIG != 106
  # error "compiler doesn't implement IBM extended format of long double"
  #endif
+diff --git a/sysdeps/unix/sysv/linux/powerpc/pointer_guard-asm.h b/sysdeps/unix/sysv/linux/powerpc/pointer_guard-asm.h
+index 962ad10e59..cb3e031467 100644
+--- a/sysdeps/unix/sysv/linux/powerpc/pointer_guard-asm.h
++++ b/sysdeps/unix/sysv/linux/powerpc/pointer_guard-asm.h
+@@ -65,10 +65,6 @@
+ # define PTR_MANGLE2(reg, tmpreg) \
+ 	xor	reg,tmpreg,reg; \
+ 	PTR_ROT_MANGLE (reg, reg)
+-# define PTR_MANGLE3(destreg, reg, tmpreg) \
+-	PTR_GUARD_LOAD (tmpreg); \
+-	xor	destreg,tmpreg,reg; \
+-	PTR_ROT_MANGLE (destreg, destreg)
+ # define PTR_DEMANGLE(reg, tmpreg) \
+ 	PTR_GUARD_LOAD (tmpreg); \
+ 	PTR_ROT_DEMANGLE (reg, reg); \
+@@ -76,10 +72,6 @@
+ # define PTR_DEMANGLE2(reg, tmpreg) \
+ 	PTR_ROT_DEMANGLE (reg, reg); \
+ 	xor	reg,tmpreg,reg
+-# define PTR_DEMANGLE3(destreg, reg, tmpreg) \
+-	PTR_GUARD_LOAD (tmpreg); \
+-	PTR_ROT_DEMANGLE (destreg, reg); \
+-	xor	destreg,tmpreg,destreg
+ #endif
+ 
+ #endif /* POINTER_GUARD_ASM_H */
 diff --git a/sysdeps/unix/sysv/linux/recvmmsg.c b/sysdeps/unix/sysv/linux/recvmmsg.c
 index 6fbe4b80aa..6a89f914c2 100644
 --- a/sysdeps/unix/sysv/linux/recvmmsg.c
@@ -3432,6 +4640,23 @@ index 232e388d32..b4434deb0c 100644
  sysdep_routines += __longjmp_cancel
  endif
  
+diff --git a/sysdeps/x86_64/Makefile b/sysdeps/x86_64/Makefile
+index ff0463d7ca..dfb344d74a 100644
+--- a/sysdeps/x86_64/Makefile
++++ b/sysdeps/x86_64/Makefile
+@@ -467,10 +467,12 @@ $(objpfx)tst-shstk-legacy-1e-static.out: \
+ 	$(SHELL) $< $(common-objpfx) 2> $@; \
+ 	$(evaluate-test)
+ tst-shstk-legacy-1f-ENV = GLIBC_TUNABLES=glibc.cpu.hwcaps=SHSTK
++LDFLAGS-tst-shstk-legacy-1f = -Wl,--no-as-needed
+ $(objpfx)tst-shstk-legacy-1f: $(objpfx)tst-shstk-legacy-mod-1.so
+ $(objpfx)tst-shstk-legacy-mod-1.so: \
+   $(objpfx)tst-shstk-legacy-mod-1.os \
+   $(objpfx)tst-shstk-legacy-1-extra.os
++LDFLAGS-tst-shstk-legacy-1g = -Wl,--no-as-needed
+ $(objpfx)tst-shstk-legacy-1g: $(objpfx)tst-shstk-legacy-mod-1.so
+ $(objpfx)tst-shstk-legacy-1g.out: \
+   $(..)/sysdeps/x86_64/tst-shstk-legacy-1g.sh $(objpfx)tst-shstk-legacy-1g
 diff --git a/sysdeps/x86_64/fpu/multiarch/s_tanh-fma.c b/sysdeps/x86_64/fpu/multiarch/s_tanh-fma.c
 index 1b808b1227..1e6b33740a 100644
 --- a/sysdeps/x86_64/fpu/multiarch/s_tanh-fma.c
