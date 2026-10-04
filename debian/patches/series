@@ -48,6 +48,7 @@ hurd-i386/git-tst-backtrace.diff
 hurd-i386/git-time_bits_i386.diff
 hurd-i386/git-time_bits_i386_32.diff
 hurd-i386/git-setreugid.diff
+hurd-i386/git-xfail-setpshared.diff
 
 i386/local-biarch.diff
 i386/unsubmitted-quiet-ldconfig.diff

@@ -1,3 +1,18 @@
+glibc (2.44-3) experimental; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/rules.d/build.mk: only pass --enable-cet=permissive on Linux.
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Remove POSIX aliases to some spawn functions added in the initial
+      2.44 release.
+    - Fix intermittent nptl/tst-cancel32 failure on LoongArch.
+
+  [ Samuel Thibault ]
+  * debian/patches/hurd-i386/git-xfail-setpshared.diff: Fix xfailing tests
+    using setpshared.
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sun, 04 Oct 2026 14:05:32 +0200
+
 glibc (2.44-2) experimental; urgency=medium
 
   [ Samuel Thibault ]
@@ -49,6 +64,23 @@ glibc (2.44-1) experimental; urgency=medium
   * debian/patches/hurd-i386/submitted-net.diff: rebased.
 
  -- Aurelien Jarno <aurel32@debian.org>  Mon, 10 Aug 2026 15:02:03 +0200
+
+glibc (2.43-7) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * debian/patches/git-updates.diff: update from upstream stable branch:
+    - Don't call clearenv() from __libc_setenv_freemem()
+    - Fixed a stack overflow in nscd that can be triggered by large DNS
+      responses from malicious servers (CVE-2026-89092).  Closes: #1147395.
+    - Fix memory corruption on realloc with no mremap.
+    - Fix a TOCTOU race condition in the dynamic loader (CVE-2026-86805).
+      Closes: #1148727.
+    - Fix a stack overflow in the dynamic loader (CVE-2026-95818).  Closes:
+      #1148728.
+    - Fix one byte overread in POWER8 version of strncasecmp()
+      (CVE-2026-97399).  Closes: #1149647
+
+ -- Aurelien Jarno <aurel32@debian.org>  Sat, 03 Oct 2026 15:48:56 +0200
 
 glibc (2.43-6) unstable; urgency=medium
 

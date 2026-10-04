@@ -131,7 +131,7 @@ endif
 		$(if $(filter $(threads),no),--disable-nscd) \
 		$(if $(filter $(call xx,mvec),no),--disable-mathvec) \
 		$(if $(filter -Wno-error,$(call dpkg_host_buildflags, CFLAGS)),--disable-werror) \
-		$(if $(filter -fcf-protection,$(call dpkg_host_buildflags, CFLAGS)),--enable-cet=permissive) \
+		$(if $(and $(filter linux,$(DEB_HOST_ARCH_OS)),$(filter -fcf-protection,$(call dpkg_host_buildflags, CFLAGS))),--enable-cet=permissive) \
 		$(if $(filter -fstack-protector,$(call dpkg_host_buildflags, CFLAGS)),--enable-stack-protector=yes) \
 		$(if $(filter -fstack-protector-all,$(call dpkg_host_buildflags, CFLAGS)),--enable-stack-protector=all) \
 		$(if $(filter -fstack-protector-strong,$(call dpkg_host_buildflags, CFLAGS)),--enable-stack-protector=strong) \
