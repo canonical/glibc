@@ -85,6 +85,11 @@ Note there might be some false positives in there, e.g. steam-utils.
 
 The usual suspect list is dante, libnss-db, wcc, zzuf
 
+Also some toolchain-related repacking of libc need to be bumped.
+Those are namely: cross-toolchain-base{,-ports} and can be identified with:
+
+apt-file search libc.so.6 | cut -d: -f1 | xargs  apt-cache show | grep Source
+
 # Dealing with upstream release branches
 
 Upstream does not publish point releases and expect people to track stable release branches instead.

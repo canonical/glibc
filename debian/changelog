@@ -1,3 +1,31 @@
+glibc (2.44-1ubuntu2) stonking; urgency=medium
+
+  * fixes gettext ftbfs. (LP: #2167365)
+  * d/p/git-updates.diff: pull upstream stable branch
+    - powerpc: Fix one byte overread in strncasecmp (bug 34683, CVE-2026-97399)
+    - realloc: Fix mmap non-mremap reallocation case [BZ #34697]
+    - CVE-2026-89092: nscd: replace alloca with malloc in aicache, hstcache
+    - Revert "posix: Add POSIX aliases to some spawn functions" (BZ 34437)
+    - stdlib: Don't call clearenv from __libc_setenv_freemem
+    - elf: Open the normalized $ORIGIN rpath in AT_SECURE programs (BZ 34360)
+    - resolv: Fix assertion failure on search list truncation [BZ 31026, CVE-2026-8674]
+    - fcntl: drop nonnull attribute for openat, openat2's path argument [BZ #34313]
+    - io: drop nonnull attribute for fchmodat, faccessat, fchownat's path argument [BZ #34313]
+    - Revert "io: drop nonnull attribute for fchmodat, faccessat, fchownat's path argument [BZ #34313]"
+    - x86-64: Link tst-shstk-legacy-1{f,g} with -Wl,--no-as-needed
+    - io: drop nonnull attribute for fchmodat, faccessat, fchownat's path argument [BZ #34313]
+    - elf: Do not load cache extensions from an old-format ld.so.cache [BZ #34600]
+    - libio: Fix CVE-2026-18374 heap buffer overflow in ccs= handling
+    - powerpc: Fix preprocessor conditional in soft-float __longjmp (bug 34530)
+    - powerpc: Fix non-atomic stack pointer update in fortified longjmp (bug 34530)
+    - iconvdata: EUC_JISX0213 decoding lacks pending character reset (CVE-2026-80489)
+    - iconvdata: SHIFT_JISX0213 decoding lacks pending character reset (CVE-2026-77117)
+    - stdlib: Fix right-justification in strfmon (bug 34510, CVE-2026-19499)
+    - posix: Remove unnecessary overflow check in wordexp (BZ 34090)
+    - misc: Fix out-of-bounds array write n tdelete (bug 34506)
+
+ -- Simon Poirier <simon.poirier@canonical.com>  Tue, 06 Oct 2026 10:18:36 -0400
+
 glibc (2.44-1ubuntu1) stonking; urgency=medium
 
   * Merge from Debian experimental (LP: #2163528)
