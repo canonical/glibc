@@ -1,0 +1,19 @@
+Description: fix QEMU user-mode emulation due to libresolv alignment issue
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/glibc/+bug/2170563
+Author: Marc Deslauriers <marc.deslauriers@canonical.com>
+Forwarded: no
+
+--- a/resolv/Makefile
++++ b/resolv/Makefile
+@@ -22,6 +22,11 @@ subdir	:= resolv
+ 
+ include ../Makeconfig
+ 
++# Fix alignment issue breaking QEMU. See LP: #2170563
++ifeq ($(config-machine),s390x)
++LDFLAGS-resolv.so += -Wl,-z,max-page-size=0x10000
++endif
++
+ headers	:= resolv.h bits/types/res_state.h \
+ 	   netdb.h bits/netdb.h \
+ 	   arpa/nameser.h arpa/nameser_compat.h \
