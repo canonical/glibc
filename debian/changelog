@@ -1,3 +1,54 @@
+glibc (2.39-0ubuntu8.12) noble-security; urgency=medium
+
+  * SECURITY UPDATE: heap buffer overflow
+    - debian/patches/CVE-2026-18374.patch: libio: Fix heap buffer overflow in
+      ccs= handling in libio/fileops.c.
+    - CVE-2026-18374
+  * SECURITY UPDATE: DoS with long domain name
+    - debian/patches/CVE-2026-8674.patch: resolv: Fix assertion failure on
+      search list truncation in resolv/resolv_conf.c,
+      resolv/tst-resolv-res_init-skeleton.c.
+    - CVE-2026-8674
+  * SECURITY UPDATE: TOCTOU in dynamic loader
+    - debian/patches/CVE-2026-86805_95818-pre1.patch: support: Add
+      support_next_to_fault_before support function in support/next_to_fault.c,
+      support/next_to_fault.h.
+    - debian/patches/CVE-2026-86805_95818-pre2.patch: support: Add envp
+      argument to support_capture_subprogram in elf/tst-audit18.c,
+      elf/tst-audit19b.c, elf/tst-audit22.c, elf/tst-audit23.c,
+      elf/tst-audit25a.c, elf/tst-audit25b.c, elf/tst-glibc-hwcaps-2-cache.c,
+      elf/tst-rtld-run-static.c, elf/tst-tunables.c,
+      support/capture_subprocess.h, support/subprocess.h,
+      support/support_capture_subprocess.c, support/support_subprocess.c,
+      support/tst-support_capture_subprocess.c,
+      sysdeps/x86/tst-hwcap-tunables.c.
+    - debian/patches/CVE-2026-86805_95818.patch: elf: Open the normalized
+      $ORIGIN rpath in AT_SECURE programs in elf/Makefile, elf/dl-load.c,
+      elf/dl-path-normalize.h, elf/libtst-origin-secure-mod.c, elf/tst-
+      dl-path-normalize.c, elf/tst-origin-secure-evilmod.c, elf/tst-origin-
+      secure-victim.c, elf/tst-origin-secure.c, elf/tst-origin-secure.h.
+    - CVE-2026-86805
+    - CVE-2026-95818
+  * SECURITY UPDATE: stack overflow in nscd
+    - debian/patches/CVE-2026-89092.patch: nscd: replace alloca with malloc
+      in aicache, hstcache in nscd/aicache.c, nscd/hstcache.c.
+    - CVE-2026-89092
+  * SECURITY UPDATE: crash in strncasecmp on power8
+    - debian/patches/CVE-2026-97399.patch: powerpc: Fix one byte overread in
+      strncasecmp in string/Makefile, string/test-strncasecmp-nonarray.c,
+      sysdeps/powerpc/powerpc64/power8/strcasecmp.S.
+    - CVE-2026-97399
+  * SECURITY UPDATE: arbitrary gettext load location via LANGUAGE var
+    - debian/patches/CVE-2026-84243.patch: intl: Restrict path traversal when
+      using LANGUAGE env var in intl/Makefile, intl/dcigettext.c,
+      intl/tst-gettext-path-traversal.c.
+    - CVE-2026-84243
+  * Fix s390x QEMU user-mode emulation issue (LP: #2170563)
+    - debian/patches/s390x-alignment.patch: set max-page-size on s390x in
+      resolv/Makefile.
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Thu, 05 Nov 2026 12:18:26 -0500
+
 glibc (2.39-0ubuntu8.9) noble-security; urgency=medium
 
   * SECURITY UPDATE: Buffer overflow in strfmon right-justification padding
