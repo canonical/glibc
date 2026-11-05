@@ -1,3 +1,16 @@
+glibc (2.44-1ubuntu2.1) stonking-security; urgency=medium
+
+  * SECURITY UPDATE: arbitrary gettext load location via LANGUAGE var
+    - debian/patches/CVE-2026-84243.patch: intl: Restrict path traversal when
+      using LANGUAGE env var in intl/Makefile, intl/dcigettext.c,
+      intl/tst-gettext-path-traversal.c.
+    - CVE-2026-84243
+  * Fix s390x QEMU user-mode emulation issue (LP: #2170563)
+    - debian/patches/s390x-alignment.patch: set max-page-size on s390x in
+      resolv/Makefile.
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Thu, 05 Nov 2026 12:18:26 -0500
+
 glibc (2.44-1ubuntu2) stonking; urgency=medium
 
   * fixes gettext ftbfs. (LP: #2167365)

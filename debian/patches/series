@@ -86,3 +86,5 @@ ubuntu/localedata/ug_CN@latin.diff
 ubuntu/local-pldd-root.diff
 ubuntu/apparmor/0002-tests-handle-AppArmor-userns-mitigation.patch
 ubuntu/tst-spawn-coreutils-rs.patch
+CVE-2026-84243.patch
+s390x-alignment.patch
