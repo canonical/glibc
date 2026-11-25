@@ -1,3 +1,17 @@
+glibc (2.44-1ubuntu3) tenacious; urgency=medium
+
+  * Import stonking-security changes for tenacious, bumping version ahead.
+  * SECURITY UPDATE: arbitrary gettext load location via LANGUAGE var
+    - debian/patches/CVE-2026-84243.patch: intl: Restrict path traversal when
+      using LANGUAGE env var in intl/Makefile, intl/dcigettext.c,
+      intl/tst-gettext-path-traversal.c.
+    - CVE-2026-84243
+  * Fix s390x QEMU user-mode emulation issue (LP: #2170563)
+    - debian/patches/s390x-alignment.patch: set max-page-size on s390x in
+      resolv/Makefile.
+
+ -- Simon Poirier <simpoir@ubuntu.com>  Wed, 25 Nov 2026 12:51:12 -0500
+
 glibc (2.44-1ubuntu2) stonking; urgency=medium
 
   * fixes gettext ftbfs. (LP: #2167365)
